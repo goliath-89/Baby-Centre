@@ -54,6 +54,10 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px}
 header.top h1{font-size:26px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
 header.top h1{min-width:0;overflow-wrap:anywhere}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.av{border-radius:50%;flex:none;object-fit:cover;display:inline-grid;place-items:center;background:var(--sleep-bg);color:var(--sleep);font-weight:800;line-height:1}
+.photo{display:flex;align-items:center;gap:14px}.photo .rowbtns{flex:1}
+header.top{align-items:center}
 header.top .age{color:var(--ink-2);font-weight:600}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin:0;font-weight:700}
 .sec{display:flex;flex-direction:column;gap:8px}
@@ -180,7 +184,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .set{display:flex;flex-direction:column;gap:12px}
 .set .line{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap}
-.set .line>span:first-child{flex:1 1 150px;min-width:0}
+.set .line>span:first-child,.set .line>.av+span{flex:1 1 150px;min-width:0}
 </style>
 </head>
 <body>
@@ -191,6 +195,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 <div id="snack" hidden role="status"></div>
 <input type="file" id="import-file" accept="application/json,.json" hidden>
 <input type="file" id="cry-file" accept="audio/*" hidden>
+<input type="file" id="photo-file" accept="image/*" hidden>
 <input type="file" id="xlsx-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 
 <script id="core">
@@ -435,6 +440,8 @@ var Core = (function () {
 
   /* ---- sync: every record carries `u` (last change, ms). Newest change wins per record. ----
      Keys: e_<id> an entry (or {del:1,u} once deleted), m_<id> a milestone, baby the profile. */
+  // A profile picture is a small inline image; anything else arriving from a backup or a partner is dropped.
+  function okPhoto(p) { return typeof p === 'string' && p.length < 300000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(p); }
   function strip(e) { var o = {}; for (var k in e) if (k !== 'u') o[k] = e[k]; return JSON.stringify(o); }
   function stamp(prev, next, now) {
     var dirty = {}, pm = {}; (prev.events || []).forEach(function (e) { pm[e.id] = e; });
@@ -449,13 +456,13 @@ var Core = (function () {
     Object.keys(a).concat(Object.keys(b)).forEach(function (id) { ids[id] = 1; });
     Object.keys(ids).forEach(function (id) { if ((a[id] || '') !== (b[id] || '')) { next.msU[id] = now; dirty['m_' + id] = 1; } });
     if (next.baby) {
-      if (!prev.baby || prev.baby.name !== next.baby.name || prev.baby.dob !== next.baby.dob) { next.baby.u = now; dirty.baby = 1; }
+      if (!prev.baby || prev.baby.name !== next.baby.name || prev.baby.dob !== next.baby.dob || (prev.baby.photo || '') !== (next.baby.photo || '')) { next.baby.u = now; dirty.baby = 1; }
       else next.baby.u = prev.baby.u || next.baby.u || 1;
     }
     return Object.keys(dirty);
   }
   function record(state, key) {
-    if (key === 'baby') return state.baby ? { name: state.baby.name, dob: state.baby.dob, u: state.baby.u || 1 } : null;
+    if (key === 'baby') return state.baby ? { name: state.baby.name, dob: state.baby.dob, photo: state.baby.photo || '', u: state.baby.u || 1 } : null;
     var id = key.slice(2);
     if (key[0] === 'm') return (state.msU || {})[id] ? { d: state.milestones[id] || '', u: state.msU[id] } : null;
     for (var i = 0; i < state.events.length; i++) if (state.events[i].id === id) return state.events[i];
@@ -475,7 +482,7 @@ var Core = (function () {
     var drop = {};
     Object.keys(map || {}).forEach(function (key) {
       var v = map[key]; if (!v || typeof v !== 'object' || !(v.u > 0)) return;
-      if (key === 'baby') { if (v.name && v.dob && v.u > ((state.baby && state.baby.u) || 0)) { state.baby = { name: String(v.name), dob: String(v.dob), u: v.u }; n++; } return; }
+      if (key === 'baby') { if (v.name && v.dob && v.u > ((state.baby && state.baby.u) || 0)) { state.baby = { name: String(v.name), dob: String(v.dob), u: v.u }; if (okPhoto(v.photo)) state.baby.photo = v.photo; n++; } return; }
       var id = key.slice(2);
       if (key.slice(0, 2) === 'm_') { if (v.u > (state.msU[id] || 0)) { if (v.d) state.milestones[id] = String(v.d); else delete state.milestones[id]; state.msU[id] = v.u; n++; } return; }
       if (key.slice(0, 2) !== 'e_') return;
@@ -703,7 +710,7 @@ var Core = (function () {
     });
     if (names.baby && names.baby[1]) {
       var bn = names.baby[1][0], bd = time(names.baby[1][1]);
-      if (bn != null && String(bn).trim() && !isNaN(bd)) { if (bd > now) errors.push('Baby: the date of birth is in the future.'); else { next.baby = { name: String(bn).trim().slice(0, 30), dob: ymd(bd), u: (state.baby && state.baby.u) || 1 }; next.demo = false; } }
+      if (bn != null && String(bn).trim() && !isNaN(bd)) { if (bd > now) errors.push('Baby: the date of birth is in the future.'); else { next.baby = { name: String(bn).trim().slice(0, 30), dob: ymd(bd), u: (state.baby && state.baby.u) || 1 }; if (state.baby && state.baby.photo && !state.demo) next.baby.photo = state.baby.photo; next.demo = false; } }
       else if (bn != null || names.baby[1][1] != null) errors.push('Baby: enter both the name and the date of birth.');
     }
     next.events = (feeds || keep('feed')).concat(sleeps || keep('sleep'), naps || keep('diaper'), cries || keep('cry'));
@@ -730,6 +737,7 @@ var Core = (function () {
     if (!Array.isArray(d.events)) throw new Error('This backup has no entries list.');
     while (v < SCHEMA) { d = MIGRATIONS[v](d); v++; }
     var b = blank();
+    if (d.baby && d.baby.photo && !okPhoto(d.baby.photo)) delete d.baby.photo;
     return { baby: d.baby || null, demo: !!d.demo, settings: Object.assign(b.settings, d.settings || {}), events: d.events.filter(function (e) { return e && e.id && e.type && e.start; }), milestones: d.milestones || {}, tombs: d.tombs || {}, msU: d.msU || {} };
   }
   var _id = 0;
@@ -760,7 +768,7 @@ var Core = (function () {
   return { SCHEMA: SCHEMA, MIN: MIN, HOUR: HOUR, DAY: DAY, T: T, median: median, clamp: clamp, dayStart: dayStart, ageDays: ageDays, ageMonths: ageMonths, ageLabel: ageLabel,
     wakeWindow: wakeWindow, feedGapDefault: feedGapDefault, sleepNeed: sleepNeed, feedGuide: feedGuide, bandForAge: bandForAge, isMilk: isMilk, sorted: sorted, last: last, active: active,
     predictFeed: predictFeed, predictSleep: predictSleep, dailyStats: dailyStats, analyzeCry: analyzeCry, classifyCry: classifyCry, cryContext: cryContext,
-    CAUSES: CAUSES, MS: MS, BANDS: BANDS, CATS: CATS, DIAPERS: DIAPERS, stamp: stamp, record: record, syncKeys: syncKeys, mergeAll: mergeAll, needPush: needPush,
+    CAUSES: CAUSES, MS: MS, BANDS: BANDS, CATS: CATS, DIAPERS: DIAPERS, okPhoto: okPhoto, stamp: stamp, record: record, syncKeys: syncKeys, mergeAll: mergeAll, needPush: needPush,
     xlsxWrite: xlsxWrite, xlsxRead: xlsxRead, toSheets: toSheets, fromSheets: fromSheets, toSerial: toSerial, fromSerial: fromSerial, blank: blank, migrate: migrate, uid: uid, demoData: demoData };
 })();
 if (typeof module !== 'undefined') module.exports = Core;
@@ -974,6 +982,24 @@ if (typeof module !== 'undefined') module.exports = Core;
     spoon: '<path d="M12 12v9M12 12c-2.500 0-4-2-4-4.500S9.500 3 12 3s4 2 4 4.500-1.500 4.500-4 4.500z"/>'
   };
   function icon(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + I[n] + '</svg>'; }
+
+  function avatar(b, size) {
+    var st = ' style="width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px"';
+    return b && C.okPhoto(b.photo) ? '<img class="av" alt=""' + st + ' src="' + b.photo + '">' : '<span class="av" aria-hidden="true"' + st + '>' + esc(((b && b.name) || '?').trim().charAt(0).toUpperCase()) + '</span>';
+  }
+  // Crops the middle square of a picture and shrinks it to 256 px, so it is small enough to store and share.
+  function readPhoto(file, done) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      try {
+        var side = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 256;
+        c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
+        var out = c.toDataURL('image/jpeg', 0.82); URL.revokeObjectURL(url); done(C.okPhoto(out) ? out : null);
+      } catch (e) { done(null); }
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); done(null); };
+    img.src = url;
+  }
 
   /* ---------- descriptions ---------- */
   var DIAPER = C.DIAPERS;
@@ -1298,7 +1324,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   function vMore(now) {
     var b = state.baby;
-    return '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line"><span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
+    return '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line">' + avatar(b, 48) + '<span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
       '<section class="sec"><h2>Bottle units</h2>' + seg('units', [['ml', 'Millilitres'], ['oz', 'Ounces']], state.settings.units) + '</section>' +
       '<section class="sec"><h2>Appearance</h2>' + seg('theme', [['system', 'Match phone'], ['light', 'Light'], ['dark', 'Dark']], state.settings.theme) + '</section>' +
       vShare() +
@@ -1372,8 +1398,10 @@ if (typeof module !== 'undefined') module.exports = Core;
     } else if (s.name === 'add') {
       h = sheetWrap('Add past entry', '<div class="seg">' + ADD.map(function (a) { return '<button aria-pressed="' + (a[0] === s.kind) + '" data-action="add-kind:' + a[0] + '">' + a[1] + '</button>'; }).join('') + '</div>' + eventForm(s.ev, now) + err + '<button class="btn pri wide" data-action="save-edit">Add entry</button>');
     } else if (s.name === 'profile') {
-      var b = state.demo ? { name: '', dob: '' } : state.baby;
-      h = sheetWrap(state.demo ? 'Your baby' : 'Edit baby', (state.demo ? '<p class="note" style="margin:0">This clears the sample data and starts your own log.</p>' : '') + field('Name', '<input class="in1" type="text" id="f-name" maxlength="30" autocomplete="off" value="' + esc(b.name) + '">') + field('Date of birth', '<input class="in1" type="date" id="f-dob" max="' + toInput(now).slice(0, 10) + '" value="' + esc(b.dob) + '">') + err + '<button class="btn pri wide" data-action="save-profile">' + (state.demo ? 'Start tracking' : 'Save') + '</button>');
+      var b = { name: s.nameVal, dob: s.dobVal, photo: s.photo };
+      h = sheetWrap(state.demo ? 'Your baby' : 'Edit baby', (state.demo ? '<p class="note" style="margin:0">This clears the sample data and starts your own log.</p>' : '') +
+        '<div class="photo">' + avatar(b, 84) + '<div class="rowbtns"><button class="btn" data-action="photo-pick">' + (s.photo ? 'Change photo' : 'Add photo') + '</button>' + (s.photo ? '<button class="btn" data-action="photo-remove">Remove</button>' : '') + '</div></div>' +
+        field('Name', '<input class="in1" type="text" id="f-name" maxlength="30" autocomplete="off" value="' + esc(b.name) + '">') + field('Date of birth', '<input class="in1" type="date" id="f-dob" max="' + toInput(now).slice(0, 10) + '" value="' + esc(b.dob) + '">') + err + '<button class="btn pri wide" data-action="save-profile">' + (state.demo ? 'Start tracking' : 'Save') + '</button>');
     } else if (s.name === 'export') {
       h = sheetWrap('Save backup', '<p class="note" style="margin:0">' + (s.saved ? 'Check your downloads for the backup file. If nothing appeared, copy the text below instead.' : 'Download a backup file, or copy the backup text and keep it in a note or email.') + '</p><textarea class="in1" id="f-backup" readonly>' + esc(s.text) + '</textarea><div class="rowbtns"><button class="btn" data-action="export-file">Download file</button><button class="btn pri" data-action="export-copy">Copy text</button></div>');
     } else if (s.name === 'import') {
@@ -1409,7 +1437,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function render() {
     var now = Date.now(), v = ui.view;
     applyTheme();
-    $('top').innerHTML = '<h1>' + (v === 'home' ? esc(state.baby.name) : TITLES[v]) + '</h1><span class="age">' + (Sync.status() === 'off' ? '' : '<i class="sdot s-' + Sync.status() + '" title="' + syncLine() + '"></i>') + (v === 'home' ? '' : esc(state.baby.name) + ' · ') + C.ageLabel(state.baby.dob, now) + '</span>';
+    $('top').innerHTML = (v === 'home' ? '<div class="who">' + avatar(state.baby, 48) + '<h1>' + esc(state.baby.name) + '</h1></div>' : '<h1>' + TITLES[v] + '</h1>') + '<span class="age">' + (Sync.status() === 'off' ? '' : '<i class="sdot s-' + Sync.status() + '" title="' + syncLine() + '"></i>') + (v === 'home' ? '' : esc(state.baby.name) + ' · ') + C.ageLabel(state.baby.dob, now) + '</span>';
     $('view').innerHTML = v === 'home' ? vHome(now) : v === 'trends' ? vTrends(now) : v === 'cry' ? vCry(now) : v === 'milestones' ? vMilestones(now) : vMore(now);
     var dock = $('dock'); dock.hidden = v !== 'home'; if (v === 'home') dock.innerHTML = vDock(now);
     $('app').className = v === 'home' ? '' : 'nodock';
@@ -1471,15 +1499,17 @@ if (typeof module !== 'undefined') module.exports = Core;
     'delete': function () { var id = ui.sheet.ev.id; closeSheet(); if (ui.cry.id === id) ui.cry = { phase: 'idle' }; commit('Entry deleted', function () { state.events = state.events.filter(function (x) { return x.id !== id; }); }); },
     'sheet-close': function () { closeSheet(); },
     scrim: function (_, ev) { if (ev.target.id === 'scrim') closeSheet(); },
-    'profile-open': function () { openSheet({ name: 'profile' }); },
+    'profile-open': function () { var b = state.demo ? {} : state.baby; openSheet({ name: 'profile', nameVal: b.name || '', dobVal: b.dob || '', photo: b.photo || '' }); },
+    'photo-pick': function () { $('photo-file').click(); },
+    'photo-remove': function () { keepProfile(); ui.sheet.photo = ''; renderSheet(); },
     'save-profile': function () {
       var name = $('f-name').value.trim(), dob = $('f-dob').value, now = Date.now();
       if (!name) return sheetErr('Enter your baby’s name.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || isNaN(new Date(dob + 'T12:00').getTime())) return sheetErr('Enter the date of birth.');
       if (new Date(dob + 'T00:00').getTime() > now) return sheetErr('The date of birth is in the future.');
       if (now - new Date(dob + 'T00:00').getTime() > 3 * 366 * DAY) return sheetErr('This app covers the first year. Check the date of birth.');
-      var wasDemo = state.demo; closeSheet(); ui.band = null;
-      commit(wasDemo ? 'Welcome, ' + name : 'Profile saved', function () { if (wasDemo) { var set = state.settings; state = C.blank(); state.settings = set; } state.baby = { name: name, dob: dob }; state.demo = false; });
+      var wasDemo = state.demo, photo = ui.sheet.photo; closeSheet(); ui.band = null;
+      commit(wasDemo ? 'Welcome, ' + name : 'Profile saved', function () { if (wasDemo) { var set = state.settings; state = C.blank(); state.settings = set; } state.baby = { name: name, dob: dob }; if (photo) state.baby.photo = photo; state.demo = false; });
       if (wasDemo) { ui.undo = null; go('home'); }
     },
     units: function (u) { commit(null, function () { state.settings.units = u; }); },
@@ -1555,6 +1585,15 @@ if (typeof module !== 'undefined') module.exports = Core;
       }, function (e) { openSheet({ name: 'xl-errors', errors: [e && e.message ? e.message : 'The file could not be read.'] }); });
     };
     fr.readAsArrayBuffer(f);
+  });
+  function keepProfile() { if (ui.sheet && ui.sheet.name === 'profile') { ui.sheet.nameVal = $('f-name').value; ui.sheet.dobVal = $('f-dob').value; } }
+  $('photo-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f || !ui.sheet || ui.sheet.name !== 'profile') return;
+    readPhoto(f, function (data) {
+      if (!ui.sheet || ui.sheet.name !== 'profile') return;
+      keepProfile(); if (data) ui.sheet.photo = data; renderSheet();
+      if (!data) sheetErr('That picture could not be opened. Try a JPEG or PNG photo.');
+    });
   });
   $('cry-file').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (f) cryUpload(f); });
   window.addEventListener('hashchange', function () { if (joinFromHash()) return; var v = location.hash.slice(1); if (v !== ui.view) go(v); });

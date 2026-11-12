@@ -91,6 +91,18 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await shot('03b-nappies'); await page.locator('#view .row').first().click(); await act('delete'); ok((await text('#tl .empty')).includes('No nappies logged in the last 7 days')); await act('undo');
     await act('show:feed'); eq(await rows(), 4); await act('show:sleep'); eq(await rows(), 2); await act('filter:all'); await noOverflow('filtered timeline');
   });
+  await step('profile photo: pick, crop to a small square, show on home, keep after reload, remove', async () => {
+    eq(await page.locator('#top img.av').count(), 0); eq(await text('#top .av'), 'M');
+    await act('nav:more'); await act('profile-open'); await page.fill('#f-name', 'Mia <b> R'); await page.setInputFiles('#photo-file', path.join(ROOT, 'icon-512.png'));
+    await page.waitForSelector('.sheet img.av'); eq(await page.inputValue('#f-name'), 'Mia <b> R', 'typed name kept while choosing a photo');
+    await page.setInputFiles('#photo-file', path.join(ROOT, 'manifest.webmanifest')); await page.waitForFunction(() => /could not be opened/.test(document.querySelector('#sheet-err')?.textContent || '')); eq(await page.locator('.sheet img.av').count(), 1);
+    await page.fill('#f-name', 'Mia <b>'); await act('save-profile'); await act('nav:home'); await page.waitForSelector('#top img.av');
+    const ph = (await stored()).baby.photo; ok(ph.startsWith('data:image/jpeg;base64,') && ph.length < 60000, 'photo size ' + ph.length);
+    const dim = await page.evaluate(() => { const i = document.querySelector('#top img.av'); return [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width]; }); eq(dim.join(), '256,256,48');
+    await page.reload(); await page.waitForSelector('#top img.av'); await shot('03c-photo'); await noOverflow('home with photo');
+    await act('nav:more'); await act('profile-open'); await shot('03d-profile'); await act('photo-remove'); await act('save-profile'); await act('nav:home'); eq(await page.locator('#top img.av').count(), 0);
+    await act('undo'); await page.waitForSelector('#top img.av');
+  });
   await step('trends reflect the log', async () => {
     await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 5);
     ok(await page.locator('#view svg.chart rect[fill="var(--sleep)"]').count() >= 2, 'sleep blocks drawn'); await shot('04-trends-own');

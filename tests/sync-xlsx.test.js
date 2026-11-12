@@ -53,6 +53,15 @@ test('conflicts: the newest change wins, a late stale copy cannot resurrect a de
   // undo of a delete brings it back everywhere
   edit(a, 400, s => { s.events.push(stale); }); sync(a, b); assert.equal(b.events.length, 1); assert.equal(b.tombs.f1, undefined);
 });
+test('profile photo is shared, survives Excel import, and a bad photo from outside is dropped', async () => {
+  const a = phone(), b = phone(), pic = 'data:image/jpeg;base64,AAAA';
+  const dirty = edit(a, 500, s => { s.baby.photo = pic; }); assert.deepEqual([...dirty], ['baby']);
+  sync(a, b); assert.equal(b.baby.photo, pic);
+  const r = C.fromSheets(await C.xlsxRead(C.xlsxWrite(C.toSheets(a))), a, NOW); assert.equal(r.next.baby.photo, pic);
+  assert.equal(C.mergeAll(b, { baby: { name: 'Mia', dob: '2026-09-03', photo: 'javascript:alert(1)', u: 900 } }), 1); assert.equal(b.baby.photo, undefined);
+  assert.equal(C.migrate({ schemaVersion: 2, data: { baby: { name: 'x', dob: '2026-01-01', photo: '"><script>' }, events: [] } }).baby.photo, undefined);
+  edit(a, 950, s => { delete s.baby.photo; }); sync(a, b); assert.equal(C.record(a, 'baby').photo, '');
+});
 test('needPush lists local records the shared copy is missing or has older; bad remote data is ignored', () => {
   const a = phone(); edit(a, 100, s => s.events.push({ id: 'x', type: 'diaper', kind: 'wet', start: iso(NOW) }));
   assert.deepEqual([...C.needPush(a, {})].sort(), ['baby', 'e_x']);
