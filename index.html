@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D1124">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Baby Centre">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<!--PAGE-START-->
+<title>Baby Centre</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one thumb-reach column. Status up top, a 24-hour ribbon in the middle,
+   every logging action in a dock pinned just above the tab bar. */
+:root{
+  --bg:#EEF1F8; --surface:#FFFFFF; --surface-2:#E2E7F3; --ink:#161B33; --ink-2:#56607F; --line:#D3DAEA;
+  --accent:#3D4FD6; --on-accent:#FFFFFF;
+  --feed:#B85C00; --feed-bg:#FCEAD3; --sleep:#4650C4; --sleep-bg:#E1E4FB;
+  --diaper:#0B7A6F; --diaper-bg:#D5F0EC; --cry:#C22B5E; --cry-bg:#FBDFE8;
+  --mile:#2F7D33; --mile-bg:#DDF1DD; --shadow:0 1px 2px rgba(22,27,51,.06),0 6px 20px rgba(22,27,51,.07);
+  --font:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --r:18px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1124; --surface:#171D38; --surface-2:#232B4D; --ink:#EEF0FA; --ink-2:#A3ACCB; --line:#2C355E;
+  --accent:#93A0FF; --on-accent:#0D1124;
+  --feed:#F5A64D; --feed-bg:#3A2A14; --sleep:#A0A9FF; --sleep-bg:#252C60;
+  --diaper:#55D3C3; --diaper-bg:#12332F; --cry:#FF85AA; --cry-bg:#3F1B2A;
+  --mile:#84D387; --mile-bg:#17331A; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0D1124; --surface:#171D38; --surface-2:#232B4D; --ink:#EEF0FA; --ink-2:#A3ACCB; --line:#2C355E;
+  --accent:#93A0FF; --on-accent:#0D1124;
+  --feed:#F5A64D; --feed-bg:#3A2A14; --sleep:#A0A9FF; --sleep-bg:#252C60;
+  --diaper:#55D3C3; --diaper-bg:#12332F; --cry:#FF85AA; --cry-bg:#3F1B2A;
+  --mile:#84D387; --mile-bg:#17331A; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  color-scheme:dark }
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--font);-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0;touch-action:manipulation}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+#app{max-width:560px;margin:0 auto;padding-block:14px 190px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+#app.nodock{padding-bottom:110px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px}
+header.top h1{font-size:26px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+header.top h1{min-width:0;overflow-wrap:anywhere}
+header.top .age{color:var(--ink-2);font-weight:600}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin:0;font-weight:700}
+.sec{display:flex;flex-direction:column;gap:8px}
+.sechead{display:flex;justify-content:space-between;align-items:center;min-height:32px}
+.link{color:var(--accent);font-weight:700;padding:8px 4px;min-height:44px}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+.banner{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface-2);border-radius:14px;padding:10px 12px;font-weight:600}
+.banner .btn{flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:14px;font-weight:700;background:var(--surface-2);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.danger{background:var(--cry-bg);color:var(--cry)}
+.btn.wide{width:100%;min-height:52px;font-size:16px}
+.btn:active{transform:scale(.97)}
+/* status */
+.status{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.stat .v{font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.stat .s{color:var(--ink-2);font-size:13px;font-weight:600}
+.stat.feed .k{color:var(--feed)} .stat.sleep .k{color:var(--sleep)} .stat.diaper .k{color:var(--diaper)} .stat.cry .k{color:var(--cry)}
+.stat.wide{grid-column:1/-1}
+.live{display:flex;align-items:center;gap:12px;border-radius:var(--r);padding:12px 14px;font-weight:700}
+.live.feed{background:var(--feed-bg);color:var(--feed)} .live.sleep{background:var(--sleep-bg);color:var(--sleep)}
+.live .t{font-size:26px;font-weight:800;line-height:1}
+.live .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.live .btn{background:var(--surface);color:var(--ink)}
+.pulse{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}*{transition:none!important}}
+/* ribbon + charts */
+.chart{width:100%;height:auto;display:block}
+.chart text{font:600 10px var(--font);fill:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--ink-2);font-size:12px;font-weight:600}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* timeline */
+.tl{display:flex;flex-direction:column}
+.tl .day{font-size:12px;font-weight:700;color:var(--ink-2);padding:10px 2px 4px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:9px 2px;min-height:52px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.dot{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none}
+.dot.feed{background:var(--feed-bg);color:var(--feed)} .dot.sleep{background:var(--sleep-bg);color:var(--sleep)}
+.dot.diaper{background:var(--diaper-bg);color:var(--diaper)} .dot.cry{background:var(--cry-bg);color:var(--cry)} .dot.mile{background:var(--mile-bg);color:var(--mile)}
+.row .mid{flex:1;min-width:0}
+.row .ti{font-weight:700}
+.row .su{color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}
+.row .tm{color:var(--ink-2);font-weight:600;font-size:13px;white-space:nowrap}
+.empty{color:var(--ink-2);text-align:center;padding:22px 10px}
+/* dock + nav */
+#dock{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:20;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+#dock .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.qa{position:relative;min-height:64px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;box-shadow:var(--shadow);background:var(--surface)}
+.qa.feed{color:var(--feed)} .qa.sleep{color:var(--sleep)} .qa.diaper{color:var(--diaper)}
+.qa.on.feed{background:var(--feed);color:var(--surface)} .qa.on.sleep{background:var(--sleep);color:var(--surface)}
+.qa .big{font-size:20px;font-weight:800;line-height:1}
+.qa .tag{position:absolute;top:-6px;right:-2px;background:var(--feed);color:var(--surface);font-size:10px;padding:1px 6px;border-radius:8px}
+.qa:active{transform:scale(.95)}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-top:1px solid var(--line);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+#nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:64px}
+#nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;color:var(--ink-2)}
+#nav button[aria-current="page"]{color:var(--accent)}
+#nav .crybtn span.c{width:46px;height:46px;border-radius:50%;background:var(--cry);color:var(--surface);display:grid;place-items:center;margin-top:-18px;box-shadow:var(--shadow)}
+/* sheet */
+#scrim{position:fixed;inset:0;background:rgba(8,10,24,.5);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:18px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-height:92%;overflow:auto}
+.sheet h3{margin:0;font-size:20px;font-weight:800}
+.sheethead{display:flex;justify-content:space-between;align-items:center}
+.x{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2)}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--ink-2)}
+.in1{min-height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px;color:var(--ink);width:100%;min-width:0}
+textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-height:44px;padding:0 10px;border-radius:12px;background:var(--surface-2);font-weight:700;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.stepper{display:grid;grid-template-columns:60px 1fr 60px;gap:10px;align-items:center}
+.stepper button{height:60px;border-radius:16px;background:var(--surface-2);font-size:28px;font-weight:800}
+.stepper .in1{height:60px;text-align:center;font-size:28px;font-weight:800}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.three .btn{min-height:84px;flex-direction:column;background:var(--diaper-bg);color:var(--diaper);font-size:16px}
+.err{color:var(--cry);font-weight:700;font-size:13px}
+.rowbtns{display:flex;gap:10px}.rowbtns .btn{flex:1}
+/* snack */
+#snack{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+#snack button{min-height:40px;padding:0 14px;border-radius:10px;color:var(--bg);background:rgba(128,128,128,.35);font-weight:800}
+/* cry */
+.card.recwrap{display:flex;flex-direction:column;align-items:center;gap:22px;padding:34px 16px 20px}
+.rec{width:176px;height:176px;border-radius:50%;background:var(--cry);color:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:800;font-size:17px;box-shadow:0 0 0 12px var(--cry-bg),var(--shadow);position:relative}
+.rec svg.i{width:44px;height:44px}
+.rec .count{font-size:56px;line-height:1}
+.rec.live{transition:box-shadow .08s}
+.bar{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:6px;background:var(--cry)}
+.cause{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.cause .bar{grid-column:1/-1}
+.cause b{font-size:15px}.cause.top b{font-size:19px}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.note{color:var(--ink-2);font-size:13px}
+.flag{background:var(--cry-bg);color:var(--ink);border-radius:14px;padding:12px 14px;font-size:13px}
+.flag b{color:var(--cry)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:22px;background:var(--surface-2);font-weight:700}
+#sheet-root .chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#sheet-root .chip{padding:0;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.kv div{background:var(--bg);border-radius:12px;padding:8px 4px}
+.kv b{display:block;font-size:17px}.kv span{font-size:11px;color:var(--ink-2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+/* milestones */
+.ms{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:10px 2px;min-height:52px;border-bottom:1px solid var(--line)}
+.ms:last-child{border-bottom:0}
+.ms .box{width:28px;height:28px;border-radius:9px;border:2px solid var(--line);flex:none;display:grid;place-items:center;color:transparent}
+.ms.done .box{background:var(--mile);border-color:var(--mile);color:var(--surface)}
+.ms .d{display:block;color:var(--mile);font-size:12px;font-weight:700}
+.prog{display:flex;align-items:center;gap:12px}
+.prog .bar{flex:1}.prog .bar>i{background:var(--mile)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.set{display:flex;flex-direction:column;gap:12px}
+.set .line{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.set .line>span:first-child{flex:1 1 150px;min-width:0}
+</style>
+</head>
+<body>
+<div id="app"><header class="top" id="top"></header><main id="view" class="sec" style="gap:14px"></main></div>
+<div id="dock" hidden></div>
+<nav id="nav" aria-label="Sections"></nav>
+<div id="sheet-root"></div>
+<div id="snack" hidden role="status"></div>
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+<input type="file" id="cry-file" accept="audio/*" hidden>
+
+<script id="core">
+/* Pure logic: no DOM. Loaded by the app and by the unit tests. */
+var Core = (function () {
+  'use strict';
+  var MIN = 60000, HOUR = 3600000, DAY = 86400000, SCHEMA = 1;
+  function T(x) { return typeof x === 'number' ? x : new Date(x).getTime(); }
+  function median(a) { if (!a.length) return 0; var s = a.slice().sort(function (x, y) { return x - y; }), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  function pct(a, p) { if (!a.length) return 0; var s = a.slice().sort(function (x, y) { return x - y; }); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; }
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+  function dayStart(t) { var d = new Date(T(t)); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+
+  /* ---- age-based guidance ---- */
+  function ageDays(dob, now) { return Math.max(0, Math.floor((dayStart(now) - dayStart(dob)) / DAY + 0.5)); }
+  function ageMonths(dob, now) {
+    var a = new Date(T(dob)), b = new Date(T(now));
+    var m = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+    if (b.getDate() < a.getDate()) m--;
+    return Math.max(0, m);
+  }
+  function ageLabel(dob, now) {
+    var d = ageDays(dob, now), m = ageMonths(dob, now);
+    if (d < 14) return d + (d === 1 ? ' day' : ' days') + ' old';
+    if (m < 3) { var w = Math.floor(d / 7), r = d % 7; return w + ' weeks' + (r ? ' ' + r + 'd' : '') + ' old'; }
+    return m + ' months old';
+  }
+  // Awake time a baby typically manages before the next sleep, minutes [min,max].
+  function wakeWindow(d) {
+    if (d < 28) return [45, 60]; if (d < 84) return [60, 90]; if (d < 150) return [75, 120];
+    if (d < 210) return [120, 180]; if (d < 300) return [150, 210]; return [180, 240];
+  }
+  // Typical gap between milk feeds (start to start), minutes.
+  function feedGapDefault(d) { if (d < 30) return 150; if (d < 90) return 180; if (d < 180) return 210; return 240; }
+  // Recommended sleep per 24h, hours [lo,hi] (AASM / National Sleep Foundation ranges).
+  function sleepNeed(d) { return d < 120 ? [14, 17] : [12, 16]; }
+  // Reference ranges only: [feeds per day, ml per feed].
+  function feedGuide(d) {
+    if (d < 30) return { feeds: '8\u201312', ml: [60, 90] }; if (d < 90) return { feeds: '6\u20138', ml: [120, 150] };
+    if (d < 180) return { feeds: '5\u20136', ml: [150, 210] }; return { feeds: '4\u20135 plus solids', ml: [180, 240] };
+  }
+  function bandForAge(dob, now) { return clamp(Math.floor(ageMonths(dob, now) / 3), 0, 3); }
+
+  /* ---- event queries ---- */
+  function isMilk(e) { return e.type === 'feed' && e.kind !== 'solids'; }
+  function sorted(events) { return events.slice().sort(function (a, b) { return T(a.start) - T(b.start); }); }
+  function last(events, fn) { var best = null; events.forEach(function (e) { if (fn(e) && (!best || T(e.start) > T(best.start))) best = e; }); return best; }
+  function active(events, type) { return last(events, function (e) { return e.type === type && !e.end && (type === 'sleep' || e.kind === 'breast'); }); }
+
+  function predictFeed(events, dob, now) {
+    now = T(now);
+    var milk = sorted(events.filter(isMilk)), lastFeed = milk[milk.length - 1];
+    var gaps = [];
+    for (var i = 1; i < milk.length; i++) {
+      var g = T(milk[i].start) - T(milk[i - 1].start);
+      if (T(milk[i].start) > now - 4 * DAY && g >= 45 * MIN && g <= 10 * HOUR) gaps.push(g);
+    }
+    gaps = gaps.slice(-10);
+    var basis = gaps.length >= 3 ? 'yours' : 'age';
+    var gap = basis === 'yours' ? median(gaps) : feedGapDefault(ageDays(dob, now)) * MIN;
+    return { last: lastFeed || null, gapMs: gap, basis: basis, at: lastFeed ? T(lastFeed.start) + gap : null };
+  }
+  function predictSleep(events, dob, now) {
+    now = T(now);
+    var ww = wakeWindow(ageDays(dob, now));
+    var cur = active(events, 'sleep');
+    if (cur) return { asleep: true, since: T(cur.start), window: ww };
+    var l = last(events, function (e) { return e.type === 'sleep' && e.end; });
+    if (!l) return { asleep: false, since: null, window: ww, from: null, to: null };
+    var end = T(l.end);
+    return { asleep: false, since: end, window: ww, from: end + ww[0] * MIN, to: end + ww[1] * MIN };
+  }
+  function overlap(e, a, b, now) { var s = Math.max(T(e.start), a), en = Math.min(e.end ? T(e.end) : T(now), b); return Math.max(0, en - s); }
+  function dailyStats(events, now, n, back) {
+    now = T(now); var out = [], d0 = dayStart(now); back = back || 0;
+    for (var k = n - 1 + back; k >= back; k--) {
+      var dt = new Date(d0); dt.setDate(dt.getDate() - k);
+      var a = dt.getTime(), nx = new Date(a); nx.setDate(nx.getDate() + 1); var b = nx.getTime();
+      var st = { day: a, sleepMs: 0, longestMs: 0, feeds: 0, breastN: 0, bottleN: 0, bottleMl: 0, lMs: 0, rMs: 0, diapers: 0, cries: 0 };
+      events.forEach(function (e) {
+        var s = T(e.start), inDay = s >= a && s < b;
+        if (e.type === 'sleep') { var o = overlap(e, a, b, now); st.sleepMs += o; if (o > st.longestMs) st.longestMs = o; }
+        else if (!inDay) return;
+        else if (e.type === 'feed') {
+          if (isMilk(e)) st.feeds++;
+          if (e.kind === 'bottle') { st.bottleN++; st.bottleMl += e.ml || 0; }
+          if (e.kind === 'breast') { st.breastN++; st.lMs += (e.lsec || 0) * 1000; st.rMs += (e.rsec || 0) * 1000; }
+        } else if (e.type === 'diaper') st.diapers++;
+        else if (e.type === 'cry') st.cries++;
+      });
+      out.push(st);
+    }
+    return out;
+  }
+
+  /* ---- cry analysis ----
+     Acoustic features follow the infant-cry literature (fundamental frequency, burst
+     and pause timing, dysphonation). The reference profiles below are research-informed
+     heuristics, not a trained or clinically validated model. */
+  function pitchAt(x, off, N, sr, r) {
+    var minLag = Math.floor(sr / 1200), maxLag = Math.ceil(sr / 150), W = N - maxLag, i, lag;
+    var e0 = 0; for (i = 0; i < W; i++) e0 += x[off + i] * x[off + i];
+    if (e0 <= 0) return 0;
+    var eL = 0; for (i = 0; i < W; i++) eL += x[off + i + minLag - 1] * x[off + i + minLag - 1];
+    var best = 0;
+    for (lag = minLag; lag <= maxLag; lag++) {
+      eL += x[off + lag + W - 1] * x[off + lag + W - 1] - x[off + lag - 1] * x[off + lag - 1];
+      var s = 0; for (i = 0; i < W; i++) s += x[off + i] * x[off + i + lag];
+      var v = eL > 0 ? s / Math.sqrt(e0 * eL) : 0;
+      r[lag] = v; if (v > best) best = v;
+    }
+    if (best < 0.45) return 0;
+    for (lag = minLag + 1; lag < maxLag; lag++) {
+      if (r[lag] >= 0.85 * best && r[lag] >= r[lag - 1] && r[lag] >= r[lag + 1]) {
+        var den = r[lag - 1] - 2 * r[lag] + r[lag + 1];
+        var shift = den ? 0.5 * (r[lag - 1] - r[lag + 1]) / den : 0;
+        return sr / (lag + clamp(shift, -1, 1));
+      }
+    }
+    return 0;
+  }
+  function analyzeCry(input, sr) {
+    var f = Math.floor(sr / 16000), n = f >= 2 ? Math.floor(input.length / f) : input.length;
+    var x = new Float32Array(n), i, k, mean = 0;
+    if (f >= 2) { for (i = 0; i < n; i++) { var s = 0; for (k = 0; k < f; k++) s += input[i * f + k]; x[i] = s / f; } sr = sr / f; }
+    else x.set(input.subarray ? input.subarray(0, n) : input);
+    for (i = 0; i < n; i++) mean += x[i]; mean /= n || 1;
+    for (i = 0; i < n; i++) x[i] -= mean;
+    var N = Math.round(0.04 * sr), H = Math.round(0.01 * sr), nF = Math.floor((n - N) / H) + 1;
+    if (nF < 100) return { isCry: false, reason: 'short' };
+    var rms = new Float32Array(nF);
+    for (k = 0; k < nF; k++) { var e = 0, o = k * H; for (i = 0; i < N; i++) e += x[o + i] * x[o + i]; rms[k] = Math.sqrt(e / N); }
+    var arr = Array.prototype.slice.call(rms), p95 = pct(arr, 0.95), floor = pct(arr, 0.1);
+    if (p95 < 0.008) return { isCry: false, reason: 'quiet' };
+    var thr = Math.max(0.008, 0.15 * p95, Math.min(floor * 2.5, 0.4 * p95));
+    var act = new Uint8Array(nF); for (k = 0; k < nF; k++) act[k] = rms[k] > thr ? 1 : 0;
+    // close gaps <= 100 ms, drop runs < 120 ms
+    var runs = [], st = -1;
+    for (k = 0; k <= nF; k++) { if (k < nF && act[k]) { if (st < 0) st = k; } else if (st >= 0) { runs.push([st, k]); st = -1; } }
+    var merged = [];
+    runs.forEach(function (r) { var l = merged[merged.length - 1]; if (l && r[0] - l[1] <= 10) l[1] = r[1]; else merged.push(r.slice()); });
+    var bursts = merged.filter(function (r) { return r[1] - r[0] >= 12; });
+    if (!bursts.length) return { isCry: false, reason: 'nocry' };
+    var rbuf = new Float32Array(Math.ceil(sr / 150) + 2), f0s = [], activeN = 0, sumRms = 0;
+    bursts.forEach(function (b) {
+      for (var q = b[0]; q < b[1]; q++) {
+        if (!act[q]) continue; activeN++; sumRms += rms[q];
+        var p = pitchAt(x, q * H, N, sr, rbuf); if (p > 0) f0s.push(p);
+      }
+    });
+    var dur = nF * H / sr, burstFrames = bursts.reduce(function (a, b) { return a + b[1] - b[0]; }, 0);
+    var f0 = median(f0s), voicedFrac = activeN ? f0s.length / activeN : 0;
+    var semis = f0s.map(function (p) { return 12 * Math.log(p / f0) / Math.LN2; });
+    var sd = 0; semis.forEach(function (v) { sd += v * v; }); sd = semis.length ? Math.sqrt(sd / semis.length) : 0;
+    var durs = bursts.map(function (b) { return (b[1] - b[0]) * H / sr; });
+    var pauses = []; for (k = 1; k < bursts.length; k++) pauses.push((bursts[k][0] - bursts[k - 1][1]) * H / sr);
+    var duty = burstFrames / nF;
+    var onsets = []; for (k = 1; k < bursts.length; k++) onsets.push((bursts[k][0] - bursts[k - 1][0]) * H / sr);
+    var reg = 0.5;
+    if (onsets.length >= 2) { var mo = onsets.reduce(function (a, b) { return a + b; }, 0) / onsets.length, vo = 0; onsets.forEach(function (v) { vo += (v - mo) * (v - mo); }); reg = 1 - Math.min(1, Math.sqrt(vo / onsets.length) / mo); }
+    var feat = {
+      f0: f0, f0hi: pct(f0s, 0.9), f0sd: sd, duty: duty, bursts: bursts.length,
+      burstDur: durs.reduce(function (a, b) { return a + b; }, 0) / durs.length, maxBurst: Math.max.apply(null, durs),
+      pause: pauses.length ? pauses.reduce(function (a, b) { return a + b; }, 0) / pauses.length : Math.max(0.05, (1 - duty) * dur),
+      dys: 1 - voicedFrac, hyper: f0s.length ? f0s.filter(function (p) { return p > 1000; }).length / f0s.length : 0,
+      reg: reg, db: 20 * Math.log(sumRms / (activeN || 1)) / Math.LN10, dur: dur
+    };
+    var ok = f0s.length >= 20 && voicedFrac >= 0.25 && f0 >= 250 && f0 <= 1100;
+    return { isCry: ok, reason: ok ? '' : 'nocry', features: feat };
+  }
+
+  var CAUSES = {
+    hungry: { label: 'Hungry', f0: [430, 60], duty: [0.55, 0.15], burstDur: [0.9, 0.4], pause: [0.35, 0.2], dys: [0.15, 0.12], f0sd: [2, 1], reg: [0.7, 0.2] },
+    tired: { label: 'Tired', f0: [380, 60], duty: [0.35, 0.15], burstDur: [0.6, 0.3], pause: [0.8, 0.4], dys: [0.1, 0.1], f0sd: [3, 1.2], reg: [0.4, 0.2] },
+    pain: { label: 'Pain or distress', f0: [560, 90], duty: [0.8, 0.12], burstDur: [2.2, 0.9], pause: [0.25, 0.15], dys: [0.35, 0.15], f0sd: [3.5, 1.5], reg: [0.5, 0.25] },
+    discomfort: { label: 'Uncomfortable', f0: [440, 60], duty: [0.5, 0.15], burstDur: [0.8, 0.4], pause: [0.5, 0.3], dys: [0.2, 0.12], f0sd: [2.5, 1.2], reg: [0.5, 0.2] },
+    gas: { label: 'Wind or tummy', f0: [500, 70], duty: [0.65, 0.15], burstDur: [1.4, 0.6], pause: [0.35, 0.2], dys: [0.3, 0.15], f0sd: [3, 1.3], reg: [0.45, 0.2] },
+    comfort: { label: 'Wants comfort', f0: [370, 60], duty: [0.3, 0.15], burstDur: [0.5, 0.3], pause: [1.0, 0.5], dys: [0.08, 0.08], f0sd: [2.5, 1.2], reg: [0.4, 0.2] }
+  };
+  var FEATS = ['f0', 'duty', 'burstDur', 'pause', 'dys', 'f0sd', 'reg'];
+
+  function cryContext(events, dob, now) {
+    now = T(now);
+    var pf = predictFeed(events, dob, now), ps = predictSleep(events, dob, now);
+    var dp = last(events, function (e) { return e.type === 'diaper'; });
+    var counts = {}; events.forEach(function (e) { if (e.type === 'cry' && e.actual) counts[e.actual] = (counts[e.actual] || 0) + 1; });
+    var feedEnd = pf.last ? T(pf.last.end || pf.last.start) : null;
+    return {
+      ageDays: ageDays(dob, now),
+      sinceFeedMs: pf.last ? now - T(pf.last.start) : null, gapMs: pf.gapMs,
+      sinceFeedEndMin: feedEnd ? (now - feedEnd) / MIN : null,
+      awakeMs: !ps.asleep && ps.since ? now - ps.since : null, wake: ps.window,
+      sinceDiaperMin: dp ? (now - T(dp.start)) / MIN : null, counts: counts
+    };
+  }
+  function distressScore(ft) {
+    var a = clamp((ft.f0 - 350) / 300, 0, 1), b = clamp((ft.duty - 0.3) / 0.6, 0, 1), c = clamp(ft.dys / 0.5, 0, 1), d = clamp((ft.burstDur - 0.4) / 2.1, 0, 1);
+    return Math.round(100 * (0.35 * a + 0.25 * b + 0.2 * c + 0.2 * d));
+  }
+  function classifyCry(ft, ctx) {
+    ctx = ctx || {}; var ids = Object.keys(CAUSES), lp = {}, total = 0, cnt = ctx.counts || {};
+    ids.forEach(function (id) { total += cnt[id] || 0; });
+    ids.forEach(function (id) {
+      var c = CAUSES[id], s = 0;
+      FEATS.forEach(function (k) { var z = (ft[k] - c[k][0]) / c[k][1]; s += -0.5 * Math.min(z * z, 16); });
+      s *= 0.6;
+      if (id === 'hungry' && ctx.sinceFeedMs != null) s += clamp((ctx.sinceFeedMs / ctx.gapMs - 0.7) * 2, -1.5, 1.5);
+      if (id === 'tired' && ctx.awakeMs != null) s += clamp((ctx.awakeMs / (ctx.wake[1] * MIN) - 0.75) * 2.2, -1.5, 1.5);
+      if (id === 'discomfort' && ctx.sinceDiaperMin != null) s += clamp((ctx.sinceDiaperMin - 120) / 90, -0.8, 1.2);
+      if (id === 'gas') { s += (ctx.sinceFeedEndMin != null && ctx.sinceFeedEndMin >= 5 && ctx.sinceFeedEndMin <= 60) ? 0.7 : -0.3; if (ctx.ageDays != null && ctx.ageDays < 120) s += 0.3; }
+      if (id === 'pain') s -= 0.4;
+      if (total) s += 0.5 * Math.log(((cnt[id] || 0) + 2) / (total + 2 * ids.length) * ids.length);
+      lp[id] = s;
+    });
+    var mx = Math.max.apply(null, ids.map(function (id) { return lp[id]; })), z = 0;
+    ids.forEach(function (id) { lp[id] = Math.exp(lp[id] - mx); z += lp[id]; });
+    var probs = ids.map(function (id) { return [id, lp[id] / z]; }).sort(function (a, b) { return b[1] - a[1]; });
+    return { top: probs[0][0], probs: probs, distress: distressScore(ft) };
+  }
+
+  /* ---- persistence ---- */
+  function blank() { return { baby: null, demo: false, settings: { units: 'ml', theme: 'system' }, events: [], milestones: {} }; }
+  var MIGRATIONS = {}; // MIGRATIONS[n] upgrades data from schema n to n+1
+  function migrate(wrapper) {
+    if (!wrapper || typeof wrapper !== 'object' || !wrapper.data || typeof wrapper.schemaVersion !== 'number') throw new Error('This is not a Baby Centre backup.');
+    if (wrapper.schemaVersion > SCHEMA) throw new Error('This backup comes from a newer version of the app.');
+    var d = wrapper.data, v = wrapper.schemaVersion;
+    while (v < SCHEMA) { d = MIGRATIONS[v](d); v++; }
+    var b = blank();
+    if (!Array.isArray(d.events)) throw new Error('This backup has no entries list.');
+    return { baby: d.baby || null, demo: !!d.demo, settings: Object.assign(b.settings, d.settings || {}), events: d.events.filter(function (e) { return e && e.id && e.type && e.start; }), milestones: d.milestones || {} };
+  }
+  var _id = 0;
+  function uid() { return Date.now().toString(36) + (_id++).toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function demoData(now) {
+    now = T(now); var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    function iso(t) { return new Date(t).toISOString(); }
+    var ev = [], t = dayStart(now - 7 * DAY) + 6.5 * HOUR, side = 'L', n = 0, stop = now - 50 * MIN;
+    while (t < stop) {
+      var h = new Date(t).getHours() + new Date(t).getMinutes() / 60, night = h >= 19 || h < 6;
+      // feed on waking
+      if (n % 3 === 2) { ev.push({ id: uid(), type: 'feed', kind: 'bottle', start: iso(t), end: iso(t + 12 * MIN), ml: 110 + 10 * Math.floor(rnd() * 4) }); t += 14 * MIN; }
+      else { var l = Math.round(420 + rnd() * 360), r = Math.round(300 + rnd() * 360); ev.push({ id: uid(), type: 'feed', kind: 'breast', side: side === 'L' ? 'R' : 'L', start: iso(t), end: iso(t + (l + r) * 1000), lsec: l, rsec: r }); t += (l + r) * 1000 + 2 * MIN; }
+      side = side === 'L' ? 'R' : 'L'; n++;
+      if (t >= stop) break;
+      if (n % 2 === 0 || !night) { ev.push({ id: uid(), type: 'diaper', kind: ['wet', 'wet', 'dirty', 'both'][Math.floor(rnd() * 4)], start: iso(t) }); t += 4 * MIN; }
+      t += night ? 8 * MIN : (40 + rnd() * 35) * MIN;
+      if (t >= stop) break;
+      var len = night ? (150 + rnd() * 80) * MIN : (40 + rnd() * 65) * MIN, end = Math.min(t + len, stop);
+      ev.push({ id: uid(), type: 'sleep', start: iso(t), end: iso(end) }); t = end + 3 * MIN;
+    }
+    var dob = new Date(dayStart(now - 70 * DAY)).toISOString().slice(0, 10);
+    var ms = {}; ['m0a', 'm0b', 's0a', 'c0a', 'c0b', 'f0a'].forEach(function (id, i) { ms[id] = new Date(now - (30 - i * 4) * DAY).toISOString().slice(0, 10); });
+    return { baby: { name: 'Sample baby', dob: dob }, demo: true, settings: { units: 'ml', theme: 'system' }, events: ev, milestones: ms };
+  }
+
+  return { SCHEMA: SCHEMA, MIN: MIN, HOUR: HOUR, DAY: DAY, T: T, median: median, clamp: clamp, dayStart: dayStart, ageDays: ageDays, ageMonths: ageMonths, ageLabel: ageLabel,
+    wakeWindow: wakeWindow, feedGapDefault: feedGapDefault, sleepNeed: sleepNeed, feedGuide: feedGuide, bandForAge: bandForAge, isMilk: isMilk, sorted: sorted, last: last, active: active,
+    predictFeed: predictFeed, predictSleep: predictSleep, dailyStats: dailyStats, analyzeCry: analyzeCry, classifyCry: classifyCry, cryContext: cryContext,
+    CAUSES: CAUSES, blank: blank, migrate: migrate, uid: uid, demoData: demoData };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+</script>
+<script id="app-js">
+(function () {
+  'use strict';
+  var C = Core, VERSION = '1.0.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  /* ---------- state ---------- */
+  var storageOk = true;
+  function load() {
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { storageOk = false; return null; }
+    if (!raw) return null;
+    try { return C.migrate(JSON.parse(raw)); }
+    catch (e) { try { localStorage.setItem(KEY + '.unreadable', raw); } catch (e2) { } return null; }
+  }
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify({ schemaVersion: C.SCHEMA, data: state })); storageOk = true; }
+    catch (e) { storageOk = false; }
+  }
+  var state = load() || C.demoData(Date.now());
+  var VIEWS = ['home', 'trends', 'cry', 'milestones', 'more'];
+  var ui = { view: 'home', sheet: null, days: 2, week: 0, band: null, cry: { phase: 'idle' }, undo: null, snackT: 0 };
+
+  function commit(msg, fn) {
+    var prev = JSON.stringify(state);
+    fn(); persist(); render();
+    if (msg) snack(msg, prev);
+  }
+  function snack(msg, prev) {
+    ui.undo = prev || null;
+    var el = $('snack');
+    el.innerHTML = '<span>' + esc(msg) + '</span>' + (prev ? '<button data-action="undo">Undo</button>' : '');
+    el.hidden = false; clearTimeout(ui.snackT);
+    ui.snackT = setTimeout(function () { el.hidden = true; ui.undo = null; }, prev ? 6000 : 3000);
+  }
+
+  /* ---------- formatting ---------- */
+  function dur(ms) { var m = Math.max(0, Math.round(ms / MIN)); if (m < 60) return m + 'm'; var h = Math.floor(m / 60), r = m % 60; return h + 'h ' + (r < 10 ? '0' : '') + r + 'm'; }
+  function ago(ms) { return ms < MIN ? 'Just now' : dur(ms) + ' ago'; }
+  function clock(t) { return new Date(T(t)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+  function timer(ms) { var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (x < 10 ? '0' : '') + x; }
+  function vol(ml) { return state.settings.units === 'oz' ? (Math.round(ml / 29.5735 * 2) / 2) + ' oz' : Math.round(ml) + ' ml'; }
+  function dayName(t) { var d0 = C.dayStart(Date.now()), d = C.dayStart(t); if (d === d0) return 'Today'; if (d0 - d < 1.5 * DAY && d < d0) return 'Yesterday'; return new Date(d).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }); }
+  function toInput(t) { var d = new Date(T(t)), p = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function iso(t) { return new Date(t).toISOString(); }
+  var I = {
+    home: '<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    trends: '<path d="M4 20V11M10 20V4M16 20v-7M22 20H2"/>',
+    cry: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    milestones: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+    more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
+    feed: '<path d="M10 2h4v3l3 3v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l3-3zM7 13h10"/>',
+    sleep: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    diaper: '<path d="M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.500 6-11z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.500M17.500 17.500L19 19M5 19l1.500-1.500M17.500 6.500L19 5"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12.500l4.500 4.500L19 7.500"/>', plus: '<path d="M12 5v14M5 12h14"/>',
+    spoon: '<path d="M12 12v9M12 12c-2.500 0-4-2-4-4.500S9.500 3 12 3s4 2 4 4.500-1.500 4.500-4 4.500z"/>'
+  };
+  function icon(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + I[n] + '</svg>'; }
+
+  /* ---------- descriptions ---------- */
+  var DIAPER = { wet: 'Wet', dirty: 'Dirty', both: 'Wet + dirty' };
+  function breastSecs(e, now) {
+    var l = e.lsec || 0, r = e.rsec || 0;
+    if (!e.end && e.segStart) { var x = Math.max(0, (now - T(e.segStart)) / 1000); if (e.side === 'L') l += x; else r += x; }
+    return [l, r];
+  }
+  function describe(e, now) {
+    if (e.type === 'feed') {
+      if (e.kind === 'bottle') return { c: 'feed', i: 'feed', t: 'Bottle', s: vol(e.ml || 0) };
+      if (e.kind === 'solids') return { c: 'feed', i: 'spoon', t: 'Solids', s: e.note || '' };
+      var b = breastSecs(e, now);
+      return { c: 'feed', i: 'feed', t: 'Breast' + (e.end ? '' : ' (feeding now)'), s: 'L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) };
+    }
+    if (e.type === 'sleep') return { c: 'sleep', i: 'sleep', t: e.end ? 'Sleep' : 'Asleep now', s: e.end ? dur(T(e.end) - T(e.start)) + ' · woke ' + clock(e.end) : 'for ' + dur(now - T(e.start)) };
+    if (e.type === 'diaper') return { c: 'diaper', i: 'diaper', t: 'Nappy', s: DIAPER[e.kind] || '' };
+    return { c: 'cry', i: 'cry', t: 'Cry check', s: e.res ? 'Likely ' + C.CAUSES[e.res.top].label.toLowerCase() + (e.actual ? ' · was ' + C.CAUSES[e.actual].label.toLowerCase() : '') : '' };
+  }
+
+  /* ---------- charts ---------- */
+  function niceMax(v) { if (v <= 0) return 1; var p = Math.pow(10, Math.floor(Math.log(v) / Math.LN10)), n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 4 ? 4 : n <= 5 ? 5 : n <= 8 ? 8 : 10) * p; }
+  function dayTick(t) { var d = new Date(t); return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()] + ' ' + d.getDate(); }
+  // stacked bars; series = [{get:fn(day)->value, color:'--token'}], band = optional [lo,hi] reference range
+  function bars(days, series, fmt, band, label) {
+    var W = 340, Ht = 150, L = 30, B = 22, Tp = 12, pw = (W - L - 4) / days.length, mx = 0;
+    days.forEach(function (d) { var s = 0; series.forEach(function (se) { s += se.get(d); }); mx = Math.max(mx, s); });
+    if (band) mx = Math.max(mx, band[1]);
+    mx = niceMax(mx); var y = function (v) { return Tp + (Ht - Tp - B) * (1 - v / mx); }, o = '';
+    if (band) o += '<rect x="' + L + '" y="' + y(band[1]) + '" width="' + (W - L - 4) + '" height="' + (y(band[0]) - y(band[1])) + '" fill="var(--surface-2)"/>';
+    for (var g = 0; g <= 2; g++) { var v = mx * g / 2; o += '<line x1="' + L + '" x2="' + (W - 4) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)" stroke-width="1"/><text x="' + (L - 5) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + fmt(v) + '</text>'; }
+    days.forEach(function (d, i) {
+      var x = L + i * pw + pw * 0.2, base = 0;
+      series.forEach(function (se) { var val = se.get(d); if (val > 0) { o += '<rect x="' + x.toFixed(1) + '" y="' + y(base + val).toFixed(1) + '" width="' + (pw * 0.6).toFixed(1) + '" height="' + Math.max(1, y(base) - y(base + val)).toFixed(1) + '" rx="3" fill="var(' + se.color + ')"/>'; base += val; } });
+      o += '<text x="' + (L + i * pw + pw / 2) + '" y="' + (Ht - 6) + '" text-anchor="middle">' + dayTick(d.day) + '</text>';
+    });
+    return '<svg class="chart" viewBox="0 0 ' + W + ' ' + Ht + '" role="img" aria-label="' + esc(label) + '">' + o + '</svg>';
+  }
+  function sleepGrid(days, now) {
+    var W = 340, Ht = 300, L = 38, Tp = 18, cw = (W - L - 2) / days.length, hh = Ht - Tp - 6, o = '';
+    var y = function (ms) { return Tp + hh * ms / DAY; };
+    ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM'].forEach(function (t, i) { o += '<text x="' + (L - 5) + '" y="' + (y(i * 6 * HOUR) + (i === 0 ? 8 : i === 4 ? 0 : 3)) + '" text-anchor="end">' + t + '</text>'; });
+    days.forEach(function (d, i) {
+      var x = L + i * cw + 1.5, w = cw - 3, a = d.day, b = a + DAY;
+      o += '<text x="' + (x + w / 2) + '" y="11" text-anchor="middle">' + dayTick(a) + '</text><rect x="' + x + '" y="' + Tp + '" width="' + w + '" height="' + hh + '" rx="4" fill="var(--sleep-bg)"/>';
+      state.events.forEach(function (e) {
+        var s = T(e.start);
+        if (e.type === 'sleep') { var en = e.end ? T(e.end) : now, s1 = Math.max(s, a), e1 = Math.min(en, b); if (e1 > s1) o += '<rect x="' + x + '" y="' + y(s1 - a).toFixed(1) + '" width="' + w + '" height="' + Math.max(1, y(e1 - a) - y(s1 - a)).toFixed(1) + '" rx="2" fill="var(--sleep)"/>'; }
+      });
+      state.events.forEach(function (e) { var s = T(e.start); if (C.isMilk(e) && s >= a && s < b) o += '<rect x="' + (x + w - 7) + '" y="' + (y(s - a) - 1).toFixed(1) + '" width="7" height="2.500" fill="var(--feed)"/>'; });
+    });
+    for (var g = 1; g < 4; g++) o += '<line x1="' + L + '" x2="' + (W - 2) + '" y1="' + y(g * 6 * HOUR) + '" y2="' + y(g * 6 * HOUR) + '" stroke="var(--bg)" stroke-width="1.500"/>';
+    return '<svg class="chart" viewBox="0 0 ' + W + ' ' + Ht + '" role="img" aria-label="Sleep pattern by day">' + o + '</svg>';
+  }
+  function ribbon(now) {
+    var W = 340, a = now - DAY, x = function (t) { return 4 + (W - 8) * (t - a) / DAY; }, o = '<rect x="4" y="6" width="' + (W - 8) + '" height="30" rx="8" fill="var(--surface-2)"/>';
+    state.events.forEach(function (e) {
+      var s = T(e.start), en = e.end ? T(e.end) : now;
+      if (e.type === 'sleep' && en > a) { var s1 = Math.max(s, a); o += '<rect x="' + x(s1).toFixed(1) + '" y="6" width="' + Math.max(1.500, x(en) - x(s1)).toFixed(1) + '" height="30" rx="4" fill="var(--sleep)"/>'; }
+    });
+    state.events.forEach(function (e) {
+      var s = T(e.start); if (s < a || s > now) return;
+      if (C.isMilk(e)) o += '<rect x="' + (x(s) - 1.500).toFixed(1) + '" y="2" width="3" height="38" rx="1.500" fill="var(--feed)"/>';
+      else if (e.type === 'diaper') o += '<circle cx="' + x(s).toFixed(1) + '" cy="46" r="2.500" fill="var(--diaper)"/>';
+      else if (e.type === 'cry') o += '<circle cx="' + x(s).toFixed(1) + '" cy="46" r="2.500" fill="var(--cry)"/>';
+    });
+    var h = new Date(now); h.setMinutes(0, 0, 0);
+    for (var t = h.getTime(); t > a + HOUR; t -= 6 * HOUR) o += '<text x="' + x(t).toFixed(1) + '" y="62" text-anchor="middle">' + new Date(t).toLocaleTimeString([], { hour: 'numeric' }) + '</text>';
+    return '<svg class="chart" viewBox="0 0 ' + W + ' 66" role="img" aria-label="Last 24 hours of sleep, feeds and nappies">' + o + '</svg>';
+  }
+
+  /* ---------- views ---------- */
+  function vHome(now) {
+    var ev = state.events, dob = state.baby.dob, h = '';
+    if (state.demo) h += '<div class="banner"><span>You are looking at sample data.</span><button class="btn pri" data-action="profile-open">Start with my baby</button></div>';
+    if (!storageOk) h += '<div class="banner"><span>This browser is not saving data. Export a backup from More before closing.</span></div>';
+    var af = C.active(ev, 'feed'), as = C.active(ev, 'sleep');
+    if (af) { var b = breastSecs(af, now); h += '<div class="live feed"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + af.start + '">' + timer(now - T(af.start)) + '</span><span>Feeding on the ' + (af.side === 'L' ? 'left' : 'right') + ' · L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) + '</span></div><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div>'; }
+    if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
+
+    var pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), today = C.dailyStats(ev, now, 1)[0];
+    var lastB = C.last(ev, function (e) { return e.type === 'feed' && e.kind === 'breast'; });
+    var fs = 'No feeds logged yet', fv = '–';
+    if (pf.last) {
+      fv = ago(now - T(pf.last.start));
+      fs = (pf.at <= now ? 'Next feed is due about now' : 'Next around ' + clock(pf.at)) + ' · ' + (pf.basis === 'yours' ? 'usual gap ' : 'typical gap ') + dur(pf.gapMs);
+    }
+    var sv, ss;
+    if (ps.asleep) { sv = 'Asleep ' + dur(now - ps.since); ss = 'Since ' + clock(ps.since); }
+    else if (ps.since) { sv = 'Awake ' + dur(now - ps.since); ss = now > ps.to ? 'Past the usual ' + ps.window[0] + '–' + ps.window[1] + ' min awake window' : 'Nap window ' + clock(ps.from) + '–' + clock(ps.to); }
+    else { sv = '–'; ss = 'No sleep logged yet'; }
+    var ld = C.last(ev, function (e) { return e.type === 'diaper'; });
+    h += '<div class="status">' +
+      '<div class="stat feed wide"><span class="k">' + icon('feed') + 'Last feed' + (lastB ? ' · last side ' + (lastB.side === 'L' ? 'left' : 'right') : '') + '</span><span class="v num" id="stat-feed">' + fv + '</span><span class="s">' + fs + '</span></div>' +
+      '<div class="stat sleep"><span class="k">' + icon('sleep') + 'Sleep</span><span class="v num" id="stat-sleep">' + sv + '</span><span class="s">' + ss + '</span></div>' +
+      '<div class="stat diaper"><span class="k">' + icon('diaper') + 'Nappy</span><span class="v num" id="stat-diaper">' + (ld ? ago(now - T(ld.start)) : '–') + '</span><span class="s">' + today.diapers + ' today' + (ld ? ' · last ' + DIAPER[ld.kind].toLowerCase() : '') + '</span></div>' +
+      '</div>';
+    h += '<section class="sec"><h2>Today so far</h2><div class="card"><div class="kv" style="grid-template-columns:repeat(4,1fr)">' +
+      '<div><b class="num">' + today.breastN + '</b><span>Breast</span></div><div><b class="num">' + dur(today.lMs + today.rMs) + '</b><span>Breast time</span></div>' +
+      '<div><b class="num">' + today.bottleN + '</b><span>Bottle</span></div><div><b class="num">' + vol(today.bottleMl) + '</b><span>Bottle total</span></div></div>' +
+      '<p class="note" style="margin:10px 0 0">Sleep today ' + dur(today.sleepMs) + ' · longest stretch ' + dur(today.longestMs) + '</p></div></section>';
+    h += '<section class="sec"><h2>Last 24 hours</h2><div class="card">' + ribbon(now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feed</span><span><i style="background:var(--diaper)"></i>Nappy</span><span><i style="background:var(--cry)"></i>Cry check</span></div></div></section>';
+
+    var cut = C.dayStart(now) - (ui.days - 1) * DAY, list = ev.filter(function (e) { return T(e.start) >= cut; }).sort(function (a, b) { return T(b.start) - T(a.start); });
+    h += '<section class="sec"><div class="sechead"><h2>Timeline</h2><button class="link" data-action="add-open">+ Add past entry</button></div><div class="card tl">';
+    if (!list.length) h += '<p class="empty">Nothing logged yet. Use the buttons below to log a feed, sleep or nappy with one tap.</p>';
+    var lastDay = '';
+    list.forEach(function (e) {
+      var dn = dayName(e.start), d = describe(e, now);
+      if (dn !== lastDay) { h += '<div class="day">' + dn + '</div>'; lastDay = dn; }
+      h += '<button class="row" data-action="edit:' + e.id + '"><span class="dot ' + d.c + '">' + icon(d.i) + '</span><span class="mid"><span class="ti">' + d.t + '</span><br><span class="su">' + esc(d.s) + '</span></span><span class="tm num">' + clock(e.start) + '</span></button>';
+    });
+    h += '</div>';
+    if (state.events.some(function (e) { return T(e.start) < cut; })) h += '<button class="btn" data-action="older">Show earlier days</button>';
+    return h + '</section>';
+  }
+  function vDock(now) {
+    var af = C.active(state.events, 'feed'), as = C.active(state.events, 'sleep');
+    var lastB = C.last(state.events, function (e) { return e.type === 'feed' && e.kind === 'breast'; }), next = lastB && !af ? (lastB.side === 'L' ? 'R' : 'L') : '';
+    function side(s) {
+      var on = af && af.side === s;
+      return '<button class="qa feed' + (on ? ' on' : '') + '" data-action="' + (on ? 'feed-stop' : 'breast:' + s) + '" aria-label="' + (on ? 'Stop feed' : (af ? 'Switch to ' : 'Start breast feed, ') + (s === 'L' ? 'left' : 'right')) + '"><span class="big">' + s + '</span><span>' + (on ? 'Stop' : af ? 'Switch' : s === 'L' ? 'Left' : 'Right') + '</span>' + (next === s ? '<span class="tag">next</span>' : '') + '</button>';
+    }
+    return '<div class="in">' + side('L') + side('R') +
+      '<button class="qa feed" data-action="bottle-open">' + icon('feed') + '<span>Bottle</span></button>' +
+      '<button class="qa sleep' + (as ? ' on' : '') + '" data-action="sleep-toggle">' + icon(as ? 'sun' : 'sleep') + '<span>' + (as ? 'Woke up' : 'Sleep') + '</span></button>' +
+      '<button class="qa diaper" data-action="diaper-open">' + icon('diaper') + '<span>Nappy</span></button></div>';
+  }
+
+  function vTrends(now) {
+    var ev = state.events, dob = state.baby.dob, back = ui.week * 7, days = C.dailyStats(ev, now, 7, back), age = C.ageDays(dob, now);
+    var full = days.filter(function (d) { return d.day + DAY <= now; }), base = full.length ? full : days;
+    function avg(fn) { return base.reduce(function (a, d) { return a + fn(d); }, 0) / base.length; }
+    var need = C.sleepNeed(age), pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), fg = C.feedGuide(age);
+    var range = new Date(days[0].day).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' – ' + new Date(days[6].day).toLocaleDateString([], { day: 'numeric', month: 'short' });
+    var h = '';
+    if (ui.week === 0) {
+      h += '<section class="sec"><h2>Plan ahead</h2><div class="card set">' +
+        '<div class="line"><span><b>Next feed</b><br><span class="note">' + (pf.basis === 'yours' ? 'From your last feeds, usual gap ' : 'Typical gap at this age, ') + dur(pf.gapMs) + '</span></span><b class="num" style="font-size:20px;color:var(--feed)">' + (pf.at ? (pf.at <= now ? 'Due now' : clock(pf.at)) : '–') + '</b></div>' +
+        '<div class="line"><span><b>Next sleep</b><br><span class="note">Babies this age manage about ' + ps.window[0] + '–' + ps.window[1] + ' min awake</span></span><b class="num" style="font-size:20px;color:var(--sleep)">' + (ps.asleep ? 'Asleep' : ps.from ? (now > ps.to ? 'Due now' : clock(ps.from) + '–' + clock(ps.to)) : '–') + '</b></div>' +
+        '<p class="note" style="margin:0">For reference at this age: ' + fg.feeds + ' milk feeds a day, about ' + vol(fg.ml[0]) + '–' + vol(fg.ml[1]) + ' per bottle, and ' + need[0] + '–' + need[1] + ' hours of sleep in 24 hours. Every baby is different. Feed on demand.</p></div></section>';
+    }
+    h += '<section class="sec"><div class="sechead"><h2>' + range + '</h2><span><button class="btn" data-action="week:1" aria-label="Earlier week">‹</button> <button class="btn" data-action="week:-1" aria-label="Later week"' + (ui.week === 0 ? ' disabled style="opacity:.4"' : '') + '>›</button></span></div>' +
+      '<div class="tiles">' +
+      '<div class="stat sleep"><span class="k">Sleep / day</span><span class="v num">' + dur(avg(function (d) { return d.sleepMs; })) + '</span><span class="s">Guide ' + need[0] + '–' + need[1] + 'h</span></div>' +
+      '<div class="stat sleep"><span class="k">Longest stretch</span><span class="v num">' + dur(Math.max.apply(null, days.map(function (d) { return d.longestMs; }))) + '</span><span class="s">Best this week</span></div>' +
+      '<div class="stat feed"><span class="k">Feeds / day</span><span class="v num">' + avg(function (d) { return d.feeds; }).toFixed(1) + '</span><span class="s">Guide ' + fg.feeds + '</span></div>' +
+      '<div class="stat diaper"><span class="k">Nappies / day</span><span class="v num">' + avg(function (d) { return d.diapers; }).toFixed(1) + '</span><span class="s">Averages use full days</span></div>' +
+      '</div></section>';
+    h += '<section class="sec"><h2>Sleep pattern</h2><div class="card">' + sleepGrid(days, now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Asleep</span><span><i style="background:var(--feed)"></i>Milk feed</span></div></div></section>';
+    h += '<section class="sec"><h2>Sleep per day (hours)</h2><div class="card">' + bars(days, [{ get: function (d) { return d.sleepMs / HOUR; }, color: '--sleep' }], function (v) { return Math.round(v); }, need, 'Sleep hours per day') + '<div class="legend"><span><i style="background:var(--surface-2)"></i>Guide range for this age</span></div></div></section>';
+    h += '<section class="sec"><h2>Breast time (min)</h2><div class="card">' + bars(days, [{ get: function (d) { return d.lMs / MIN; }, color: '--feed' }, { get: function (d) { return d.rMs / MIN; }, color: '--cry' }], function (v) { return Math.round(v); }, null, 'Breastfeeding minutes per day, left and right') + '<div class="legend"><span><i style="background:var(--feed)"></i>Left</span><span><i style="background:var(--cry)"></i>Right</span></div></div></section>';
+    var oz = state.settings.units === 'oz';
+    h += '<section class="sec"><h2>Bottle amount (' + (oz ? 'oz' : 'ml') + ')</h2><div class="card">' + bars(days, [{ get: function (d) { return oz ? d.bottleMl / 29.5735 : d.bottleMl; }, color: '--diaper' }], function (v) { return Math.round(v); }, null, 'Bottle amount per day') + '</div></section>';
+    h += '<section class="sec"><h2>Milk feeds per day</h2><div class="card">' + bars(days, [{ get: function (d) { return d.breastN; }, color: '--feed' }, { get: function (d) { return d.bottleN; }, color: '--diaper' }], function (v) { return Math.round(v); }, null, 'Feeds per day') + '<div class="legend"><span><i style="background:var(--feed)"></i>Breast</span><span><i style="background:var(--diaper)"></i>Bottle</span></div></div></section>';
+    return h;
+  }
+
+  /* ---------- cry ---------- */
+  var TRY = {
+    hungry: ['Offer a feed now.', 'Look for early cues next time: rooting, sucking on hands, lip smacking.', 'If the feed is refused, try a nappy check and a cuddle, then offer again.'],
+    tired: ['Dim the lights and cut down noise.', 'Swaddle or hold close and rock gently, with steady shushing.', 'Put down drowsy. Watch for yawns, staring and ear pulling as early signs next time.'],
+    pain: ['Check from head to toe: temperature, clothing tags, hair wrapped round fingers or toes, nappy rash.', 'Hold skin to skin and speak softly.', 'If the crying stays intense and you cannot settle it, or anything seems wrong, call your doctor or nurse line now.'],
+    discomfort: ['Check the nappy.', 'Feel the chest or back of the neck: too hot or too cold? Adjust a layer.', 'Change position and loosen tight clothing.'],
+    gas: ['Hold upright against your shoulder and burp for a few minutes.', 'Try bicycle legs or a gentle clockwise tummy massage.', 'Carry tummy down along your forearm.'],
+    comfort: ['Pick up and hold close; try skin to skin.', 'Talk or sing softly, or walk around slowly.', 'Offer a dummy or a clean finger to suck if you use one.']
+  };
+  var NOCRY = { quiet: 'That clip was very quiet. Hold the phone 20–30 cm from your baby and try again.', nocry: 'No clear cry in that clip. Record while your baby is actively crying, with as little background noise as you can manage.', short: 'That clip was too short. A full 5 seconds is needed.' };
+  function whyLines(ft, ctx) {
+    var w = ['Pitch around ' + Math.round(ft.f0) + ' Hz (' + (ft.f0 > 520 ? 'high' : ft.f0 < 380 ? 'on the low side' : 'typical') + ' for a cry).',
+      ft.bursts + ' cry burst' + (ft.bursts === 1 ? '' : 's') + ' of about ' + ft.burstDur.toFixed(1) + ' s' + (ft.bursts >= 3 ? ', ' + (ft.reg > 0.65 ? 'in a steady rhythm' : 'with an uneven rhythm') : '') + '.'];
+    if (ctx.sinceFeedMs != null) w.push('Last feed started ' + ago(ctx.sinceFeedMs).toLowerCase() + ' (usual gap ' + dur(ctx.gapMs) + ').');
+    if (ctx.awakeMs != null) w.push('Awake for ' + dur(ctx.awakeMs) + ' (usual window ' + ctx.wake[0] + '–' + ctx.wake[1] + ' min).');
+    if (ctx.sinceDiaperMin != null) w.push('Last nappy ' + ago(ctx.sinceDiaperMin * MIN).toLowerCase() + '.');
+    return w;
+  }
+  function analyse(buf, sr) {
+    ui.cry = { phase: 'busy' }; render();
+    setTimeout(function () {
+      var a;
+      try { a = C.analyzeCry(buf, sr); } catch (e) { a = { isCry: false, reason: 'nocry' }; }
+      if (!a.isCry) { ui.cry = { phase: 'idle', error: NOCRY[a.reason] || NOCRY.nocry }; render(); return; }
+      var now = Date.now(), ctx = C.cryContext(state.events, state.baby.dob, now), res = C.classifyCry(a.features, ctx), id = C.uid();
+      commit(null, function () {
+        state.events.push({ id: id, type: 'cry', start: iso(now), actual: null, why: whyLines(a.features, ctx),
+          res: { top: res.top, probs: res.probs.map(function (p) { return [p[0], Math.round(p[1] * 1000) / 1000]; }), distress: res.distress, f0: Math.round(a.features.f0), bursts: a.features.bursts } });
+        ui.cry = { phase: 'result', id: id };
+      });
+    }, 60);
+  }
+  var recStop = null;
+  function cryRecord() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { ui.cry = { phase: 'idle', error: 'This browser cannot use the microphone here. Use “Upload a clip” instead.' }; render(); return; }
+    var ctx = new AC(); ui.cry = { phase: 'asking' }; render();
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
+      var src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(4096, 1, 1), chunks = [], got = 0, need = 5 * ctx.sampleRate, done = false;
+      var guard = setTimeout(function () { if (!got) finish(false, 'No sound reached the app. Check the microphone permission and try again.'); }, 8000);
+      function finish(ok, err) {
+        if (done) return; done = true; clearTimeout(guard); recStop = null;
+        try { proc.disconnect(); src.disconnect(); } catch (e) { }
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        var sr = ctx.sampleRate; try { ctx.close(); } catch (e) { }
+        if (!ok) { ui.cry = { phase: 'idle', error: err || '' }; render(); return; }
+        var buf = new Float32Array(need), o = 0;
+        chunks.forEach(function (c) { var n = Math.min(c.length, need - o); buf.set(c.subarray(0, n), o); o += n; });
+        analyse(buf, sr);
+      }
+      recStop = function () { finish(false); };
+      ui.cry = { phase: 'rec' }; render();
+      proc.onaudioprocess = function (e) {
+        if (done) return;
+        var d = e.inputBuffer.getChannelData(0), s = 0; chunks.push(new Float32Array(d)); got += d.length;
+        for (var i = 0; i < d.length; i += 8) s += d[i] * d[i];
+        var lvl = Math.min(1, Math.sqrt(s / (d.length / 8)) * 6), c = $('rec-count'), b = $('rec-btn');
+        if (c) c.textContent = Math.max(1, Math.ceil((need - got) / ctx.sampleRate));
+        if (b) b.style.boxShadow = '0 0 0 ' + (10 + lvl * 26).toFixed(0) + 'px var(--cry-bg)';
+        if (got >= need) finish(true);
+      };
+      src.connect(proc); proc.connect(ctx.destination);
+      if (ctx.resume) ctx.resume();
+    }).catch(function (err) {
+      try { ctx.close(); } catch (e) { }
+      var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      ui.cry = { phase: 'idle', error: denied ? 'Microphone access is blocked for this page. Allow it in your browser settings, or use “Upload a clip”.' : 'The microphone could not be started. Use “Upload a clip” instead.' }; render();
+    });
+  }
+  function cryUpload(file) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { ui.cry = { phase: 'idle', error: 'This browser cannot read audio files.' }; render(); return; }
+    ui.cry = { phase: 'busy' }; render();
+    var fr = new FileReader();
+    fr.onerror = function () { ui.cry = { phase: 'idle', error: 'That file could not be read.' }; render(); };
+    fr.onload = function () {
+      var ctx = new AC(), bad = function () { try { ctx.close(); } catch (e) { } ui.cry = { phase: 'idle', error: 'That file is not audio this browser can open. Try an m4a, mp3 or wav clip.' }; render(); };
+      try {
+        var pr = ctx.decodeAudioData(fr.result, function (ab) {
+          var d = ab.getChannelData(0), sr = ab.sampleRate, win = 5 * sr, best = 0, bestE = -1, step = Math.floor(sr / 2);
+          try { ctx.close(); } catch (e) { }
+          for (var o = 0; o + win <= d.length; o += step) { var e2 = 0; for (var i = o; i < o + win; i += 16) e2 += d[i] * d[i]; if (e2 > bestE) { bestE = e2; best = o; } }
+          analyse(d.length > win ? d.slice(best, best + win) : d.slice(0), sr);
+        }, bad);
+        if (pr && pr.catch) pr.catch(function () { }); // Safari uses the callbacks; others also return a promise
+      } catch (e) { bad(); }
+    };
+    fr.readAsArrayBuffer(file);
+  }
+  function vCryResult(e) {
+    var r = e.res, top = C.CAUSES[r.top], h = '<div class="card set"><div><span class="note">Most likely</span><div style="font-size:28px;font-weight:800;line-height:1.15;color:var(--cry)" id="cry-top">' + top.label + '</div><span class="note">' + clock(e.start) + ' · ' + dayName(e.start) + '</span></div>';
+    r.probs.slice(0, 3).forEach(function (p, i) { h += '<div class="cause' + (i ? '' : ' top') + '"><b>' + C.CAUSES[p[0]].label + '</b><span class="num">' + Math.round(p[1] * 100) + '%</span><div class="bar"><i style="width:' + Math.round(p[1] * 100) + '%"></i></div></div>'; });
+    h += '<div class="kv"><div><b class="num">' + r.f0 + ' Hz</b><span>Pitch</span></div><div><b class="num">' + r.bursts + '</b><span>Bursts</span></div><div><b>' + (r.distress >= 60 ? 'High' : r.distress >= 30 ? 'Medium' : 'Low') + '</b><span>Distress</span></div></div></div>';
+    h += '<div class="card set"><h2>Try this</h2><ol class="steps">' + TRY[r.top].map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol></div>';
+    if (e.why && e.why.length) h += '<div class="card set"><h2>What this is based on</h2><ul class="steps">' + e.why.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul></div>';
+    h += '<div class="card set"><h2>What was it really?</h2><span class="note">Your answer teaches the app your baby’s patterns.</span><div class="chips">' + Object.keys(C.CAUSES).map(function (id) { return '<button class="chip" aria-pressed="' + (e.actual === id) + '" data-action="cry-actual:' + e.id + ':' + id + '">' + C.CAUSES[id].label + '</button>'; }).join('') + '</div></div>';
+    h += '<div class="flag"><b>Trust your instinct.</b> This is an estimate, not a diagnosis. Call your doctor or emergency line if your baby has a fever (38°C or more under 3 months), is hard to wake, has trouble breathing, refuses feeds, has a weak or unusually high-pitched cry that does not stop, or if anything feels wrong to you.</div>';
+    return h + '<button class="btn pri wide" data-action="cry-again">Record another</button>';
+  }
+  function vCry(now) {
+    var c = ui.cry, h = '';
+    if (c.phase === 'result') { var e = state.events.filter(function (x) { return x.id === c.id; })[0]; if (e) return vCryResult(e); c = ui.cry = { phase: 'idle' }; }
+    h += '<div class="card recwrap">';
+    if (c.phase === 'rec') h += '<button class="rec live" id="rec-btn" data-action="cry-cancel" aria-label="Cancel recording"><span class="count num" id="rec-count">5</span><span>Listening…</span></button><p class="note" style="margin:0">Hold the phone 20–30 cm from your baby. Tap to cancel.</p>';
+    else if (c.phase === 'busy' || c.phase === 'asking') h += '<div class="rec" style="opacity:.7"><span>' + (c.phase === 'busy' ? 'Analysing…' : 'Waiting for microphone…') + '</span></div>';
+    else h += '<button class="rec" id="rec-btn" data-action="cry-record">' + icon('cry') + '<span>Record 5 seconds</span></button>' + (c.error ? '<p class="err" id="cry-error" style="margin:0;text-align:center">' + esc(c.error) + '</p>' : '<p class="note" style="margin:0;text-align:center">Record while your baby is crying. You get the likely cause and what to try.</p>') + '<button class="btn" data-action="cry-pick">Upload a clip instead</button>';
+    h += '</div>';
+    var hist = state.events.filter(function (e) { return e.type === 'cry'; }).sort(function (a, b) { return T(b.start) - T(a.start); }).slice(0, 12);
+    h += '<section class="sec"><h2>Recent checks</h2><div class="card tl">';
+    if (!hist.length) h += '<p class="empty">Your cry checks will appear here.</p>';
+    hist.forEach(function (e) { var d = describe(e, now); h += '<button class="row" data-action="cry-show:' + e.id + '"><span class="dot cry">' + icon('cry') + '</span><span class="mid"><span class="ti">' + esc(d.s) + '</span><br><span class="su">' + dayName(e.start) + '</span></span><span class="tm num">' + clock(e.start) + '</span></button>'; });
+    h += '</div></section><p class="note">How it works: the clip is analysed on this phone and never leaves it. The app measures pitch, rhythm and harshness, compares them with patterns reported in infant cry research, then weighs in what you have logged (time since feed, time awake, last nappy). It is a research-informed estimate, not a medical device.</p>';
+    return h;
+  }
+
+  /* ---------- milestones ---------- */
+  var BANDS = ['0–3 months', '4–6 months', '7–9 months', '10–12 months'], CATS = { m: 'Motor', s: 'Sensory', c: 'Communication', f: 'Feeding' };
+  var MS = [
+    ['m0a', 'Lifts head briefly during tummy time'], ['m0b', 'Pushes up on forearms when lying on tummy'], ['m0c', 'Opens and closes hands and brings them to the mouth'],
+    ['s0a', 'Follows a moving face or toy with the eyes'], ['s0b', 'Calms when rocked, held or spoken to softly'], ['s0c', 'Bats at or reaches toward a dangling toy'],
+    ['c0a', 'Makes eye contact and smiles back at you'], ['c0b', 'Coos and makes vowel sounds'], ['c0c', 'Cries in different ways for different needs'],
+    ['f0a', 'Latches onto the breast or bottle'], ['f0b', 'Sucks and swallows well during a feed'], ['f0c', 'Moves the tongue forward and back to suck'],
+    ['m1a', 'Rolls from tummy to back and back to tummy'], ['m1b', 'Sits with support and holds the head steady'], ['m1c', 'Reaches for a toy with both hands'],
+    ['s1a', 'Explores toys with hands and mouth'], ['s1b', 'Enjoys gentle movement such as swaying or bouncing'], ['s1c', 'Stays settled around everyday household sounds'],
+    ['c1a', 'Babbles with consonant sounds such as “ba” and “ga”'], ['c1b', 'Laughs and squeals'], ['c1c', 'Turns toward your voice or a new sound'],
+    ['f1a', 'Shows interest in what you are eating'], ['f1b', 'Opens the mouth when a spoon comes close'], ['f1c', 'Begins smooth purées or baby cereal (around 6 months)'],
+    ['m2a', 'Sits without support'], ['m2b', 'Gets around by crawling, shuffling or rolling'], ['m2c', 'Passes a toy from one hand to the other'],
+    ['s2a', 'Explores shapes and textures with hands and mouth'], ['s2b', 'Turns the head to follow things while sitting'], ['s2c', 'Focuses on objects both near and far'],
+    ['c2a', 'Strings sounds together, such as “mamama” and “bababa”'], ['c2b', 'Recognises their own name'], ['c2c', 'Looks at familiar people or objects when you name them'],
+    ['f2a', 'Holds a bottle or drinks from a cup you hold'], ['f2b', 'Eats thicker mashed foods'], ['f2c', 'Starts to chew soft lumps'],
+    ['m3a', 'Pulls up to stand and cruises along furniture'], ['m3b', 'Stands alone for a moment or takes first steps'], ['m3c', 'Picks up small things with thumb and finger'],
+    ['s3a', 'Enjoys listening to songs'], ['s3b', 'Explores toys with fingers as well as the mouth'], ['s3c', 'Crawls toward things seen across the room'],
+    ['c3a', 'Says one or two words with meaning, such as “mama” or “dada”'], ['c3b', 'Follows a simple request such as “come here”'], ['c3c', 'Waves, points and uses other gestures'],
+    ['f3a', 'Feeds self with fingers'], ['f3b', 'Eats a growing variety of foods'], ['f3c', 'Drinks from an open cup with help']
+  ];
+  function vMilestones(now) {
+    var cur = C.bandForAge(state.baby.dob, now), band = ui.band == null ? cur : ui.band;
+    var h = '<div class="seg" role="tablist">' + BANDS.map(function (b, i) { return '<button aria-pressed="' + (i === band) + '" data-action="band:' + i + '">' + b.replace(' months', 'm') + '</button>'; }).join('') + '</div>';
+    var items = MS.filter(function (m) { return +m[0][1] === band; }), done = items.filter(function (m) { return state.milestones[m[0]]; }).length;
+    h += '<div class="card set"><div><b style="font-size:20px">' + BANDS[band] + '</b>' + (band === cur ? ' <span class="note">· your baby is here now</span>' : '') + '</div><div class="prog"><div class="bar"><i style="width:' + Math.round(done / items.length * 100) + '%"></i></div><b class="num" id="ms-count">' + done + ' of ' + items.length + '</b></div></div>';
+    Object.keys(CATS).forEach(function (k) {
+      h += '<section class="sec"><h2>' + CATS[k] + '</h2><div class="card tl">';
+      items.filter(function (m) { return m[0][0] === k; }).forEach(function (m) {
+        var d = state.milestones[m[0]];
+        h += '<button class="ms' + (d ? ' done' : '') + '" role="checkbox" aria-checked="' + !!d + '" data-action="ms:' + m[0] + '"><span class="box">' + icon('check') + '</span><span>' + m[1] + (d ? '<span class="d">Reached ' + new Date(d + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) + '</span>' : '') + '</span></button>';
+      });
+      h += '</div></section>';
+    });
+    return h + '<p class="note">Babies reach milestones at their own pace, and these ranges are guides. If your baby was born early, use the corrected age. If you are worried about anything, or a skill your baby had has gone, talk to your doctor or health visitor.</p>';
+  }
+
+  /* ---------- more ---------- */
+  function seg(name, opts, cur) { return '<div class="seg">' + opts.map(function (o) { return '<button aria-pressed="' + (o[0] === cur) + '" data-action="' + name + ':' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>'; }
+  function vMore(now) {
+    var b = state.baby;
+    return '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line"><span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
+      '<section class="sec"><h2>Bottle units</h2>' + seg('units', [['ml', 'Millilitres'], ['oz', 'Ounces']], state.settings.units) + '</section>' +
+      '<section class="sec"><h2>Appearance</h2>' + seg('theme', [['system', 'Match phone'], ['light', 'Light'], ['dark', 'Dark']], state.settings.theme) + '</section>' +
+      '<section class="sec"><h2>Backup</h2><div class="card set"><span class="note">Everything is stored only on this device. Save a backup now and then, and use it to move to another phone.</span><div class="rowbtns"><button class="btn" data-action="export">Save backup</button><button class="btn" data-action="import-open">Restore</button></div></div></section>' +
+      '<section class="sec"><h2>About</h2><div class="card set"><span>Baby Centre ' + VERSION + ' · ' + state.events.length + ' entries stored</span><span class="note">Cry analysis draws on published infant cry acoustics (Wasz-Höckert 1968; Porter 1986; Zeskind &amp; Lester; LaGasse 2005) and the approach of apps such as ChatterBaby. Milestones follow CDC and Pathways.org checklists. Sleep ranges follow the American Academy of Sleep Medicine. This app gives guidance only and does not replace medical advice.</span></div></section>' +
+      '<button class="btn danger wide" data-action="erase-open">Erase all data</button>';
+  }
+
+  /* ---------- sheets ---------- */
+  function sheetWrap(title, body) { return '<div id="scrim" data-action="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><div class="sheethead"><h3>' + esc(title) + '</h3><button class="x" data-action="sheet-close" aria-label="Close">' + icon('x') + '</button></div>' + body + '</div></div>'; }
+  function field(label, html) { return '<label class="f">' + label + html + '</label>'; }
+  function eventForm(e, now) {
+    var h = field('Started', '<input class="in1" type="datetime-local" id="f-start" value="' + toInput(e.start) + '">');
+    if (e.type === 'sleep') h += field('Woke up' + (e.end ? '' : ' (leave empty if still asleep)'), '<input class="in1" type="datetime-local" id="f-end" value="' + (e.end ? toInput(e.end) : '') + '">');
+    if (e.type === 'feed' && e.kind === 'breast') {
+      if (e.end || e.isNew) h += '<div class="tiles">' + field('Left (min)', '<input class="in1" type="number" inputmode="numeric" min="0" max="180" id="f-l" value="' + Math.round((e.lsec || 0) / 60) + '">') + field('Right (min)', '<input class="in1" type="number" inputmode="numeric" min="0" max="180" id="f-r" value="' + Math.round((e.rsec || 0) / 60) + '">') + '</div>';
+      else h += '<p class="note">This feed is still running. Stop it from the home screen to edit the times per side.</p>';
+    }
+    if (e.type === 'feed' && e.kind === 'bottle') { var oz = state.settings.units === 'oz'; h += field('Amount (' + (oz ? 'oz' : 'ml') + ')', '<input class="in1" type="number" inputmode="decimal" min="0" step="' + (oz ? 0.5 : 5) + '" id="f-amount" value="' + (oz ? Math.round((e.ml || 0) / 29.5735 * 2) / 2 : Math.round(e.ml || 0)) + '">'); }
+    if (e.type === 'feed' && e.kind === 'solids') h += field('What did baby eat?', '<input class="in1" type="text" maxlength="80" id="f-note" value="' + esc(e.note || '') + '">');
+    if (e.type === 'diaper') h += field('Type', '<select class="in1" id="f-kind">' + Object.keys(DIAPER).map(function (k) { return '<option value="' + k + '"' + (e.kind === k ? ' selected' : '') + '>' + DIAPER[k] + '</option>'; }).join('') + '</select>');
+    return h;
+  }
+  function readForm(e) {
+    var g = function (id) { var el = $(id); return el ? el.value : null; }, now = Date.now(), out = JSON.parse(JSON.stringify(e)); delete out.isNew;
+    var st = new Date(g('f-start')).getTime();
+    if (!g('f-start') || isNaN(st)) return 'Enter a start time.';
+    if (st > now + MIN) return 'The start time is in the future.';
+    out.start = iso(st);
+    if (e.type === 'sleep') {
+      var ev = g('f-end');
+      if (ev) { var en = new Date(ev).getTime(); if (isNaN(en) || en <= st) return 'Wake time must be after the start.'; if (en > now + MIN) return 'The wake time is in the future.'; if (en - st > 20 * HOUR) return 'That sleep is longer than 20 hours. Check the dates.'; out.end = iso(en); }
+      else { if (C.active(state.events.filter(function (x) { return x.id !== e.id; }), 'sleep')) return 'Another sleep is already running. Add a wake time.'; out.end = null; }
+    }
+    if (e.type === 'feed' && e.kind === 'breast' && $('f-l')) {
+      var l = Math.max(0, +g('f-l') || 0), r = Math.max(0, +g('f-r') || 0);
+      if (l + r <= 0) return 'Enter the minutes on at least one side.';
+      if (l + r > 240) return 'That feed is longer than 4 hours. Check the minutes.';
+      out.lsec = Math.round(l * 60); out.rsec = Math.round(r * 60); out.side = r > 0 && (e.side === 'R' || l === 0) ? 'R' : 'L';
+      if (e.isNew) out.side = r > 0 ? 'R' : 'L';
+      out.end = iso(st + (l + r) * MIN); delete out.segStart;
+    }
+    if (e.type === 'feed' && e.kind === 'bottle') { var a = +g('f-amount'); if (!(a > 0)) return 'Enter the amount.'; out.ml = state.settings.units === 'oz' ? a * 29.5735 : a; if (out.ml > 500) return 'That amount looks too large. Check it.'; out.end = out.start; }
+    if (e.type === 'feed' && e.kind === 'solids') { out.note = (g('f-note') || '').trim(); out.end = out.start; }
+    if (e.type === 'diaper') out.kind = g('f-kind');
+    return out;
+  }
+  var ADD = [['breast', 'Breast'], ['bottle', 'Bottle'], ['solids', 'Solids'], ['sleep', 'Sleep'], ['diaper', 'Nappy']];
+  function draft(kind, now) {
+    var base = { id: C.uid(), isNew: true, start: iso(now - 30 * MIN) };
+    if (kind === 'sleep') return Object.assign(base, { type: 'sleep', start: iso(now - 90 * MIN), end: iso(now - 30 * MIN) });
+    if (kind === 'diaper') return Object.assign(base, { type: 'diaper', kind: 'wet' });
+    if (kind === 'bottle') return Object.assign(base, { type: 'feed', kind: 'bottle', ml: lastBottle() });
+    if (kind === 'solids') return Object.assign(base, { type: 'feed', kind: 'solids', note: '' });
+    return Object.assign(base, { type: 'feed', kind: 'breast', side: 'L', lsec: 600, rsec: 600 });
+  }
+  function lastBottle() { var b = C.last(state.events, function (e) { return e.type === 'feed' && e.kind === 'bottle'; }); return b ? b.ml : C.feedGuide(C.ageDays(state.baby.dob, Date.now())).ml[0]; }
+  function renderSheet() {
+    var s = ui.sheet, root = $('sheet-root'), now = Date.now(), h = '';
+    if (!s) { root.innerHTML = ''; return; }
+    var err = '<p class="err" id="sheet-err" hidden></p>';
+    if (s.name === 'bottle') {
+      var oz = state.settings.units === 'oz', v = oz ? Math.round(lastBottle() / 29.5735 * 2) / 2 : Math.round(lastBottle());
+      h = sheetWrap('Bottle feed', '<div class="stepper"><button data-action="amt:-1" aria-label="Less">−</button><input class="in1 num" type="number" inputmode="decimal" id="f-amount" step="' + (oz ? 0.5 : 10) + '" min="0" value="' + v + '" aria-label="Amount in ' + (oz ? 'ounces' : 'millilitres') + '"><button data-action="amt:1" aria-label="More">+</button></div><div class="chips">' + (oz ? [2, 3, 4, 5, 6] : [60, 90, 120, 150, 180]).map(function (n) { return '<button class="chip" data-action="amt-set:' + n + '">' + n + (oz ? ' oz' : ' ml') + '</button>'; }).join('') + '</div>' + err + '<button class="btn pri wide" data-action="save-bottle">Save bottle</button>');
+    } else if (s.name === 'diaper') {
+      h = sheetWrap('Nappy change', '<div class="three">' + Object.keys(DIAPER).map(function (k) { return '<button class="btn" data-action="diaper:' + k + '">' + DIAPER[k] + '</button>'; }).join('') + '</div>');
+    } else if (s.name === 'edit') {
+      var d = describe(s.ev, now);
+      h = sheetWrap('Edit ' + d.t.toLowerCase(), (s.ev.type === 'cry' ? '<p class="note">' + esc(d.s) + '</p>' : eventForm(s.ev, now)) + err + '<div class="rowbtns"><button class="btn danger" data-action="delete">Delete</button>' + (s.ev.type === 'cry' ? '' : '<button class="btn pri" data-action="save-edit">Save</button>') + '</div>');
+    } else if (s.name === 'add') {
+      h = sheetWrap('Add past entry', '<div class="seg">' + ADD.map(function (a) { return '<button aria-pressed="' + (a[0] === s.kind) + '" data-action="add-kind:' + a[0] + '">' + a[1] + '</button>'; }).join('') + '</div>' + eventForm(s.ev, now) + err + '<button class="btn pri wide" data-action="save-edit">Add entry</button>');
+    } else if (s.name === 'profile') {
+      var b = state.demo ? { name: '', dob: '' } : state.baby;
+      h = sheetWrap(state.demo ? 'Your baby' : 'Edit baby', (state.demo ? '<p class="note" style="margin:0">This clears the sample data and starts your own log.</p>' : '') + field('Name', '<input class="in1" type="text" id="f-name" maxlength="30" autocomplete="off" value="' + esc(b.name) + '">') + field('Date of birth', '<input class="in1" type="date" id="f-dob" max="' + toInput(now).slice(0, 10) + '" value="' + esc(b.dob) + '">') + err + '<button class="btn pri wide" data-action="save-profile">' + (state.demo ? 'Start tracking' : 'Save') + '</button>');
+    } else if (s.name === 'export') {
+      h = sheetWrap('Save backup', '<p class="note" style="margin:0">' + (s.saved ? 'A backup file was sent to your downloads. ' : '') + 'You can also copy the backup text and keep it in a note or email.</p><textarea class="in1" id="f-backup" readonly>' + esc(s.text) + '</textarea><div class="rowbtns"><button class="btn" data-action="export-file">Download file</button><button class="btn pri" data-action="export-copy">Copy text</button></div>');
+    } else if (s.name === 'import') {
+      h = sheetWrap('Restore backup', '<p class="note" style="margin:0">Restoring replaces everything on this device with the backup. You can undo straight after.</p><button class="btn wide" data-action="import-pick">Choose backup file</button>' + field('Or paste backup text', '<textarea class="in1" id="f-paste"></textarea>') + err + '<button class="btn pri wide" data-action="import-paste">Restore from text</button>');
+    } else if (s.name === 'erase') {
+      h = sheetWrap('Erase all data', '<p style="margin:0">This removes every feed, sleep, nappy, cry check and milestone from this device. It cannot be undone.</p><div class="rowbtns"><button class="btn" data-action="sheet-close">Keep my data</button><button class="btn danger" data-action="erase-yes">' + (s.armed ? 'Tap again to erase' : 'Erase everything') + '</button></div>');
+    }
+    root.innerHTML = h;
+  }
+  function openSheet(s) { ui.sheet = s; renderSheet(); }
+  function closeSheet() { ui.sheet = null; renderSheet(); }
+  function sheetErr(msg) { var e = $('sheet-err'); if (e) { e.textContent = msg; e.hidden = false; } }
+
+  /* ---------- render ---------- */
+  function applyTheme() {
+    var t = state.settings.theme, root = document.documentElement;
+    if (t === 'light' || t === 'dark') { root.setAttribute('data-theme', t); root.setAttribute('data-theme-by-app', '1'); }
+    else if (root.getAttribute('data-theme-by-app')) { root.removeAttribute('data-theme'); root.removeAttribute('data-theme-by-app'); }
+  }
+  var TITLES = { trends: 'Trends', cry: 'Cry check', milestones: 'Milestones', more: 'More' };
+  function render() {
+    var now = Date.now(), v = ui.view;
+    applyTheme();
+    $('top').innerHTML = '<h1>' + (v === 'home' ? esc(state.baby.name) : TITLES[v]) + '</h1><span class="age">' + (v === 'home' ? '' : esc(state.baby.name) + ' · ') + C.ageLabel(state.baby.dob, now) + '</span>';
+    $('view').innerHTML = v === 'home' ? vHome(now) : v === 'trends' ? vTrends(now) : v === 'cry' ? vCry(now) : v === 'milestones' ? vMilestones(now) : vMore(now);
+    var dock = $('dock'); dock.hidden = v !== 'home'; if (v === 'home') dock.innerHTML = vDock(now);
+    $('app').className = v === 'home' ? '' : 'nodock';
+    $('nav').innerHTML = '<div class="in">' + VIEWS.map(function (n) {
+      var lab = n === 'home' ? 'Home' : TITLES[n].replace(' check', '');
+      return '<button data-action="nav:' + n + '"' + (n === v ? ' aria-current="page"' : '') + (n === 'cry' ? ' class="crybtn"' : '') + '>' + (n === 'cry' ? '<span class="c">' + icon(n) + '</span>' : icon(n)) + '<span>' + lab + '</span></button>';
+    }).join('') + '</div>';
+  }
+  function go(v) { if (VIEWS.indexOf(v) < 0) v = 'home'; if (recStop && v !== 'cry') recStop(); ui.view = v; if (v !== 'cry' && ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; try { if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v); } catch (e) { } render(); window.scrollTo(0, 0); }
+
+  /* ---------- actions ---------- */
+  function download(text) {
+    try {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      a.download = 'baby-centre-backup-' + toInput(Date.now()).slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000); return true;
+    } catch (e) { return false; }
+  }
+  function restore(text) {
+    var data;
+    try { data = C.migrate(JSON.parse(text)); } catch (e) { return e instanceof SyntaxError ? 'That text is not a complete backup. Copy all of it and try again.' : e.message; }
+    if (!data.baby) return 'This backup has no baby profile.';
+    ui.sheet = null; renderSheet();
+    commit('Backup restored', function () { state = data; });
+    return '';
+  }
+  var A = {
+    nav: function (v) { go(v); },
+    undo: function () { if (!ui.undo) return; state = C.migrate({ schemaVersion: C.SCHEMA, data: JSON.parse(ui.undo) }); ui.undo = null; $('snack').hidden = true; if (ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; persist(); render(); },
+    older: function () { ui.days += 3; render(); },
+    breast: function (s) {
+      var now = Date.now(), af = C.active(state.events, 'feed');
+      if (af) { if (af.side === s) return; commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { var x = Math.round((now - T(af.segStart)) / 1000); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x; af.side = s; af.segStart = iso(now); }); }
+      else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right'), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
+    },
+    'feed-stop': function () {
+      var now = Date.now(), af = C.active(state.events, 'feed'); if (!af) return;
+      commit('Feed saved · ' + dur(now - T(af.start)), function () { var x = Math.round((now - T(af.segStart)) / 1000); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x; af.end = iso(now); delete af.segStart; });
+    },
+    'sleep-toggle': function () {
+      var now = Date.now(), as = C.active(state.events, 'sleep');
+      if (as) commit('Sleep saved · ' + dur(now - T(as.start)), function () { as.end = iso(now); });
+      else commit('Sleep started', function () { state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+    },
+    'bottle-open': function () { openSheet({ name: 'bottle' }); },
+    amt: function (d) { var el = $('f-amount'), st = +el.step || 10; el.value = Math.max(0, Math.round(((+el.value || 0) + d * st) * 10) / 10); },
+    'amt-set': function (n) { $('f-amount').value = n; },
+    'save-bottle': function () {
+      var a = +$('f-amount').value; if (!(a > 0)) return sheetErr('Enter the amount.');
+      var ml = state.settings.units === 'oz' ? a * 29.5735 : a; if (ml > 500) return sheetErr('That amount looks too large. Check it.');
+      var now = iso(Date.now()); closeSheet();
+      commit('Bottle saved · ' + vol(ml), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'bottle', start: now, end: now, ml: ml }); });
+    },
+    'diaper-open': function () { openSheet({ name: 'diaper' }); },
+    diaper: function (k) { closeSheet(); commit('Nappy saved · ' + DIAPER[k].toLowerCase(), function () { state.events.push({ id: C.uid(), type: 'diaper', kind: k, start: iso(Date.now()) }); }); },
+    edit: function (id) { var e = state.events.filter(function (x) { return x.id === id; })[0]; if (e) openSheet({ name: 'edit', ev: JSON.parse(JSON.stringify(e)) }); },
+    'add-open': function () { openSheet({ name: 'add', kind: 'breast', ev: draft('breast', Date.now()) }); },
+    'add-kind': function (k) { openSheet({ name: 'add', kind: k, ev: draft(k, Date.now()) }); },
+    'save-edit': function () {
+      var s = ui.sheet, out = readForm(s.ev); if (typeof out === 'string') return sheetErr(out);
+      var isNew = s.name === 'add'; closeSheet();
+      commit(isNew ? 'Entry added' : 'Changes saved', function () { var i = state.events.findIndex(function (x) { return x.id === out.id; }); if (i >= 0) state.events[i] = out; else state.events.push(out); });
+    },
+    'delete': function () { var id = ui.sheet.ev.id; closeSheet(); if (ui.cry.id === id) ui.cry = { phase: 'idle' }; commit('Entry deleted', function () { state.events = state.events.filter(function (x) { return x.id !== id; }); }); },
+    'sheet-close': function () { closeSheet(); },
+    scrim: function (_, ev) { if (ev.target.id === 'scrim') closeSheet(); },
+    'profile-open': function () { openSheet({ name: 'profile' }); },
+    'save-profile': function () {
+      var name = $('f-name').value.trim(), dob = $('f-dob').value, now = Date.now();
+      if (!name) return sheetErr('Enter your baby’s name.');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || isNaN(new Date(dob + 'T12:00').getTime())) return sheetErr('Enter the date of birth.');
+      if (new Date(dob + 'T00:00').getTime() > now) return sheetErr('The date of birth is in the future.');
+      if (now - new Date(dob + 'T00:00').getTime() > 3 * 366 * DAY) return sheetErr('This app covers the first year. Check the date of birth.');
+      var wasDemo = state.demo; closeSheet(); ui.band = null;
+      commit(wasDemo ? 'Welcome, ' + name : 'Profile saved', function () { if (wasDemo) { var set = state.settings; state = C.blank(); state.settings = set; } state.baby = { name: name, dob: dob }; state.demo = false; });
+      if (wasDemo) { ui.undo = null; go('home'); }
+    },
+    units: function (u) { commit(null, function () { state.settings.units = u; }); },
+    theme: function (t) { commit(null, function () { state.settings.theme = t; }); },
+    'export': function () { var text = JSON.stringify({ app: 'baby-centre', schemaVersion: C.SCHEMA, exportedAt: iso(Date.now()), data: state }); openSheet({ name: 'export', text: text, saved: false }); },
+    'export-file': function () { if (download(ui.sheet.text)) { ui.sheet.saved = true; renderSheet(); } },
+    'export-copy': function () {
+      var ta = $('f-backup'), ok = function () { snack('Backup text copied'); }, sel = function () { ta.focus(); ta.select(); snack('Text selected. Use Copy from the menu.'); };
+      try { navigator.clipboard.writeText(ta.value).then(ok, sel); } catch (e) { sel(); }
+    },
+    'import-open': function () { openSheet({ name: 'import' }); },
+    'import-pick': function () { $('import-file').click(); },
+    'import-paste': function () { var t = $('f-paste').value.trim(); if (!t) return sheetErr('Paste the backup text first.'); var e = restore(t); if (e) sheetErr(e); },
+    'erase-open': function () { openSheet({ name: 'erase', armed: false }); },
+    'erase-yes': function () {
+      if (!ui.sheet.armed) { ui.sheet.armed = true; return renderSheet(); }
+      closeSheet(); state = C.demoData(Date.now()); try { localStorage.removeItem(KEY); } catch (e) { } ui.cry = { phase: 'idle' }; ui.band = null; go('home'); snack('All data erased. Showing sample data.');
+    },
+    week: function (d) { ui.week = Math.max(0, ui.week + (+d)); render(); },
+    band: function (i) { ui.band = +i; render(); },
+    ms: function (id) { commit(null, function () { if (state.milestones[id]) delete state.milestones[id]; else state.milestones[id] = toInput(Date.now()).slice(0, 10); }); },
+    'cry-record': function () { cryRecord(); },
+    'cry-cancel': function () { if (recStop) recStop(); },
+    'cry-pick': function () { $('cry-file').click(); },
+    'cry-again': function () { ui.cry = { phase: 'idle' }; render(); window.scrollTo(0, 0); },
+    'cry-show': function (id) { ui.cry = { phase: 'result', id: id }; render(); window.scrollTo(0, 0); },
+    'cry-actual': function (id, label) { commit(null, function () { var e = state.events.filter(function (x) { return x.id === id; })[0]; if (e) e.actual = e.actual === label ? null : label; }); }
+  };
+  document.addEventListener('click', function (ev) {
+    var el = ev.target.closest('[data-action]'); if (!el || el.disabled) return;
+    var p = el.getAttribute('data-action').split(':'), fn = A[p[0]];
+    if (fn) fn(p[1], p[0] === 'scrim' ? ev : p[2]);
+  });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ui.sheet) closeSheet(); });
+  $('import-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    var fr = new FileReader(); fr.onload = function () { var e = restore(String(fr.result)); if (e) { if (!ui.sheet) openSheet({ name: 'import' }); sheetErr(e); } }; fr.readAsText(f);
+  });
+  $('cry-file').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (f) cryUpload(f); });
+  window.addEventListener('hashchange', function () { var v = location.hash.slice(1); if (v !== ui.view) go(v); });
+
+  /* ---------- boot ---------- */
+  var ticks = 0;
+  setInterval(function () {
+    var now = Date.now(); ticks++;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-timer]'), function (el) { el.textContent = timer(now - T(el.getAttribute('data-timer'))); });
+    if (ticks % 30 === 0 && !ui.sheet && (ui.view === 'home' || ui.view === 'trends')) render();
+  }, 1000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !ui.sheet && ui.cry.phase !== 'rec') render(); });
+  ui.view = VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'home';
+  render();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { try { navigator.serviceWorker.register('sw.js').catch(function () { }); } catch (e) { } }
+})();
+</script>
+<!--PAGE-END-->
+</body>
+</html>
