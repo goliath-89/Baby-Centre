@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.3 · 12 November 2026 · Status: shipped as v1.3.0
+Version 1.4 · 12 November 2026 · Status: shipped as v1.4.0
 
 ## 1. Problem
 
@@ -34,7 +34,7 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Live timers for a running feed or sleep, with Switch / Done / Woke up.
 - Status tiles: last feed (with last side and predicted next feed), sleep (awake or asleep time, next nap window), nappy (time since, count today).
 - Today so far: breast count and time, bottle count and total, sleep total, longest stretch.
-- Last 24 hours ribbon: sleep blocks, feed marks, nappy and cry dots.
+- Last 24 hours ribbon: sleep blocks, feed marks, nappy and cry dots. Interactive (v1.4): hovering, or pressing and sliding a finger, shows a marker and a readout of the time, asleep/awake state and entries within 30 minutes. A slide never navigates; a plain tap opens the Day timeline on Trends. Vertical page scrolling still works when the finger starts on the bar.
 - Status tiles are buttons: each opens the Timeline filtered to its activity (v1.2).
 - Timeline: entries by day, tap to edit or delete; add past entry. A filter (All, Feeds, Sleep, Nappies) shows one activity for the last 7 days, grouped by day with a daily total (v1.2).
 - Baby photo next to the name; an initial is shown when there is no photo (v1.2).
@@ -53,6 +53,7 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 
 ### 5.4 Trends
 - Plan ahead card: next feed, next sleep, reference ranges for the age.
+- Day timeline (v1.4): the last 24 hours at full size, time running downward at 46 px per hour, lanes for sleep, feeds, nappies and cry checks, with labels, a Now line and a date marker at midnight. Arrows step to Today, Yesterday and earlier calendar days. Every block and marker opens its entry.
 - Week view with previous/next: average sleep per day, longest stretch, feeds per day, nappies per day.
 - Charts: sleep pattern grid (days across, 24 hours down, with feed marks), sleep hours per day against the guide range, breast minutes left/right, bottle amount, feeds per day.
 

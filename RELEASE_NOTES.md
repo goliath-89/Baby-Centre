@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.4.0 · 12 November 2026
+
+### New
+- **Read the Last 24 hours bar.** On a phone, press and slide your finger along the bar (or press and hold); on a computer, hover. The line under the bar shows the time, whether your baby was asleep or awake, and any feed, nappy or cry check near that moment.
+- **Day timeline on Trends.** Tap the bar (or "Full timeline") to open a larger view: time runs down the page, with sleep blocks, feeds, nappies and cry checks each in their own lane and labelled. Use the arrows to look at Today, Yesterday and earlier days. Tap anything to open and edit it.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit | 29 of 29 pass |
+| End-to-end, one phone | 28 of 28 pass |
+| End-to-end, two phones | 23 of 23 pass |
+
+The finger gestures were tested with simulated touch events in Chromium, not on a physical phone.
+
+
 ## 1.3.0 · 12 November 2026
 
 ### New

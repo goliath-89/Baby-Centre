@@ -2,6 +2,13 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.4.0] - 2026-11-12
+
+### Added
+- **Interactive Last 24 hours bar** on Home. Hover with a mouse, or press and slide a finger along the bar, to read what was happening at that time: asleep or awake (with the sleep's start, end and length) and any feed, nappy or cry check within half an hour. A marker line follows the pointer.
+- **Day timeline** on Trends: a full-size view with time running down the page and a lane each for sleep, feeds, nappies and cry checks, labelled with durations and amounts. Step back day by day with the arrows. Tap any block or marker to open that entry.
+- Tapping the Last 24 hours bar, or "Full timeline", opens the Day timeline.
+
 ## [1.3.0] - 2026-11-12
 
 ### Added

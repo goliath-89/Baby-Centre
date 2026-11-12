@@ -34,7 +34,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('every tab renders without sideways scroll', async () => {
     for (const v of ['trends', 'cry', 'milestones', 'more', 'home']) { await act('nav:' + v); await noOverflow(v); if (v !== 'home') await shot('02-' + v + '-sample'); }
-    await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 5); await act('week:1'); eq(await page.locator('#view svg.chart').count(), 5); await act('week:-1'); await act('nav:home');
+    await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 6); await act('week:1'); eq(await page.locator('#view svg.chart').count(), 6); await act('week:-1'); await act('nav:home');
   });
   await step('profile form validates, then replaces sample data', async () => {
     await act('profile-open'); await act('save-profile'); ok((await text('#sheet-err')).includes('name'));
@@ -114,8 +114,31 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:more'); await act('profile-open'); await shot('03d-profile'); await act('photo-remove'); await act('save-profile'); await act('nav:home'); eq(await page.locator('#top img.av').count(), 0);
     await act('undo'); await page.waitForSelector('#top img.av');
   });
+  await step('last 24 hours bar: hover or slide to read what happened; a tap opens the full day timeline', async () => {
+    await page.evaluate(() => scrollTo(0, 0)); const box = await page.locator('#rib-svg').boundingBox(), xAt = h => box.x + box.width * (4 + 332 * (24 - h) / 24) / 340, yMid = box.y + box.height * 0.3;
+    ok((await text('#rib-read')).includes('Slide a finger'));
+    await page.mouse.move(xAt(2.5), yMid); let r = await text('#rib-read'); ok(/Asleep .*\(1h 00m\)/.test(r), 'hover over the logged sleep: ' + r); eq(await page.getAttribute('#rib-cur', 'visibility'), 'visible');
+    await page.mouse.move(xAt(20), yMid); r = await text('#rib-read'); ok(/Awake$/.test(r.trim()), 'quiet stretch: ' + r);
+    await page.mouse.move(xAt(0.02), yMid); r = await text('#rib-read'); ok(/Awake/.test(r) && /Bottle · 150 ml/.test(r) && /Nappy · Wet/.test(r), 'recent entries listed: ' + r);
+    // finger: press, slide sideways, lift. The slide reads out; it must not navigate.
+    const touch = (type, x) => page.evaluate(([type, x, y]) => document.querySelector('#rib-svg').dispatchEvent(new PointerEvent(type, { pointerType: 'touch', pointerId: 7, clientX: x, clientY: y, bubbles: true })), [type, x, yMid]);
+    await touch('pointerdown', xAt(12)); await touch('pointermove', xAt(8)); await touch('pointermove', xAt(2.5)); ok(/Asleep/.test(await text('#rib-read')), 'slide reads the sleep');
+    await touch('pointerup', xAt(2.5)); await page.evaluate(() => document.querySelector('#rib-svg').dispatchEvent(new MouseEvent('click', { bubbles: true }))); eq(await text('#top h1'), 'Mia <b>', 'still on Home after a slide');
+    // press and hold without moving also reads out
+    await touch('pointerdown', xAt(20)); await page.waitForTimeout(400); ok(/Awake/.test(await text('#rib-read'))); await touch('pointerup', xAt(20)); await page.evaluate(() => document.querySelector('#rib-svg').dispatchEvent(new MouseEvent('click', { bubbles: true }))); eq(await text('#top h1'), 'Mia <b>');
+    await shot('03e-ribbon'); await page.mouse.move(5, 5);
+    await page.click('#rib-svg'); eq(await text('#top h1'), 'Trends'); eq(await text('#day-label'), 'Last 24 hours');
+    ok(await page.evaluate(() => { const r = document.querySelector('#day').getBoundingClientRect(); return r.top >= 0 && r.top < 120; }), 'scrolled to the day timeline');
+    ok(/Sleep 1h 00m · 3 feeds · 1 nappy/.test(await text('#day-sum')), await text('#day-sum')); await shot('03f-dayline'); await noOverflow('day timeline');
+    const svg = await page.locator('#day-svg').innerHTML(); ok(svg.includes('Bottle 150 ml') && svg.includes('>1h 00m<') && svg.includes('>Now<') && svg.includes('>Wet<'), 'labels drawn');
+    await page.locator('#day-svg g[data-action^="edit:"]', { hasText: 'Bottle' }).click(); ok((await text('.sheet h3')).toLowerCase().includes('bottle')); await act('sheet-close');
+    await act('day:-1'); eq(await text('#day-label'), 'Today'); await act('day:-1'); eq(await text('#day-label'), 'Yesterday'); ok(/0 feeds/.test(await text('#day-sum')));
+    await act('day:1'); await act('day:1'); eq(await text('#day-label'), 'Last 24 hours'); ok(await page.locator('[data-action="day:1"]').isDisabled());
+    await act('nav:home'); await act('day-open'); eq(await text('#top h1'), 'Trends'); await act('nav:home');
+    await page.focus('#rib'); await page.keyboard.press('Enter'); eq(await text('#top h1'), 'Trends'); await act('nav:home');
+  });
   await step('trends reflect the log', async () => {
-    await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 5);
+    await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 6);
     ok(await page.locator('#view svg.chart rect[fill="var(--sleep)"]').count() >= 2, 'sleep blocks drawn'); await shot('04-trends-own');
   });
   await step('milestones tick, count and persist', async () => {
@@ -172,7 +195,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('works installed and offline (service worker)', async () => {
     await page.evaluate(() => navigator.serviceWorker.ready); await page.reload(); await page.waitForFunction(() => !!navigator.serviceWorker.controller);
-    await ctx.setOffline(true); await page.reload(); eq(await text('#top h1'), 'Sample baby'); await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 5); await ctx.setOffline(false);
+    await ctx.setOffline(true); await page.reload(); eq(await text('#top h1'), 'Sample baby'); await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 6); await ctx.setOffline(false);
   });
   await step('small phone (320px) and large text do not break the layout', async () => {
     await page.setViewportSize({ width: 320, height: 568 }); for (const v of ['home', 'trends', 'cry', 'milestones', 'more']) { await act('nav:' + v); await noOverflow(v + ' @320'); }

@@ -98,6 +98,11 @@ button.stat:active{transform:scale(.98)}
 /* ribbon + charts */
 .chart{width:100%;height:auto;display:block}
 .chart text{font:600 10px var(--font);fill:var(--ink-2)}
+.rib{cursor:pointer;display:flex;flex-direction:column;gap:8px}
+#rib-svg{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+#rib-read{min-height:38px}#rib-read.on{color:var(--ink)}
+#day-svg>line,#day-svg>text{pointer-events:none}
+#day{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
 .legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--ink-2);font-size:12px;font-weight:600}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 /* timeline */
@@ -787,7 +792,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.3.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.4.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -806,7 +811,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   var state = load() || C.demoData(Date.now());
   var VIEWS = ['home', 'trends', 'cry', 'milestones', 'more'];
-  var ui = { view: 'home', sheet: null, filter: 'all', days: 2, week: 0, band: null, cry: { phase: 'idle' }, undo: null, snackT: 0 };
+  var ui = { view: 'home', sheet: null, day: null, scrub: false, filter: 'all', days: 2, week: 0, band: null, cry: { phase: 'idle' }, undo: null, snackT: 0 };
 
   function commit(msg, fn) {
     var prev = JSON.stringify(state);
@@ -1081,7 +1086,69 @@ if (typeof module !== 'undefined') module.exports = Core;
     });
     var h = new Date(now); h.setMinutes(0, 0, 0);
     for (var t = h.getTime(); t > a + HOUR; t -= 6 * HOUR) o += '<text x="' + x(t).toFixed(1) + '" y="62" text-anchor="middle">' + new Date(t).toLocaleTimeString([], { hour: 'numeric' }) + '</text>';
-    return '<svg class="chart" viewBox="0 0 ' + W + ' 66" role="img" aria-label="Last 24 hours of sleep, feeds and nappies">' + o + '</svg>';
+    o += '<line id="rib-cur" x1="0" x2="0" y1="0" y2="50" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" visibility="hidden"/>';
+    return '<svg class="chart" id="rib-svg" data-from="' + a + '" viewBox="0 0 ' + W + ' 66" role="img" aria-label="Last 24 hours of sleep, feeds and nappies">' + o + '</svg>';
+  }
+
+  // What was happening at one moment: asleep or awake, plus anything logged within half an hour of it.
+  function describeAt(t, now) {
+    var ev = state.events, sl = null, near = [];
+    ev.forEach(function (e) {
+      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.kind === 'breast' ? now : s);
+      if (e.type === 'sleep') { if (s <= t && t < en) sl = e; return; }
+      var gap = t < s ? s - t : t > en ? t - en : 0;
+      if (gap <= 30 * MIN) near.push([gap, e]);
+    });
+    near.sort(function (a, b) { return a[0] - b[0]; });
+    var day = C.dayStart(t) === C.dayStart(now) ? '' : dayName(t) + ' ';
+    var h = '<b>' + day + clock(t) + '</b> · ' + (sl ? 'Asleep ' + clock(sl.start) + '–' + (sl.end ? clock(sl.end) : 'now') + ' (' + dur((sl.end ? T(sl.end) : now) - T(sl.start)) + ')' : 'Awake');
+    near.slice(0, 3).forEach(function (n) { var d = describe(n[1], now); h += '<br>' + clock(n[1].start) + ' · ' + d.t.replace(/ \(.*\)/, '') + (d.s ? ' · ' + esc(d.s) : ''); });
+    return h;
+  }
+  // Full-size day timeline: time runs down the page, one lane each for sleep, feeds, nappies and cry checks.
+  function dayline(a, b, now) {
+    var W = 340, HH = 46, top = 30, hours = (b - a) / HOUR, Ht = top + hours * HH + 12, o = '';
+    var y = function (t) { return top + (t - a) / HOUR * HH; }, f = function (v) { return v.toFixed(1); };
+    [['Sleep', 86], ['Feeds', 186], ['Nappies', 270], ['Cry', 320]].forEach(function (c) { o += '<text x="' + c[1] + '" y="12" text-anchor="middle" style="fill:var(--ink);font-weight:800">' + c[0] + '</text>'; });
+    var h0 = new Date(a); if (h0.getMinutes() || h0.getSeconds() || h0.getMilliseconds()) h0.setHours(h0.getHours() + 1, 0, 0, 0);
+    for (var t = h0.getTime(); t <= b; t += HOUR) {
+      var mid = new Date(t).getHours() === 0;
+      o += '<line x1="44" x2="' + W + '" y1="' + f(y(t)) + '" y2="' + f(y(t)) + '" stroke="var(--line)" stroke-width="' + (mid ? 2.5 : 1) + '"/><text x="38" y="' + f(y(t) + 3.5) + '" text-anchor="end">' + new Date(t).toLocaleTimeString([], { hour: 'numeric' }) + '</text>';
+      if (mid && t > a && t < b) o += '<text x="' + (W - 2) + '" y="' + f(y(t) - 4) + '" text-anchor="end" style="fill:var(--ink)">' + new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + '</text>';
+    }
+    state.events.forEach(function (e) {
+      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.kind === 'breast' ? now : s);
+      if (en < a || s > b) return;
+      var y1 = y(Math.max(s, a)), y2 = y(Math.min(en, b)), g = '<g data-action="edit:' + e.id + '" style="cursor:pointer">';
+      if (e.type === 'sleep') {
+        var hgt = Math.max(3, y2 - y1);
+        o += g + '<rect x="48" y="' + f(y1) + '" width="76" height="' + f(hgt) + '" rx="6" fill="var(--sleep)"/>' + (hgt >= 15 ? '<text x="86" y="' + f(y1 + hgt / 2 + 3.5) + '" text-anchor="middle" style="fill:var(--surface)">' + dur(en - s) + '</text>' : '') + '</g>';
+      } else if (e.type === 'feed') {
+        if (s < a) return;
+        var bs = e.kind === 'breast' ? breastSecs(e, now) : null, lab = e.kind === 'bottle' ? 'Bottle ' + vol(e.ml || 0) : e.kind === 'solids' ? 'Solids' : 'Breast ' + dur((bs[0] + bs[1]) * 1000);
+        o += g + '<rect x="132" y="' + f(y1 - 9) + '" width="112" height="' + f(Math.max(18, y2 - y1 + 18)) + '" fill="transparent"/><rect x="136" y="' + f(y1) + '" width="12" height="' + f(Math.max(6, y2 - y1)) + '" rx="3" fill="var(--feed)"' + (e.kind === 'solids' ? ' fill-opacity=".45"' : '') + '/><text x="154" y="' + f(y1 + 8) + '" style="fill:var(--ink)">' + lab + '</text></g>';
+      } else if (e.type === 'diaper') {
+        if (s < a) return;
+        o += g + '<rect x="246" y="' + f(y1 - 9) + '" width="56" height="18" fill="transparent"/><circle cx="254" cy="' + f(y1) + '" r="5" fill="var(--diaper)"/><text x="263" y="' + f(y1 + 3.5) + '" style="fill:var(--ink)">' + (e.kind === 'both' ? 'Both' : DIAPER[e.kind] || '') + '</text></g>';
+      } else if (e.type === 'cry' && s >= a) {
+        o += '<g data-action="cry-open:' + e.id + '" style="cursor:pointer"><rect x="306" y="' + f(y1 - 9) + '" width="28" height="18" fill="transparent"/><circle cx="320" cy="' + f(y1) + '" r="5" fill="var(--cry)"/></g>';
+      }
+    });
+    if (now >= a && now <= b) o += '<line x1="44" x2="' + W + '" y1="' + f(y(now)) + '" y2="' + f(y(now)) + '" stroke="var(--cry)" stroke-width="1.500" stroke-dasharray="4 3"/><text x="' + (W - 2) + '" y="' + f(y(now) - 4) + '" text-anchor="end" style="fill:var(--cry)">Now</text>';
+    return '<svg class="chart" id="day-svg" viewBox="0 0 ' + W + ' ' + f(Ht) + '" role="img" aria-label="Timeline of sleep, feeds, nappies and cry checks">' + o + '</svg>';
+  }
+  function vDay(now) {
+    var today = C.dayStart(now), a, b, label;
+    if (ui.day == null) { a = now - DAY; b = now; label = 'Last 24 hours'; }
+    else { a = ui.day; var nx = new Date(a); nx.setDate(nx.getDate() + 1); b = nx.getTime(); label = dayName(a); }
+    var sleep = 0, feeds = 0, naps = 0;
+    state.events.forEach(function (e) {
+      var s = T(e.start);
+      if (e.type === 'sleep') sleep += Math.max(0, Math.min(e.end ? T(e.end) : now, b) - Math.max(s, a));
+      else if (s >= a && s < b) { if (C.isMilk(e)) feeds++; else if (e.type === 'diaper') naps++; }
+    });
+    return '<section class="sec" id="day"><div class="sechead"><h2>Day timeline</h2><span><button class="btn" data-action="day:-1" aria-label="Earlier day">‹</button> <button class="btn" data-action="day:1" aria-label="Later day"' + (ui.day == null ? ' disabled style="opacity:.4"' : '') + '>›</button></span></div>' +
+      '<div class="card set"><div class="line"><b id="day-label" style="font-size:18px">' + label + '</b><span class="note num" id="day-sum" style="flex:none">Sleep ' + dur(sleep) + ' · ' + feeds + (feeds === 1 ? ' feed' : ' feeds') + ' · ' + naps + (naps === 1 ? ' nappy' : ' nappies') + '</span></div>' + dayline(a, b, now) + '<span class="note">Tap a block or marker to open that entry.</span></div></section>';
   }
 
   /* ---------- views ---------- */
@@ -1122,7 +1189,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<div><b class="num">' + today.breastN + '</b><span>Breast</span></div><div><b class="num">' + dur(today.lMs + today.rMs) + '</b><span>Breast time</span></div>' +
       '<div><b class="num">' + today.bottleN + '</b><span>Bottle</span></div><div><b class="num">' + vol(today.bottleMl) + '</b><span>Bottle total</span></div></div>' +
       '<p class="note" style="margin:10px 0 0">Sleep today ' + dur(today.sleepMs) + ' · longest stretch ' + dur(today.longestMs) + '</p></div></section>';
-    h += '<section class="sec"><h2>Last 24 hours</h2><div class="card">' + ribbon(now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feed</span><span><i style="background:var(--diaper)"></i>Nappy</span><span><i style="background:var(--cry)"></i>Cry check</span></div></div></section>';
+    h += '<section class="sec"><div class="sechead"><h2>Last 24 hours</h2><button class="link" data-action="day-open">Full timeline ›</button></div><div class="card rib" id="rib" data-action="day-open" role="button" tabindex="0" aria-label="Open the full day timeline">' + ribbon(now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feed</span><span><i style="background:var(--diaper)"></i>Nappy</span><span><i style="background:var(--cry)"></i>Cry check</span></div><div class="note" id="rib-read">Slide a finger along the bar to see what happened when. Tap to open the full timeline.</div></div></section>';
 
     // Timeline: everything for the last two days, or one activity grouped by day with a daily total.
     var F = ui.filter, span = F === 'all' ? ui.days : Math.max(ui.days, 7), cut = C.dayStart(now) - (span - 1) * DAY;
@@ -1183,6 +1250,7 @@ if (typeof module !== 'undefined') module.exports = Core;
         '<div class="line"><span><b>Next sleep</b><br><span class="note">Babies this age manage about ' + ps.window[0] + '–' + ps.window[1] + ' min awake</span></span><b class="num" style="font-size:20px;color:var(--sleep)">' + (ps.asleep ? 'Asleep' : ps.from ? (now > ps.to ? 'Due now' : clock(ps.from) + '–' + clock(ps.to)) : '–') + '</b></div>' +
         '<p class="note" style="margin:0">For reference at this age: ' + fg.feeds + ' milk feeds a day, about ' + vol(fg.ml[0]) + '–' + vol(fg.ml[1]) + ' per bottle, and ' + need[0] + '–' + need[1] + ' hours of sleep in 24 hours. Every baby is different. Feed on demand.</p></div></section>';
     }
+    h += vDay(now);
     h += '<section class="sec"><div class="sechead"><h2>' + range + '</h2><span><button class="btn" data-action="week:1" aria-label="Earlier week">‹</button> <button class="btn" data-action="week:-1" aria-label="Later week"' + (ui.week === 0 ? ' disabled style="opacity:.4"' : '') + '>›</button></span></div>' +
       '<div class="tiles">' +
       '<div class="stat sleep"><span class="k">Sleep / day</span><span class="v num">' + dur(avg(function (d) { return d.sleepMs; })) + '</span><span class="s">Guide ' + need[0] + '–' + need[1] + 'h</span></div>' +
@@ -1596,6 +1664,17 @@ if (typeof module !== 'undefined') module.exports = Core;
     'share-code': function () { openSheet({ name: 'share-code' }); },
     'share-copy': function () { var t = $('f-code').textContent; try { navigator.clipboard.writeText(t).then(function () { snack('Copied. Paste it into a message to your partner.'); }, function () { snack('Press and hold the code to copy it.'); }); } catch (e) { snack('Press and hold the code to copy it.'); } },
     'share-stop': function () { Sync.stop(); snack('Sharing stopped on this phone'); render(); peekShared(); },
+    'day-open': function () {
+      if (ui.scrubbed) { ui.scrubbed = false; return; } // the tap that ends a slide is not a request to leave
+      ui.day = null; ui.week = 0; go('trends'); var el = $('day'); if (el) el.scrollIntoView({ block: 'start' });
+    },
+    day: function (d) {
+      var today = C.dayStart(Date.now());
+      if (+d < 0) { if (ui.day == null) ui.day = today; else { var p = new Date(ui.day); p.setDate(p.getDate() - 1); ui.day = p.getTime(); } }
+      else if (ui.day != null) { if (ui.day >= today) ui.day = null; else { var n = new Date(ui.day); n.setDate(n.getDate() + 1); ui.day = n.getTime(); } }
+      render();
+    },
+    'cry-open': function (id) { ui.cry = { phase: 'result', id: id }; go('cry'); },
     week: function (d) { ui.week = Math.max(0, ui.week + (+d)); render(); },
     band: function (i) { ui.band = +i; render(); },
     ms: function (id) { commit(null, function () { if (state.milestones[id]) delete state.milestones[id]; else state.milestones[id] = toInput(Date.now()).slice(0, 10); }); },
@@ -1625,7 +1704,34 @@ if (typeof module !== 'undefined') module.exports = Core;
     var p = el.getAttribute('data-action').split(':'), fn = A[p[0]];
     if (fn) fn(p[1], p[0] === 'scrim' ? ev : p[2]);
   });
-  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ui.sheet) closeSheet(); });
+  /* Last-24-hours bar: hover with a mouse, or press and slide with a finger, to read what happened at that time. */
+  (function () {
+    var down = null, hold = 0;
+    function show(clientX) {
+      var svg = $('rib-svg'), read = $('rib-read'), cur = $('rib-cur'); if (!svg || !read) return;
+      var r = svg.getBoundingClientRect(), vx = Math.max(4, Math.min(336, (clientX - r.left) / r.width * 340)), a = +svg.getAttribute('data-from'), now = Date.now();
+      var t = Math.min(now, a + (vx - 4) / 332 * DAY);
+      cur.setAttribute('x1', vx); cur.setAttribute('x2', vx); cur.setAttribute('visibility', 'visible');
+      read.innerHTML = describeAt(t, now); read.className = 'note on';
+    }
+    function inBar(ev) { return ev.target && ev.target.closest && ev.target.closest('#rib-svg'); }
+    document.addEventListener('pointerdown', function (ev) {
+      if (!inBar(ev) || ev.pointerType === 'mouse') return;
+      down = { x: ev.clientX, y: ev.clientY, id: ev.pointerId }; ui.scrubbed = false;
+      clearTimeout(hold); hold = setTimeout(function () { if (down) { ui.scrub = ui.scrubbed = true; show(down.x); } }, 280);
+    });
+    document.addEventListener('pointermove', function (ev) {
+      if (ev.pointerType === 'mouse') { if (inBar(ev)) show(ev.clientX); return; }
+      if (!down || ev.pointerId !== down.id) return;
+      if (!ui.scrub && Math.abs(ev.clientX - down.x) > 6 && Math.abs(ev.clientX - down.x) > Math.abs(ev.clientY - down.y)) ui.scrub = ui.scrubbed = true;
+      if (ui.scrub) { down.x = ev.clientX; show(ev.clientX); }
+    });
+    function end() { clearTimeout(hold); down = null; ui.scrub = false; }
+    document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  })();
+  document.addEventListener('keydown', function (ev) {
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target && ev.target.id === 'rib') { ev.preventDefault(); A['day-open'](); return; }
+    if (ev.key === 'Escape' && ui.sheet) closeSheet(); });
   $('import-file').addEventListener('change', function () {
     var f = this.files[0]; this.value = ''; if (!f) return;
     var fr = new FileReader(); fr.onload = function () { var e = restore(String(fr.result)); if (e) { if (!ui.sheet) openSheet({ name: 'import' }); sheetErr(e); } }; fr.readAsText(f);
@@ -1659,7 +1765,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   setInterval(function () {
     var now = Date.now(); ticks++;
     Array.prototype.forEach.call(document.querySelectorAll('[data-timer]'), function (el) { el.textContent = timer(now - T(el.getAttribute('data-timer'))); });
-    if (ticks % 30 === 0 && !ui.sheet && (ui.view === 'home' || ui.view === 'trends')) render();
+    if (ticks % 30 === 0 && !ui.sheet && !ui.scrub && (ui.view === 'home' || ui.view === 'trends')) render();
   }, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden && !ui.sheet && ui.cry.phase !== 'rec') render(); });
   ui.view = VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'home';
