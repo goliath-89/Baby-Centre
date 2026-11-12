@@ -56,6 +56,7 @@ function fakeClaude(level) {
       }
     })
   };
+  window.BC_SHARE_URL = 'https://claude.ai/artifact/test123';
   window.claude = { use: name => new Promise(ok => setTimeout(() => ok(name === 'db' ? db : null), 50)) };
 }
 module.exports = { start, fakeClaude };

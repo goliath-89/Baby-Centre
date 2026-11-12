@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.1 · 12 November 2026 · Status: shipped as v1.1.0
+Version 1.2 · 12 November 2026 · Status: shipped as v1.2.0
 
 ## 1. Problem
 
@@ -35,7 +35,9 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Status tiles: last feed (with last side and predicted next feed), sleep (awake or asleep time, next nap window), nappy (time since, count today).
 - Today so far: breast count and time, bottle count and total, sleep total, longest stretch.
 - Last 24 hours ribbon: sleep blocks, feed marks, nappy and cry dots.
-- Timeline: entries by day, tap to edit or delete; add past entry.
+- Status tiles are buttons: each opens the Timeline filtered to its activity (v1.2).
+- Timeline: entries by day, tap to edit or delete; add past entry. A filter (All, Feeds, Sleep, Nappies) shows one activity for the last 7 days, grouped by day with a daily total (v1.2).
+- Baby photo next to the name; an initial is shown when there is no photo (v1.2).
 - Dock pinned above the tab bar: **L**, **R**, **Bottle**, **Sleep**, **Nappy**. The side to offer next is tagged.
 
 ### 5.2 Feeds
@@ -102,6 +104,13 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 |---|---|---|
 | Installed web app (GitHub Pages or any host) | A Firebase Realtime Database the user owns, reached over plain HTTPS (REST + EventSource, no SDK) | Create a free database, paste its address, send the invite code or link to the partner |
 | Hosted Claude page | The page's own shared store | Tap "Share this log" on both phones; the owner invites the partner as an Editor |
+
+**Inviting (v1.2).** Sharing is the first section under More and always shows one primary action.
+- Installed app: *Invite my partner* → database address (first time only) → invite sheet with **Send** (phone share sheet), **Email** and **Copy**. The partner opens the link, which opens the Join screen with the code filled in. *I have an invite* accepts a pasted code. *Invite partner* reopens the invite later.
+- Hosted page: *Share with my partner* turns sharing on and shows three steps: give access in the page's Share menu as Editor, send the link (shown with a Copy button), partner taps Join. On the partner's phone a banner on Home offers *Join <name>'s log* as soon as the page opens.
+- If the hosted page cannot reach its shared store, the section says so and offers nothing that cannot work.
+
+**Profile photo (v1.2).** Cropped to a 256 px square JPEG on the phone (about 10–25 KB), stored with the profile and shared like any other record. Images arriving from a partner or a backup are accepted only if they are small inline JPEG, PNG or WebP data.
 
 **Privacy.** The invite code holds the database address and a random 20-character log id. Anyone with the code can read and change the log. The database rules stop anyone listing logs, so the id works as the key. Data is not end-to-end encrypted.
 

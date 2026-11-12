@@ -23,6 +23,8 @@ The microphone only works on HTTPS pages (or `localhost`), which is why A or B i
 ## Using it
 - **Home**: tap **L** or **R** to start a breast feed, the other side to switch, the lit side to stop. **Bottle** and **Nappy** take two taps. **Sleep** toggles.
 - Every change shows **Undo** for a few seconds. Tap any timeline row to edit or delete it.
+- Under **Timeline**, tap Feeds, Sleep or Nappies to see one activity grouped by day. The Last feed, Sleep and Nappy tiles do the same.
+- **More → Baby → Edit** to add a photo.
 - **Cry** (centre button): hold the phone 20–30 cm from your baby and tap *Record 5 seconds*.
 - **More → Backup**: save a backup file now and then.
 - **More → Excel**: export the log as a workbook, edit it, and import it back.
@@ -49,9 +51,9 @@ Both phones need the app from the same address (Option A or B above).
    ```
 4. Open the **Data** tab and copy the address at the top. It looks like `https://your-project-default-rtdb.firebaseio.com`.
 
-**On your phone:** More → Share with partner → **Start sharing**, paste the address, then **Copy invite** and send it to your partner.
+**On your phone:** More → Share with partner → **Invite my partner**, paste the address, then **Send**, **Email** or **Copy** the invite. You can reopen it any time with **Invite partner**.
 
-**On your partner's phone:** open the invite link, or go to More → Share with partner → **Join with a code** and paste it.
+**On your partner's phone:** open the invite link and tap **Join**. Without the link: More → Share with partner → **I have an invite**, and paste it.
 
 How it behaves:
 - Changes show on the other phone within a second or two. A running feed or sleep timer can be stopped from either phone.
@@ -68,6 +70,7 @@ How it behaves:
 ## Development
 ```
 npm run serve        # http://localhost:8080
+node scripts/make-artifact.js out.html [page-url]   # wrapper-free copy for hosts that add their own <head>
 npm test             # everything below
 npm run test:unit    # logic, merge and Excel tests (Node 20+; Excel interop tests use python3+openpyxl and LibreOffice if present)
 npm run test:e2e     # single phone, fake microphone (needs Playwright + Chromium)

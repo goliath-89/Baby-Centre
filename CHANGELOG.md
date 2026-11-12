@@ -2,6 +2,23 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.2.0] - 2026-11-12
+
+### Added
+- **Timeline filter**: All, Feeds, Sleep, Nappies. A filtered view covers the last 7 days grouped by day, each day with its total (feeds, breast time, bottle amount; sleep time; nappy changes).
+- **Tappable status tiles**: Last feed, Sleep and Nappy on Home open the matching records.
+- **Baby photo**: add, change or remove a profile picture; it is cropped to a small square, shown next to the name on Home, and shared with the partner.
+- **Invite options**: the invite sheet now offers Send (phone share sheet), Email and Copy, and can be reopened any time with "Invite partner".
+- Hosted page: a "Join <name>'s log" banner on Home for the partner, and step-by-step invite instructions with a link to copy for the owner.
+
+### Changed
+- "Share with partner" is now the first section under More, with one clear primary action for each situation.
+- The Timeline's "Show earlier days" adds a week at a time.
+
+### Fixed
+- On the hosted page, sharing could fall back to the database setup meant for the installed app, which cannot work there. The page now says when sharing is unavailable in that view.
+- The hosted page gave the partner no cue that a shared log existed; they now see a Join banner.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added

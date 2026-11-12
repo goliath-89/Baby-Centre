@@ -68,6 +68,7 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-
 .banner .btn{flex:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:14px;font-weight:700;background:var(--surface-2);color:var(--ink)}
 .btn.pri{background:var(--accent);color:var(--on-accent)}
+a.btn{text-decoration:none}
 .btn.danger{background:var(--cry-bg);color:var(--cry)}
 .btn.wide{width:100%;min-height:52px;font-size:16px}
 .btn:active{transform:scale(.97)}
@@ -145,6 +146,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .rowbtns{display:flex;gap:10px}.rowbtns .btn{flex:1}
 /* snack */
 #snack{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+#snack.top{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 #snack button{min-height:40px;padding:0 14px;border-radius:10px;color:var(--bg);background:rgba(128,128,128,.35);font-weight:800}
 /* cry */
 .card.recwrap{display:flex;flex-direction:column;align-items:center;gap:22px;padding:34px 16px 20px}
@@ -184,7 +186,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .set{display:flex;flex-direction:column;gap:12px}
 .set .line{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap}
-.set .line>span:first-child,.set .line>.av+span{flex:1 1 150px;min-width:0}
+.set .line>span:first-child:not(.av),.set .line>.av+span{flex:1 1 150px;min-width:0}
 </style>
 </head>
 <body>
@@ -776,7 +778,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.1.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.2.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -815,7 +817,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     ui.undo = prev || null;
     var el = $('snack');
     el.innerHTML = '<span>' + esc(msg) + '</span>' + (prev ? '<button data-action="undo">Undo</button>' : '');
-    el.hidden = false; clearTimeout(ui.snackT);
+    el.className = ui.sheet ? 'top' : ''; el.hidden = false; clearTimeout(ui.snackT); // above an open sheet, not over its text
     ui.snackT = setTimeout(function () { el.hidden = true; ui.undo = null; }, prev ? 6000 : 3000);
   }
 
@@ -824,7 +826,9 @@ if (typeof module !== 'undefined') module.exports = Core;
      Every record is merged on its own, newest change wins (see Core.stamp / Core.mergeAll).
      Two connections: Firebase Realtime Database over plain REST + EventSource (the installed app),
      and the host page's shared store when the app runs as a Claude artifact. */
-  var SK = 'babycentre.sync', host = { db: null, dl: null };
+  var SK = 'babycentre.sync', hosted = !!(window.claude && typeof window.claude.use === 'function');
+  // host.state: 'no' (own site), then on a hosted page 'checking' -> 'ready' or 'none'. host.shared: baby name of a log already shared there.
+  var host = { db: null, dl: null, state: hosted ? 'checking' : 'no', shared: '', url: /^https:\/\/claude\.ai\/[\w\/-]+$/.test(window.BC_SHARE_URL || '') ? window.BC_SHARE_URL : '' };
   function fbTransport(cfg, h) {
     var base = cfg.url + '/rooms/' + cfg.room + '/r', es = null, stopped = false, again = 0;
     function refetch() { fetch(base + '.json').then(function (r) { return r.json(); }).then(function (d) { h.full(d || {}, true); }, function () { h.status('offline'); }); }
@@ -1076,6 +1080,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     var ev = state.events, dob = state.baby.dob, h = '';
     if (state.demo) h += '<div class="banner"><span>You are looking at sample data.</span><button class="btn pri" data-action="profile-open">Start with my baby</button></div>';
     if (!storageOk) h += '<div class="banner"><span>This browser is not saving data. Export a backup from More before closing.</span></div>';
+    if (host.state === 'ready' && host.shared && !Sync.config()) h += '<div class="banner" id="join-banner"><span>' + esc(host.shared) + '’s log is shared on this page.</span><button class="btn pri" data-action="share-claude">Join</button></div>';
     var ss0 = Sync.status();
     if (ss0 === 'offline' || ss0 === 'denied') h += '<div class="banner" id="sync-banner"><span>' + syncLine() + '. ' + (ss0 === 'offline' ? 'Keep logging; changes are sent when you are back online.' : 'Ask your partner to check your access.') + '</span></div>';
     var af = C.active(ev, 'feed'), as = C.active(ev, 'sleep');
@@ -1316,18 +1321,21 @@ if (typeof module !== 'undefined') module.exports = Core;
   /* ---------- more ---------- */
   function seg(name, opts, cur) { return '<div class="seg">' + opts.map(function (o) { return '<button aria-pressed="' + (o[0] === cur) + '" data-action="' + name + ':' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>'; }
   function vShare() {
-    var c = Sync.config(), h = '<section class="sec"><h2>Share with partner</h2><div class="card set"><div><b id="sync-status">' + syncLine() + '</b></div>';
-    if (c) h += '<span class="note">Both phones show the same log. Changes appear on the other phone within a second or two, and changes made offline are sent later. Units and appearance stay per phone.</span><div class="rowbtns">' + (c.mode === 'fb' ? '<button class="btn" data-action="share-code">Show invite</button>' : '') + '<button class="btn danger" data-action="share-stop">Stop sharing</button></div>';
-    else if (host.db) h += '<span class="note">Keep one log between you. Your partner opens this same page signed in to Claude; in the page’s Share menu, invite them by email as an Editor so they can add entries.</span><button class="btn pri" data-action="share-claude">Share this log</button>';
-    else h += '<span class="note">Keep one log between two phones, updated live. It uses a free database that you own.</span><div class="rowbtns"><button class="btn pri" data-action="share-start">Start sharing</button><button class="btn" data-action="share-join">Join with a code</button></div>';
+    var c = Sync.config(), h = '<section class="sec" id="share"><h2>Share with partner</h2><div class="card set"><div><b id="sync-status">' + syncLine() + '</b></div>';
+    if (c) h += '<span class="note">Both phones show the same log. Changes appear on the other phone within a second or two, and changes made offline are sent later. Units and appearance stay per phone.</span><div class="rowbtns"><button class="btn pri" data-action="share-code">Invite partner</button><button class="btn danger" data-action="share-stop">Stop sharing</button></div>';
+    else if (host.state === 'checking') h += '<span class="note">Checking whether sharing is available here…</span>';
+    else if (host.state === 'none') h += '<span class="note">Sharing is not available in this view. Open this page in a web browser while signed in to Claude, then come back here.</span>';
+    else if (host.state === 'ready' && host.shared) h += '<span class="note">' + esc(host.shared) + '’s log is already shared on this page. Join it to see and add entries together.' + (state.demo ? '' : ' Your own entries are added to it.') + '</span><button class="btn pri wide" data-action="share-claude">Join ' + esc(host.shared) + '’s log</button>';
+    else if (state.demo) h += '<span class="note">Keep one log between two phones, updated live. Set up your baby first, then invite your partner' + (host.state === 'no' ? ', or join with the invite they sent you' : '') + '.</span><div class="rowbtns"><button class="btn pri" data-action="profile-open">Start with my baby</button>' + (host.state === 'no' ? '<button class="btn" data-action="share-join">I have an invite</button>' : '') + '</div>';
+    else if (host.state === 'ready') h += '<span class="note">Keep one log between two phones, updated live. Turn sharing on, then follow the steps to invite your partner.</span><button class="btn pri wide" data-action="share-claude">Share with my partner</button>';
+    else h += '<span class="note">Keep one log between two phones, updated live. You invite your partner with a link they can open.</span><div class="rowbtns"><button class="btn pri" data-action="share-start">Invite my partner</button><button class="btn" data-action="share-join">I have an invite</button></div>';
     return h + '</div></section>';
   }
   function vMore(now) {
     var b = state.baby;
-    return '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line">' + avatar(b, 48) + '<span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
+    return vShare() + '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line">' + avatar(b, 48) + '<span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
       '<section class="sec"><h2>Bottle units</h2>' + seg('units', [['ml', 'Millilitres'], ['oz', 'Ounces']], state.settings.units) + '</section>' +
       '<section class="sec"><h2>Appearance</h2>' + seg('theme', [['system', 'Match phone'], ['light', 'Light'], ['dark', 'Dark']], state.settings.theme) + '</section>' +
-      vShare() +
       '<section class="sec"><h2>Excel</h2><div class="card set"><span class="note">Export the whole log as an Excel workbook. Edit it, then import it and the app matches the file.</span><div class="rowbtns"><button class="btn" data-action="xl-export">Export</button><button class="btn" data-action="xl-pick">Import</button></div></div></section>' +
       '<section class="sec"><h2>Backup</h2><div class="card set"><span class="note">' + (Sync.status() === 'off' ? 'Everything is stored only on this device. ' : '') + 'Save a backup now and then, and use it to move to another phone.</span><div class="rowbtns"><button class="btn" data-action="export">Save backup</button><button class="btn" data-action="import-open">Restore</button></div></div></section>' +
       '<section class="sec"><h2>About</h2><div class="card set"><span>Baby Centre ' + VERSION + ' · ' + state.events.length + ' entries stored</span><span class="note">Cry analysis draws on published infant cry acoustics (Wasz-Höckert 1968; Porter 1986; Zeskind &amp; Lester; LaGasse 2005) and the approach of apps such as ChatterBaby. Milestones follow CDC and Pathways.org checklists. Sleep ranges follow the American Academy of Sleep Medicine. This app gives guidance only and does not replace medical advice.</span></div></section>' +
@@ -1411,8 +1419,19 @@ if (typeof module !== 'undefined') module.exports = Core;
     } else if (s.name === 'share-join') {
       h = sheetWrap('Join your partner', '<p class="note" style="margin:0">Paste the invite your partner sent from More → Share with partner. ' + (state.demo ? 'The sample data is replaced by the shared log.' : 'Your log and theirs are combined.') + '</p>' + field('Invite code or link', '<textarea class="in1" id="f-invite" autocapitalize="off" style="min-height:90px">' + esc(s.code || '') + '</textarea>') + err + '<button class="btn pri wide" data-action="share-join-go"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Connecting…' : 'Join') + '</button>');
     } else if (s.name === 'share-code') {
-      var cc = Sync.config(), code = cc ? invite(cc) : '', link = /^https?:$/.test(location.protocol) && !window.claude ? location.origin + location.pathname + '#join=' + code : '';
-      h = sheetWrap('Invite your partner', '<p class="note" style="margin:0">Send this to your partner. They open the app, go to More → Share with partner → Join with a code, and paste it. Anyone with this code can see and change the log, so share it privately.</p><div class="codebox" id="f-code">' + esc(link || code) + '</div><button class="btn pri wide" data-action="share-copy">Copy invite</button>');
+      var cc = Sync.config(), nm = esc(state.baby.name);
+      if (cc && cc.mode === 'claude') {
+        h = sheetWrap('Invite your partner', '<p style="margin:0"><b>Sharing is on.</b> Three steps to bring your partner in:</p><ol class="steps" id="share-steps">' +
+          '<li><b>Give them access.</b> Open this page’s <b>Share</b> menu (top of the page, outside the app), add your partner’s email and choose <b>Editor</b>. With view-only access they can read the log but not add to it.</li>' +
+          '<li><b>Send them the link.</b> ' + (host.url ? 'Copy it below and send it by message or email.' : 'Use <b>Copy link</b> in the same Share menu.') + '</li>' +
+          '<li><b>They join.</b> They sign in to Claude, open the link and tap <b>Join ' + nm + '’s log</b> on the home screen.</li></ol>' +
+          (host.url ? '<div class="codebox" id="f-code">' + esc(host.url) + '</div><button class="btn pri wide" data-action="share-copy">Copy link</button>' : '<button class="btn pri wide" data-action="sheet-close">Done</button>'));
+      } else {
+        var code = cc ? invite(cc) : '', link = /^https?:$/.test(location.protocol) ? location.origin + location.pathname + '#join=' + code : '', msg = 'Join ' + state.baby.name + '’s log in Baby Centre. Open this link on your phone and tap Join:\n\n' + (link || code);
+        h = sheetWrap('Invite your partner', '<p style="margin:0"><b>Sharing is on.</b> Send this invite to your partner. They open it on their phone and tap <b>Join</b>.</p><div class="codebox" id="f-code">' + esc(link || code) + '</div>' +
+          '<div class="rowbtns">' + (navigator.share ? '<button class="btn pri" data-action="share-native">Send…</button>' : '') + '<a class="btn' + (navigator.share ? '' : ' pri') + '" id="share-mail" href="mailto:?subject=' + encodeURIComponent('Join ' + state.baby.name + '’s Baby Centre log') + '&body=' + encodeURIComponent(msg) + '">Email</a><button class="btn" data-action="share-copy">Copy</button></div>' +
+          '<p class="note" style="margin:0">No link? They can also open the app, go to More → Share with partner → I have an invite, and paste it. Anyone with this invite can see and change the log, so send it privately.</p>');
+      }
     } else if (s.name === 'xl-confirm') {
       var n = s.counts;
       h = sheetWrap('Import from Excel', '<p style="margin:0">The file has <b>' + n.feeds + '</b> feeds, <b>' + n.sleeps + '</b> sleeps, <b>' + n.nappies + '</b> nappies, <b>' + n.cries + '</b> cry checks and <b>' + n.milestones + '</b> milestones reached.</p><p class="note" style="margin:0">Importing makes the app match the file' + (Sync.config() ? ', on your partner’s phone too' : '') + '. You can undo straight after.</p><div class="rowbtns"><button class="btn" data-action="sheet-close">Cancel</button><button class="btn pri" data-action="xl-apply">Import</button></div>');
@@ -1544,10 +1563,15 @@ if (typeof module !== 'undefined') module.exports = Core;
       var c = parseInvite($('f-invite').value); if (!c) return sheetErr('That is not a Baby Centre invite. Paste the whole code or link.');
       shareGo(c, { name: 'share-join', code: $('f-invite').value.trim() }, false);
     },
-    'share-claude': function () { Sync.start({ mode: 'claude' }).then(function () { snack('Sharing is on'); render(); }, function (e) { snack(e.message); render(); }); render(); },
+    'share-claude': function () {
+      var joining = !!host.shared;
+      Sync.start({ mode: 'claude' }).then(function () { if (joining) { go('home'); snack('You are now sharing one log'); } else { host.shared = state.baby.name; render(); openSheet({ name: 'share-code' }); } }, function (e) { snack(e.message); render(); });
+      render();
+    },
+    'share-native': function () { var t = $('f-code').textContent; try { navigator.share({ title: 'Baby Centre', text: 'Join ' + state.baby.name + '’s log in Baby Centre', url: t }).catch(function () { }); } catch (e) { } },
     'share-code': function () { openSheet({ name: 'share-code' }); },
-    'share-copy': function () { var t = $('f-code').textContent; try { navigator.clipboard.writeText(t).then(function () { snack('Invite copied'); }, function () { snack('Press and hold the code to copy it.'); }); } catch (e) { snack('Press and hold the code to copy it.'); } },
-    'share-stop': function () { Sync.stop(); snack('Sharing stopped on this phone'); render(); },
+    'share-copy': function () { var t = $('f-code').textContent; try { navigator.clipboard.writeText(t).then(function () { snack('Copied. Paste it into a message to your partner.'); }, function () { snack('Press and hold the code to copy it.'); }); } catch (e) { snack('Press and hold the code to copy it.'); } },
+    'share-stop': function () { Sync.stop(); snack('Sharing stopped on this phone'); render(); peekShared(); },
     week: function (d) { ui.week = Math.max(0, ui.week + (+d)); render(); },
     band: function (i) { ui.band = +i; render(); },
     ms: function (id) { commit(null, function () { if (state.milestones[id]) delete state.milestones[id]; else state.milestones[id] = toInput(Date.now()).slice(0, 10); }); },
@@ -1562,6 +1586,14 @@ if (typeof module !== 'undefined') module.exports = Core;
     sheet.busy = true; openSheet(sheet);
     Sync.start(cfg).then(function () { if (showCode) openSheet({ name: 'share-code' }); else { closeSheet(); go('home'); snack('You are now sharing one log'); } },
       function (e) { sheet.busy = false; openSheet(sheet); sheetErr(e.message); });
+  }
+  // On a hosted page, look for a log someone has already shared there so the partner gets a one-tap Join.
+  function peekShared() {
+    if (!host.db || Sync.config()) return;
+    try { host.db.collection('log').doc('meta').get().then(function (snap) {
+      var d = snap && snap.exists ? snap.data() : null, b = null; try { b = d && typeof d.baby === 'string' ? JSON.parse(d.baby) : null; } catch (e) { }
+      if (b && b.name) { host.shared = String(b.name).slice(0, 30); if (!ui.sheet) render(); }
+    }, function () { }); } catch (e) { }
   }
   function joinFromHash() { var m = /^#join=(BC1\.[A-Za-z0-9_-]+)/.exec(location.hash); if (!m) return false; try { history.replaceState(null, '', '#more'); } catch (e) { } ui.view = 'more'; render(); if (!Sync.config()) openSheet({ name: 'share-join', code: m[1] }); return true; }
   document.addEventListener('click', function (ev) {
@@ -1611,7 +1643,11 @@ if (typeof module !== 'undefined') module.exports = Core;
   if (!joinFromHash()) Sync.boot();
   if (window.claude && typeof window.claude.use === 'function') { // running as a hosted Claude page
     window.claude.use('downloads').then(function (d) { host.dl = d; }, function () { });
-    window.claude.use('db').then(function (d) { host.db = d; if (d) { Sync.boot(); render(); } }, function () { });
+    window.claude.use('db').then(function (d) {
+      host.db = d; host.state = d ? 'ready' : 'none';
+      if (d) { Sync.boot(); peekShared(); }
+      render();
+    }, function () { host.state = 'none'; render(); });
   }
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { try { navigator.serviceWorker.register('sw.js').catch(function () { }); } catch (e) { } }
 })();

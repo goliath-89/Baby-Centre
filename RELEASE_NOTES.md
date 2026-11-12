@@ -1,5 +1,33 @@
 # Release notes
 
+## 1.2.0 · 12 November 2026
+
+### New
+- **Filter the timeline.** Under Timeline on Home, tap Feeds, Sleep or Nappies to see only that activity, grouped by day with a total for each day.
+- **Tap the tiles.** Last feed, Sleep and Nappy at the top of Home open their records.
+- **Baby photo.** More → Baby → Edit → Add photo. It shows next to the name on Home and on your partner's phone.
+- **Clearer sharing.** Share with partner is now the first thing under More.
+  - Installed app: "Invite my partner" ends on an invite you can Send, Email or Copy. Your partner opens the link and taps Join.
+  - Hosted page: "Share with my partner" turns sharing on and shows three steps, including a link to copy. Your partner sees a "Join" banner when they open the page.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit (`tests/core.test.js`, `tests/sync-xlsx.test.js`) | 29 of 29 pass |
+| End-to-end, one phone (`tests/e2e.js`) | 26 of 26 pass |
+| End-to-end, two phones (`tests/e2e-sync.js`) | 23 of 23 pass |
+
+### What was wrong with sharing in 1.1.0
+1. The invite was only shown once, behind a small "Show invite" button, with Copy as the only option.
+2. On the hosted page there was no invite step at all, only a sentence pointing at the page's Share menu, and the partner got no sign that a log was waiting.
+3. If the hosted page could not reach its shared store, it offered the installed app's database setup, which cannot work there.
+
+### Still true
+- On the hosted page, giving your partner access happens in that page's own Share menu, outside the app. The app cannot do that step for you; it now tells you exactly what to do.
+- The installed app still needs the one-time free database (README).
+- Sync is tested against stand-ins for both services, not the live services.
+
+
 ## 1.1.0 · 12 November 2026
 
 ### New
