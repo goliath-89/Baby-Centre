@@ -85,6 +85,8 @@ button.stat:active{transform:scale(.98)}
 .stat.feed .k{color:var(--feed)} .stat.sleep .k{color:var(--sleep)} .stat.diaper .k{color:var(--diaper)} .stat.cry .k{color:var(--cry)}
 .stat.wide{grid-column:1/-1}
 .live{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;border-radius:var(--r);padding:12px 14px;font-weight:700}
+.live.burp{background:var(--mile-bg);color:var(--mile)}.live.burp .btn{gap:6px}.live.offer{color:var(--ink)}.live.offer .btn{background:var(--mile);color:var(--surface)}
+.dot.burp{background:var(--mile-bg);color:var(--mile)}.live.offer .dot.burp{background:var(--surface)}
 .live.feed{background:var(--feed-bg);color:var(--feed)} .live.sleep{background:var(--sleep-bg);color:var(--sleep)}
 .live .t{font-size:26px;font-weight:800;line-height:1}
 .live .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
@@ -160,6 +162,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .rowbtns{display:flex;gap:10px}.rowbtns .btn{flex:1}
 /* snack */
 #snack{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(196px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:var(--shadow);width:max-content;max-width:calc(100% - 32px)}
+#snack{pointer-events:none}#snack button{pointer-events:auto}
 #snack.top{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 #snack button{min-height:40px;padding:0 14px;border-radius:10px;color:var(--bg);background:rgba(128,128,128,.35);font-weight:800}
 /* cry */
@@ -259,7 +262,7 @@ var Core = (function () {
   function isMilk(e) { return e.type === 'feed' && e.kind !== 'solids'; }
   function sorted(events) { return events.slice().sort(function (a, b) { return T(a.start) - T(b.start); }); }
   function last(events, fn) { var best = null; events.forEach(function (e) { if (fn(e) && (!best || T(e.start) > T(best.start))) best = e; }); return best; }
-  function active(events, type) { return last(events, function (e) { return e.type === type && !e.end && (type === 'sleep' || e.kind === 'breast'); }); }
+  function active(events, type) { return last(events, function (e) { return e.type === type && !e.end && (type !== 'feed' || e.kind === 'breast'); }); }
 
   function predictFeed(events, dob, now) {
     now = T(now);
@@ -290,7 +293,7 @@ var Core = (function () {
     for (var k = n - 1 + back; k >= back; k--) {
       var dt = new Date(d0); dt.setDate(dt.getDate() - k);
       var a = dt.getTime(), nx = new Date(a); nx.setDate(nx.getDate() + 1); var b = nx.getTime();
-      var st = { day: a, sleepMs: 0, longestMs: 0, feeds: 0, breastN: 0, bottleN: 0, bottleMl: 0, lMs: 0, rMs: 0, diapers: 0, cries: 0 };
+      var st = { day: a, sleepMs: 0, longestMs: 0, feeds: 0, breastN: 0, bottleN: 0, bottleMl: 0, lMs: 0, rMs: 0, diapers: 0, cries: 0, burpMs: 0 };
       events.forEach(function (e) {
         var s = T(e.start), inDay = s >= a && s < b;
         if (e.type === 'sleep') { var o = overlap(e, a, b, now); st.sleepMs += o; if (o > st.longestMs) st.longestMs = o; }
@@ -300,6 +303,7 @@ var Core = (function () {
           if (e.kind === 'bottle') { st.bottleN++; st.bottleMl += e.ml || 0; }
           if (e.kind === 'breast') { st.breastN++; st.lMs += (e.lsec || 0) * 1000; st.rMs += (e.rsec || 0) * 1000; }
         } else if (e.type === 'diaper') st.diapers++;
+        else if (e.type === 'burp') st.burpMs += (e.end ? T(e.end) : now) - s;
         else if (e.type === 'cry') st.cries++;
       });
       out.push(st);
@@ -628,9 +632,10 @@ var Core = (function () {
 
   function toSheets(state) {
     var ev = sorted(state.events), dt = function (t) { return t ? { dt: toSerial(t) } : null; }, min = function (s) { return Math.round((s || 0) / 6) / 10; };
-    var feeds = [['Start', 'Type', 'Left (min)', 'Right (min)', 'Amount (ml)', 'Notes', 'ID']], sleeps = [['Start', 'End', 'Duration (min)', 'ID']], naps = [['Time', 'Type', 'ID']], cries = [['Time', 'Likely cause', 'Confirmed cause', 'Pitch (Hz)', 'Distress (0-100)', 'ID']];
+    var feeds = [['Start', 'Type', 'Left (min)', 'Right (min)', 'Amount (ml)', 'Notes', 'ID']], sleeps = [['Start', 'End', 'Duration (min)', 'ID']], naps = [['Time', 'Type', 'ID']], burps = [['Start', 'End', 'Duration (min)', 'ID']], cries = [['Time', 'Likely cause', 'Confirmed cause', 'Pitch (Hz)', 'Distress (0-100)', 'ID']];
     ev.forEach(function (e) {
       if (e.type === 'feed') feeds.push(e.kind === 'breast' ? [dt(e.start), 'Breast', e.end ? min(e.lsec) : null, e.end ? min(e.rsec) : null, null, e.end ? null : 'Feeding now', e.id] : e.kind === 'bottle' ? [dt(e.start), 'Bottle', null, null, Math.round((e.ml || 0) * 10) / 10, null, e.id] : [dt(e.start), 'Solids', null, null, null, e.note || null, e.id]);
+      else if (e.type === 'burp') burps.push([dt(e.start), dt(e.end), e.end ? Math.round((T(e.end) - T(e.start)) / 6000) / 10 : null, e.id]);
       else if (e.type === 'sleep') sleeps.push([dt(e.start), dt(e.end), e.end ? Math.round((T(e.end) - T(e.start)) / MIN) : null, e.id]);
       else if (e.type === 'diaper') naps.push([dt(e.start), DIAPERS[e.kind] || 'Wet', e.id]);
       else if (e.type === 'cry' && e.res) cries.push([dt(e.start), CAUSES[e.res.top].label, e.actual ? CAUSES[e.actual].label : null, e.res.f0, e.res.distress, e.id]);
@@ -638,14 +643,14 @@ var Core = (function () {
     var ms = [['Milestone', 'Age', 'Area', 'Reached on', 'ID']];
     MS.forEach(function (m) { var d = state.milestones[m[0]]; ms.push([m[1], BANDS[+m[0][1]], CATS[m[0][0]], d ? { day: toSerial(new Date(d + 'T00:00').getTime()) } : null, m[0]]); });
     return [
-      { name: 'Feeds', widths: [18, 10, 11, 11, 13, 30, 16], rows: feeds }, { name: 'Sleep', widths: [18, 18, 15, 16], rows: sleeps }, { name: 'Nappies', widths: [18, 14, 16], rows: naps },
+      { name: 'Feeds', widths: [18, 10, 11, 11, 13, 30, 16], rows: feeds }, { name: 'Sleep', widths: [18, 18, 15, 16], rows: sleeps }, { name: 'Nappies', widths: [18, 14, 16], rows: naps }, { name: 'Burps', widths: [18, 18, 15, 16], rows: burps },
       { name: 'Cry checks', widths: [18, 18, 18, 11, 16, 16], rows: cries }, { name: 'Milestones', widths: [56, 14, 16, 13, 8], rows: ms },
       { name: 'Baby', widths: [24, 14], rows: [['Name', 'Date of birth'], [state.baby ? state.baby.name : '', state.baby ? { day: toSerial(new Date(state.baby.dob + 'T00:00').getTime()) } : null]] },
-      { name: 'How to edit', widths: [110], rows: [['How to edit this file'], ['Each row is one entry. Change a value, add a row, or delete a row, then import the file in Baby Centre: More > Excel > Import.'], ['Importing makes the app match this file. Rows you delete are removed from the app. A sheet you delete entirely is left unchanged in the app.'], ['Leave the ID column alone for existing rows. Leave it empty for rows you add.'], ['Times are written as year-month-day hour:minute, for example 2026-11-12 14:30.'], ['Feeds: Type is Breast, Bottle or Solids. Breast uses the Left and Right minutes. Bottle uses Amount in ml. Solids uses Notes.'], ['Sleep: leave End empty only for a sleep that is still going. Duration is filled in for you and ignored on import.'], ['Nappies: Type is Wet, Dirty or Wet + dirty.'], ['Cry checks: only Confirmed cause can be changed (Hungry, Tired, Pain or distress, Uncomfortable, Wind or tummy, Wants comfort).'], ['Milestones: type a date in Reached on to mark one as reached. Clear it to unmark.']] }
+      { name: 'How to edit', widths: [110], rows: [['How to edit this file'], ['Each row is one entry. Change a value, add a row, or delete a row, then import the file in Baby Centre: More > Excel > Import.'], ['Importing makes the app match this file. Rows you delete are removed from the app. A sheet you delete entirely is left unchanged in the app.'], ['Leave the ID column alone for existing rows. Leave it empty for rows you add.'], ['Times are written as year-month-day hour:minute, for example 2026-11-12 14:30.'], ['Feeds: Type is Breast, Bottle or Solids. Breast uses the Left and Right minutes. Bottle uses Amount in ml. Solids uses Notes.'], ['Sleep: leave End empty only for a sleep that is still going. Duration is filled in for you and ignored on import.'], ['Nappies: Type is Wet, Dirty or Wet + dirty.'], ['Burps: upright or burping time after a feed, with a start and an end.'], ['Cry checks: only Confirmed cause can be changed (Hungry, Tired, Pain or distress, Uncomfortable, Wind or tummy, Wants comfort).'], ['Milestones: type a date in Reached on to mark one as reached. Clear it to unmark.']] }
     ];
   }
   function fromSheets(book, state, now) {
-    now = T(now); var errors = [], names = {}, next = JSON.parse(JSON.stringify(state)), counts = { feeds: 0, sleeps: 0, nappies: 0, cries: 0, milestones: 0 };
+    now = T(now); var errors = [], names = {}, next = JSON.parse(JSON.stringify(state)), counts = { feeds: 0, sleeps: 0, nappies: 0, cries: 0, burps: 0, milestones: 0 };
     Object.keys(book).forEach(function (n) { names[n.toLowerCase().replace(/[^a-z]/g, '')] = book[n]; });
     var old = {}; state.events.forEach(function (e) { old[e.id] = e; });
     var seen = {}, keep = function (type) { return state.events.filter(function (e) { return e.type === type; }); };
@@ -700,6 +705,15 @@ var Core = (function () {
       if (o && st === o.start && (o.end || null) === en) return o;
       return { id: id, type: 'sleep', start: st, end: en };
     });
+    var openB = 0, burps = table('burps', 'Burps', function (get) {
+      var t = start(get, 'start'); if (typeof t === 'string') return t;
+      var id = ident(get, 'burp'); if (!id) return 'this ID is used on more than one row.';
+      var o = old[id], st = o && same(T(o.start), t) ? o.start : new Date(t).toISOString(), ev = get('end'), en = null;
+      if (ev != null) { var e2 = time(ev); if (isNaN(e2)) return 'the end time is not a date and time.'; if (e2 <= T(st)) return 'the end time must be after the start.'; if (e2 > now + MIN) return 'the end time is in the future.'; if (e2 - T(st) > 3 * HOUR) return 'the burp is longer than 3 hours.'; en = o && o.end && same(T(o.end), e2) ? o.end : new Date(e2).toISOString(); }
+      else if (++openB > 1) return 'only one burp can be left without an end time.';
+      if (o && st === o.start && (o.end || null) === en) return o;
+      return { id: id, type: 'burp', start: st, end: en };
+    });
     var naps = table('nappies', 'Nappies', function (get) {
       var t = start(get, 'time'); if (typeof t === 'string') return t;
       var id = ident(get, 'diaper'); if (!id) return 'this ID is used on more than one row.';
@@ -729,10 +743,10 @@ var Core = (function () {
       if (bn != null && String(bn).trim() && !isNaN(bd)) { if (bd > now) errors.push('Baby: the date of birth is in the future.'); else { next.baby = { name: String(bn).trim().slice(0, 30), dob: ymd(bd), u: (state.baby && state.baby.u) || 1 }; if (state.baby && state.baby.photo && !state.demo) next.baby.photo = state.baby.photo; next.demo = false; } }
       else if (bn != null || names.baby[1][1] != null) errors.push('Baby: enter both the name and the date of birth.');
     }
-    next.events = (feeds || keep('feed')).concat(sleeps || keep('sleep'), naps || keep('diaper'), cries || keep('cry'));
+    next.events = (feeds || keep('feed')).concat(sleeps || keep('sleep'), naps || keep('diaper'), cries || keep('cry'), burps || keep('burp'));
     if (msRows) { next.milestones = {}; msRows.forEach(function (m) { if (m[1]) next.milestones[m[0]] = m[1]; }); }
-    if (!feeds && !sleeps && !naps && !cries && !msRows && !names.baby) errors.push('No Baby Centre sheets were found. The file needs sheets named Feeds, Sleep, Nappies, Cry checks, Milestones or Baby.');
-    next.events.forEach(function (e) { counts[e.type === 'feed' ? 'feeds' : e.type === 'sleep' ? 'sleeps' : e.type === 'diaper' ? 'nappies' : 'cries']++; });
+    if (!feeds && !sleeps && !naps && !cries && !burps && !msRows && !names.baby) errors.push('No Baby Centre sheets were found. The file needs sheets named Feeds, Sleep, Nappies, Cry checks, Milestones or Baby.');
+    next.events.forEach(function (e) { counts[e.type === 'feed' ? 'feeds' : e.type === 'sleep' ? 'sleeps' : e.type === 'diaper' ? 'nappies' : e.type === 'burp' ? 'burps' : 'cries']++; });
     counts.milestones = Object.keys(next.milestones).length;
     return { errors: errors, next: next, counts: counts };
   }
@@ -792,7 +806,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.4.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.5.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -995,6 +1009,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     feed: '<path d="M10 2h4v3l3 3v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8l3-3zM7 13h10"/>',
     sleep: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
     diaper: '<path d="M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.500 6-11z"/>',
+    burp: '<path d="M4 9h10a3 3 0 1 0-3-3M4 14h14a3 3 0 1 1-3 3M4 19h6"/>', play: '<path d="M8 5l11 7-11 7z" fill="currentColor"/>', stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.500M17.500 17.500L19 19M5 19l1.500-1.500M17.500 6.500L19 5"/>',
     x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12.500l4.500 4.500L19 7.500"/>', plus: '<path d="M12 5v14M5 12h14"/>',
     spoon: '<path d="M12 12v9M12 12c-2.500 0-4-2-4-4.500S9.500 3 12 3s4 2 4 4.500-1.500 4.500-4 4.500z"/>'
@@ -1035,6 +1050,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     }
     if (e.type === 'sleep') return { c: 'sleep', i: 'sleep', t: e.end ? 'Sleep' : 'Asleep now', s: e.end ? dur(T(e.end) - T(e.start)) + ' · woke ' + clock(e.end) : 'for ' + dur(now - T(e.start)) };
     if (e.type === 'diaper') return { c: 'diaper', i: 'diaper', t: 'Nappy', s: DIAPER[e.kind] || '' };
+    if (e.type === 'burp') return { c: 'burp', i: 'burp', t: e.end ? 'Burp' : 'Burping now', s: 'Upright ' + dur((e.end ? T(e.end) : now) - T(e.start)) };
     return { c: 'cry', i: 'cry', t: 'Cry check', s: e.res ? 'Likely ' + C.CAUSES[e.res.top].label.toLowerCase() + (e.actual ? ' · was ' + C.CAUSES[e.actual].label.toLowerCase() : '') : '' };
   }
 
@@ -1094,7 +1110,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function describeAt(t, now) {
     var ev = state.events, sl = null, near = [];
     ev.forEach(function (e) {
-      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.kind === 'breast' ? now : s);
+      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.type === 'burp' || e.kind === 'breast' ? now : s);
       if (e.type === 'sleep') { if (s <= t && t < en) sl = e; return; }
       var gap = t < s ? s - t : t > en ? t - en : 0;
       if (gap <= 30 * MIN) near.push([gap, e]);
@@ -1109,7 +1125,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function dayline(a, b, now) {
     var W = 340, HH = 46, top = 30, hours = (b - a) / HOUR, Ht = top + hours * HH + 12, o = '';
     var y = function (t) { return top + (t - a) / HOUR * HH; }, f = function (v) { return v.toFixed(1); };
-    [['Sleep', 86], ['Feeds', 186], ['Nappies', 270], ['Cry', 320]].forEach(function (c) { o += '<text x="' + c[1] + '" y="12" text-anchor="middle" style="fill:var(--ink);font-weight:800">' + c[0] + '</text>'; });
+    [['Sleep', 86], ['Feeds + burp', 186], ['Nappies', 270], ['Cry', 320]].forEach(function (c) { o += '<text x="' + c[1] + '" y="12" text-anchor="middle" style="fill:var(--ink);font-weight:800">' + c[0] + '</text>'; });
     var h0 = new Date(a); if (h0.getMinutes() || h0.getSeconds() || h0.getMilliseconds()) h0.setHours(h0.getHours() + 1, 0, 0, 0);
     for (var t = h0.getTime(); t <= b; t += HOUR) {
       var mid = new Date(t).getHours() === 0;
@@ -1117,7 +1133,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       if (mid && t > a && t < b) o += '<text x="' + (W - 2) + '" y="' + f(y(t) - 4) + '" text-anchor="end" style="fill:var(--ink)">' + new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + '</text>';
     }
     state.events.forEach(function (e) {
-      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.kind === 'breast' ? now : s);
+      var s = T(e.start), en = e.end ? T(e.end) : (e.type === 'sleep' || e.type === 'burp' || e.kind === 'breast' ? now : s);
       if (en < a || s > b) return;
       var y1 = y(Math.max(s, a)), y2 = y(Math.min(en, b)), g = '<g data-action="edit:' + e.id + '" style="cursor:pointer">';
       if (e.type === 'sleep') {
@@ -1126,10 +1142,12 @@ if (typeof module !== 'undefined') module.exports = Core;
       } else if (e.type === 'feed') {
         if (s < a) return;
         var bs = e.kind === 'breast' ? breastSecs(e, now) : null, lab = e.kind === 'bottle' ? 'Bottle ' + vol(e.ml || 0) : e.kind === 'solids' ? 'Solids' : 'Breast ' + dur((bs[0] + bs[1]) * 1000);
-        o += g + '<rect x="132" y="' + f(y1 - 9) + '" width="112" height="' + f(Math.max(18, y2 - y1 + 18)) + '" fill="transparent"/><rect x="136" y="' + f(y1) + '" width="12" height="' + f(Math.max(6, y2 - y1)) + '" rx="3" fill="var(--feed)"' + (e.kind === 'solids' ? ' fill-opacity=".45"' : '') + '/><text x="154" y="' + f(y1 + 8) + '" style="fill:var(--ink)">' + lab + '</text></g>';
+        o += g + '<rect x="132" y="' + f(y1 - 9) + '" width="16" height="' + f(Math.max(18, y2 - y1 + 18)) + '" fill="transparent"/><rect x="136" y="' + f(y1) + '" width="12" height="' + f(Math.max(6, y2 - y1)) + '" rx="3" fill="var(--feed)"' + (e.kind === 'solids' ? ' fill-opacity=".45"' : '') + '/><text x="164" y="' + f(y1 + 8) + '" style="fill:var(--ink)">' + lab + '</text></g>';
       } else if (e.type === 'diaper') {
         if (s < a) return;
         o += g + '<rect x="246" y="' + f(y1 - 9) + '" width="56" height="18" fill="transparent"/><circle cx="254" cy="' + f(y1) + '" r="5" fill="var(--diaper)"/><text x="263" y="' + f(y1 + 3.5) + '" style="fill:var(--ink)">' + (e.kind === 'both' ? 'Both' : DIAPER[e.kind] || '') + '</text></g>';
+      } else if (e.type === 'burp') {
+        o += g + '<rect x="150" y="' + f(y1) + '" width="8" height="' + f(Math.max(4, y2 - y1)) + '" rx="3" fill="var(--mile)"/></g>';
       } else if (e.type === 'cry' && s >= a) {
         o += '<g data-action="cry-open:' + e.id + '" style="cursor:pointer"><rect x="306" y="' + f(y1 - 9) + '" width="28" height="18" fill="transparent"/><circle cx="320" cy="' + f(y1) + '" r="5" fill="var(--cry)"/></g>';
       }
@@ -1167,6 +1185,10 @@ if (typeof module !== 'undefined') module.exports = Core;
         '<div class="acts"><button class="btn" data-action="' + (af.paused ? 'feed-resume">Resume' : 'feed-pause">Pause') + '</button><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div></div>';
     }
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
+    // Burp / upright timer: offered while a feed is paused and for half an hour after a feed ends.
+    var ab = C.active(ev, 'burp');
+    if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button></div>';
+    else if (burpDue(now)) h += '<div class="live burp offer" id="burp-offer"><span class="dot burp">' + icon('burp') + '</span><div class="grow"><b>Burp time</b><span>' + (af ? 'Feed is paused' : 'Feed finished') + ' · time upright</span></div><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
 
     var pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), today = C.dailyStats(ev, now, 1)[0];
     var lastB = C.last(ev, function (e) { return e.type === 'feed' && e.kind === 'breast'; });
@@ -1188,7 +1210,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     h += '<section class="sec"><h2>Today so far</h2><div class="card"><div class="kv" style="grid-template-columns:repeat(4,1fr)">' +
       '<div><b class="num">' + today.breastN + '</b><span>Breast</span></div><div><b class="num">' + dur(today.lMs + today.rMs) + '</b><span>Breast time</span></div>' +
       '<div><b class="num">' + today.bottleN + '</b><span>Bottle</span></div><div><b class="num">' + vol(today.bottleMl) + '</b><span>Bottle total</span></div></div>' +
-      '<p class="note" style="margin:10px 0 0">Sleep today ' + dur(today.sleepMs) + ' · longest stretch ' + dur(today.longestMs) + '</p></div></section>';
+      '<p class="note" style="margin:10px 0 0">Sleep today ' + dur(today.sleepMs) + ' · longest stretch ' + dur(today.longestMs) + (today.burpMs ? ' · upright ' + dur(today.burpMs) : '') + '</p></div></section>';
     h += '<section class="sec"><div class="sechead"><h2>Last 24 hours</h2><button class="link" data-action="day-open">Full timeline ›</button></div><div class="card rib" id="rib" data-action="day-open" role="button" tabindex="0" aria-label="Open the full day timeline">' + ribbon(now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feed</span><span><i style="background:var(--diaper)"></i>Nappy</span><span><i style="background:var(--cry)"></i>Cry check</span></div><div class="note" id="rib-read">Slide a finger along the bar to see what happened when. Tap to open the full timeline.</div></div></section>';
 
     // Timeline: everything for the last two days, or one activity grouped by day with a daily total.
@@ -1224,6 +1246,16 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (typed.some(function (e) { return T(e.start) < cut; })) h += '<button class="btn" data-action="older">Show earlier days</button>';
     return h + '</section>';
   }
+  function burpDue(now) {
+    var ev = state.events, af = C.active(ev, 'feed');
+    if (af) return !!af.paused;
+    if (C.active(ev, 'sleep')) return false;
+    var lf = C.last(ev, C.isMilk); if (!lf) return false;
+    var end = T(lf.end || lf.start);
+    return now - end < 30 * MIN && !ev.some(function (e) { return e.type === 'burp' && T(e.start) >= end - MIN; });
+  }
+  // Ends a running burp timer; called inside the commit that starts or resumes something else.
+  function endBurp(now) { var ab = C.active(state.events, 'burp'); if (ab) ab.end = iso(now); }
   function vDock(now) {
     var af = C.active(state.events, 'feed'), as = C.active(state.events, 'sleep');
     var lastB = C.last(state.events, function (e) { return e.type === 'feed' && e.kind === 'breast'; }), next = lastB && !af ? (lastB.side === 'L' ? 'R' : 'L') : '';
@@ -1430,6 +1462,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function eventForm(e, now) {
     var h = field('Started', '<input class="in1" type="datetime-local" id="f-start" value="' + toInput(e.start) + '">');
     if (e.type === 'sleep') h += field('Woke up' + (e.end ? '' : ' (leave empty if still asleep)'), '<input class="in1" type="datetime-local" id="f-end" value="' + (e.end ? toInput(e.end) : '') + '">');
+    if (e.type === 'burp') h += field('Ended' + (e.end ? '' : ' (leave empty if still going)'), '<input class="in1" type="datetime-local" id="f-end" value="' + (e.end ? toInput(e.end) : '') + '">');
     if (e.type === 'feed' && e.kind === 'breast') {
       if (e.end || e.isNew) h += '<div class="tiles">' + field('Left (min)', '<input class="in1" type="number" inputmode="numeric" min="0" max="180" id="f-l" value="' + Math.round((e.lsec || 0) / 60) + '">') + field('Right (min)', '<input class="in1" type="number" inputmode="numeric" min="0" max="180" id="f-r" value="' + Math.round((e.rsec || 0) / 60) + '">') + '</div>';
       else h += '<p class="note">This feed is still running. Stop it from the home screen to edit the times per side.</p>';
@@ -1441,14 +1474,20 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   function readForm(e) {
     var g = function (id) { var el = $(id); return el ? el.value : null; }, now = Date.now(), out = JSON.parse(JSON.stringify(e)); delete out.isNew;
-    var st = new Date(g('f-start')).getTime();
+    // The form shows minutes; a time the user did not touch keeps its exact seconds, so short entries stay valid.
+    var st = !e.isNew && g('f-start') === toInput(e.start) ? T(e.start) : new Date(g('f-start')).getTime();
     if (!g('f-start') || isNaN(st)) return 'Enter a start time.';
     if (st > now + MIN) return 'The start time is in the future.';
     out.start = iso(st);
     if (e.type === 'sleep') {
       var ev = g('f-end');
-      if (ev) { var en = new Date(ev).getTime(); if (isNaN(en) || en <= st) return 'Wake time must be after the start.'; if (en > now + MIN) return 'The wake time is in the future.'; if (en - st > 20 * HOUR) return 'That sleep is longer than 20 hours. Check the dates.'; out.end = iso(en); }
+      if (ev) { var en = e.end && ev === toInput(e.end) ? T(e.end) : new Date(ev).getTime(); if (isNaN(en) || en <= st) return 'Wake time must be after the start.'; if (en > now + MIN) return 'The wake time is in the future.'; if (en - st > 20 * HOUR) return 'That sleep is longer than 20 hours. Check the dates.'; out.end = iso(en); }
       else { if (C.active(state.events.filter(function (x) { return x.id !== e.id; }), 'sleep')) return 'Another sleep is already running. Add a wake time.'; out.end = null; }
+    }
+    if (e.type === 'burp') {
+      var bv = g('f-end');
+      if (bv) { var be = e.end && bv === toInput(e.end) ? T(e.end) : new Date(bv).getTime(); if (isNaN(be) || be <= st) return 'The end must be after the start.'; if (be > now + MIN) return 'The end time is in the future.'; if (be - st > 3 * HOUR) return 'That is longer than 3 hours. Check the times.'; out.end = iso(be); }
+      else { if (C.active(state.events.filter(function (x) { return x.id !== e.id; }), 'burp')) return 'Another burp timer is already running. Add an end time.'; out.end = null; }
     }
     if (e.type === 'feed' && e.kind === 'breast' && $('f-l')) {
       var l = Math.max(0, +g('f-l') || 0), r = Math.max(0, +g('f-r') || 0);
@@ -1463,11 +1502,12 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (e.type === 'diaper') out.kind = g('f-kind');
     return out;
   }
-  var ADD = [['breast', 'Breast'], ['bottle', 'Bottle'], ['solids', 'Solids'], ['sleep', 'Sleep'], ['diaper', 'Nappy']];
+  var ADD = [['breast', 'Breast'], ['bottle', 'Bottle'], ['solids', 'Solids'], ['burp', 'Burp'], ['sleep', 'Sleep'], ['diaper', 'Nappy']];
   function draft(kind, now) {
     var base = { id: C.uid(), isNew: true, start: iso(now - 30 * MIN) };
     if (kind === 'sleep') return Object.assign(base, { type: 'sleep', start: iso(now - 90 * MIN), end: iso(now - 30 * MIN) });
     if (kind === 'diaper') return Object.assign(base, { type: 'diaper', kind: 'wet' });
+    if (kind === 'burp') return Object.assign(base, { type: 'burp', start: iso(now - 20 * MIN), end: iso(now - 10 * MIN) });
     if (kind === 'bottle') return Object.assign(base, { type: 'feed', kind: 'bottle', ml: lastBottle() });
     if (kind === 'solids') return Object.assign(base, { type: 'feed', kind: 'solids', note: '' });
     return Object.assign(base, { type: 'feed', kind: 'breast', side: 'L', lsec: 600, rsec: 600 });
@@ -1573,20 +1613,27 @@ if (typeof module !== 'undefined') module.exports = Core;
     breast: function (s) {
       var now = Date.now(), af = C.active(state.events, 'feed');
       if (af && af.side === s) { if (af.paused) A['feed-resume'](); return; }
-      if (af) commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { bank(af, now); af.side = s; af.segStart = iso(now); delete af.paused; });
-      else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right'), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
+      if (af) commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { endBurp(now); bank(af, now); af.side = s; af.segStart = iso(now); delete af.paused; });
+      else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right'), function () { endBurp(now); state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
     },
     'feed-pause': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || af.paused) return; commit('Feed paused', function () { bank(af, now); af.paused = iso(now); }); },
-    'feed-resume': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || !af.paused) return; commit('Feed resumed on the ' + (af.side === 'L' ? 'left' : 'right'), function () { af.segStart = iso(now); delete af.paused; }); },
+    'feed-resume': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || !af.paused) return; commit('Feed resumed on the ' + (af.side === 'L' ? 'left' : 'right'), function () { endBurp(now); af.segStart = iso(now); delete af.paused; }); },
     'feed-stop': function () {
       var now = Date.now(), af = C.active(state.events, 'feed'); if (!af) return;
       var b = breastSecs(af, now);
       commit('Feed saved · ' + dur((b[0] + b[1]) * 1000), function () { bank(af, now); af.end = iso(now); delete af.paused; });
     },
+    'burp-start': function () { var now = Date.now(); if (C.active(state.events, 'burp')) return; commit('Burp timer started', function () { state.events.push({ id: C.uid(), type: 'burp', start: iso(now), end: null }); }); },
+    // Stopping the burp timer puts the baby down: the sleep timer starts, unless a feed is still paused or a sleep is already running.
+    'burp-stop': function () {
+      var now = Date.now(), ab = C.active(state.events, 'burp'); if (!ab) return;
+      var toSleep = !C.active(state.events, 'feed') && !C.active(state.events, 'sleep');
+      commit('Burp saved · ' + dur(now - T(ab.start)) + (toSleep ? ' · sleep started' : ''), function () { ab.end = iso(now); if (toSleep) state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+    },
     'sleep-toggle': function () {
       var now = Date.now(), as = C.active(state.events, 'sleep');
       if (as) commit('Sleep saved · ' + dur(now - T(as.start)), function () { as.end = iso(now); });
-      else commit('Sleep started', function () { state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+      else commit('Sleep started', function () { endBurp(now); state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
     },
     'bottle-open': function () { openSheet({ name: 'bottle' }); },
     amt: function (d) { var el = $('f-amount'), st = +el.step || 10; el.value = Math.max(0, Math.round(((+el.value || 0) + d * st) * 10) / 10); },

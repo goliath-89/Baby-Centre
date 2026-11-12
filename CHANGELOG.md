@@ -2,6 +2,18 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.5.0] - 2026-11-12
+
+### Added
+- **Burp timer (upright time).** A "Burp time" strip with a play button appears on Home while a feed is paused and for 30 minutes after a feed ends. While it runs it shows a clock and a stop button.
+  - Stopping it saves the burp and starts the sleep timer, unless a feed is still paused or a sleep is already running. Undo reverses both.
+  - Resuming or switching the feed, starting a new feed, or starting sleep ends a running burp timer.
+  - Burps appear in the timeline ("Burp · Upright 6m"), in "Today so far", on the Day timeline, in the bar readout, in Excel (new Burps sheet), in backups and on the partner's phone. They can be edited, deleted or added afterwards.
+
+### Fixed
+- Editing an entry shorter than a minute could be refused ("end must be after the start") because the form works in whole minutes. Times you do not change now keep their exact seconds.
+- A toast could sit on top of a control and block taps for a few seconds. Taps now pass through the toast, except on its Undo button.
+
 ## [1.4.0] - 2026-11-12
 
 ### Added

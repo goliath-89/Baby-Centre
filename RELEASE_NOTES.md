@@ -1,5 +1,23 @@
 # Release notes
 
+## 1.5.0 · 12 November 2026
+
+### New
+- **Burp timer.** When you pause a feed, or for half an hour after a feed ends, a green **Burp time** strip appears at the top of Home. Tap **▶ Start** to time burping or upright time, and **■ Stop** when you are done.
+- **Stop means bedtime.** Stopping the burp timer saves it and starts the sleep timer at the same moment. If the feed is only paused, sleep is not started, so you can resume feeding. Tap Undo, or "Woke up", if your baby is not going down.
+- Burp time shows in the timeline, in Today so far ("upright 12m"), on the Day timeline, and in the Excel export.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit | 29 of 29 pass |
+| End-to-end, one phone | 30 of 30 pass |
+| End-to-end, two phones | 23 of 23 pass |
+
+### Assumption to confirm
+"Once burping has stopped, assume the sleep schedule starts" was built as: stopping the burp timer starts the sleep timer. If you meant something else (for example, only starting the countdown to the next nap), say so and it is a small change.
+
+
 ## 1.4.0 · 12 November 2026
 
 ### New

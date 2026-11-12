@@ -96,7 +96,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await step('Excel export downloads a workbook with every sheet', async () => {
     await A.go('more'); const [dl] = await Promise.all([A.page.waitForEvent('download'), A.act('xl-export')]); ok(/^baby-centre-\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     await dl.saveAs(xlsx); ok(fs.statSync(xlsx).size > 2000); ok((await A.text('#snack')).includes('Excel file saved'));
-    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Cry checks,Milestones,Baby,How to edit 4 5'); }
+    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Cry checks,Milestones,Baby,How to edit 4 5'); }
   });
   await step('Excel import: edited file updates this phone and the partner; undo restores both', async () => {
     if (!hasPy) return;

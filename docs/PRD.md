@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.4 · 12 November 2026 · Status: shipped as v1.4.0
+Version 1.5 · 12 November 2026 · Status: shipped as v1.5.0
 
 ## 1. Problem
 
@@ -46,6 +46,14 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Bottle: amount stepper pre-filled with the last amount, quick amounts, ml or oz.
 - Solids: free text, added from "Add past entry".
 - Prediction: median of the baby's recent feed-to-feed gaps (last 4 days, at least 3 gaps), otherwise a typical gap for the age.
+
+### 5.2a Burp timer (v1.5)
+- Purpose: record burping or upright time after a feed, and hand over to sleep without another tap.
+- Offered on Home while a feed is paused, and for 30 minutes after the last milk feed ends, once per feed. Not offered while the baby is asleep.
+- Start has a play icon; while running, the strip shows a clock and a stop icon.
+- Stop saves the burp. If no feed is in progress and no sleep is running, the sleep timer starts at the same moment (one Undo reverses both).
+- Resuming or switching a feed, starting another feed, or starting sleep by hand ends a running burp timer.
+- Stored as its own entry type with start and end; included in timeline, daily summary, Day timeline, Excel (Burps sheet), backup and sync.
 
 ### 5.3 Sleep
 - One tap starts, one tap ends. A running sleep survives closing the app.
