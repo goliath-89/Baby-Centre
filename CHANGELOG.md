@@ -2,6 +2,25 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.1.0] - 2026-11-12
+
+### Added
+- **Share with partner**: one log on two phones, updated live. Per-record merge where the newest change wins, deletion markers, an offline queue, and a status line showing changes waiting.
+  - Installed app: connects to a Firebase Realtime Database you own; invite by code or link.
+  - Hosted Claude page: uses the page's shared store with one tap.
+- **Excel**: export the whole log to `.xlsx`; import an edited workbook with row-level validation, a summary before import, and Undo.
+- Sync status dot in the header and a banner on Home when offline or not allowed to save.
+- Unit tests for merge and Excel (11) and a two-phone end-to-end suite (21).
+
+### Changed
+- Data schema v2: every record carries a change stamp. Existing v1 data and backups are migrated automatically.
+- Milestone list moved into the core module so Excel can use it.
+- File saves go through the host page's download prompt when the app runs as a hosted page.
+- Service worker no longer handles requests to other sites, so it cannot interfere with the sync connection.
+
+### Fixed
+- Sample milestones could be sent to the shared log when starting your own log (found by the sync test).
+
 ## [1.0.0] - 2026-11-12
 
 ### Added

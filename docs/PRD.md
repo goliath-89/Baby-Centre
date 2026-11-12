@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.0 · 12 November 2026 · Status: shipped as v1.0.0
+Version 1.1 · 12 November 2026 · Status: shipped as v1.1.0
 
 ## 1. Problem
 
@@ -8,7 +8,7 @@ A parent in the first year is logging feeds, sleep and nappies many times a day,
 
 ## 2. Who it is for
 
-One parent or carer, on their own phone, tracking one baby from birth to 12 months.
+Two parents or carers, each on their own phone, tracking one baby from birth to 12 months.
 
 ## 3. Goals
 
@@ -20,10 +20,12 @@ One parent or carer, on their own phone, tracking one baby from birth to 12 mont
 | G4 | Suggest why the baby is crying from a 5 second clip, with a next action | Cry check returns ranked causes, steps to try, and when to seek help |
 | G5 | Track developmental milestones for months 0–12 | 48 milestones in 4 age bands and 4 areas, with dates |
 | G6 | Work on any phone, offline, with no account | Single HTML file, installable PWA, data stays on the device |
+| G7 | Both parents see and update one log, live | A change on one phone shows on the other within about two seconds; offline changes merge later |
+| G8 | Get the data out and back in with Excel | Export a workbook, edit it, import it; the app matches the file |
 
 ## 4. Not in scope for v1
 
-Multiple babies, sharing between carers, cloud sync, reminders/notifications, growth charts, pumping log, medication log, a trained machine-learning cry model.
+Multiple babies, more than one shared log per install, accounts and sign-in, end-to-end encryption of the shared log, reminders/notifications, growth charts, pumping log, medication log, a trained machine-learning cry model.
 
 ## 5. Features
 
@@ -79,8 +81,40 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 
 ### 5.7 More
 - Baby profile, bottle units, appearance (match phone, light, dark).
+- Share with partner (5.8), Excel (5.9).
 - Backup: download a file or copy text; restore from file or pasted text.
 - Erase all data (two taps).
+
+### 5.8 Share with partner (v1.1)
+**What the user gets.** Both phones hold the same log: entries, running timers, milestones and the baby profile. A feed started on one phone shows as a live timer on the other and can be switched or stopped from either. Units and appearance stay per phone.
+
+**Rules.**
+- Every record (one entry, one milestone, the profile) carries the time it last changed. When two phones disagree, the newer change wins for that record only; nothing else is touched.
+- A deleted entry leaves a marker so an old copy on the other phone cannot bring it back. Undo removes the marker.
+- Works offline: changes queue on the phone (the count is shown) and are sent when the connection returns.
+- Sample data is never shared.
+- Joining from a phone that already has its own log combines the two logs.
+- Stopping sharing keeps the phone's copy and stops updates.
+
+**Connections.** The merge logic is the same for both.
+
+| Where the app runs | Shared store | Setup |
+|---|---|---|
+| Installed web app (GitHub Pages or any host) | A Firebase Realtime Database the user owns, reached over plain HTTPS (REST + EventSource, no SDK) | Create a free database, paste its address, send the invite code or link to the partner |
+| Hosted Claude page | The page's own shared store | Tap "Share this log" on both phones; the owner invites the partner as an Editor |
+
+**Privacy.** The invite code holds the database address and a random 20-character log id. Anyone with the code can read and change the log. The database rules stop anyone listing logs, so the id works as the key. Data is not end-to-end encrypted.
+
+**Known trade-offs.** "Newest wins" uses each phone's clock, so a phone with a badly wrong clock can win or lose unfairly. Two edits to the same entry in the same moment keep only one. Deletion markers are kept indefinitely.
+
+### 5.9 Excel export and import (v1.1)
+- **Export** writes one `.xlsx` workbook with sheets Feeds, Sleep, Nappies, Cry checks, Milestones, Baby and How to edit. Times are real Excel date cells, so they sort and filter.
+- **Import** makes the app match the file: changed rows update, new rows are added, deleted rows are removed. A sheet that is missing from the file leaves that part of the log alone.
+- The file is checked first. Any problem is listed by sheet and row, and nothing is imported until the file is clean. A summary is shown before import, and Undo is offered after.
+- The ID column links a row to its entry; rows without an ID are new.
+- Cry checks can only have their confirmed cause changed, because the analysis cannot be recreated from a spreadsheet.
+- When sharing is on, an import reaches the partner's phone too.
+- Built without a spreadsheet library, so it works offline: the app writes and reads the workbook format directly. Reading needs a browser from 2023 or later.
 
 ## 6. Design principles
 - **Thumb first**: every logging action sits in the bottom third; targets are at least 44 px.
@@ -94,11 +128,12 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - `localStorage` with a versioned schema (`schemaVersion: 1`) and explicit migrations. Saved on every change. Unreadable data is set aside, never overwritten.
 - PWA: `manifest.webmanifest` and `sw.js` make it installable and available offline when served over HTTPS.
 - Microphone capture uses Web Audio (raw PCM), which works in Chrome, Safari and Firefox on phones.
-- Tests: `node --test tests/core.test.js` (logic) and `node tests/e2e.js` (Playwright, phone viewport, fake microphone).
+- Schema v2 adds a change stamp to every record; v1 data is migrated on load.
+- Tests: `npm test` runs unit tests (logic, merge, Excel, including round trips through openpyxl and LibreOffice) and two Playwright suites (single phone with a fake microphone; two phones against mock sync backends).
 
 ## 8. Roadmap
 1. Train and ship an on-device cry classifier (for example on the Donate-a-Cry corpus), validated against held-out recordings.
 2. Feed and sleep reminders.
 3. Growth log with WHO percentile curves.
-4. Share with a partner; multiple babies.
+4. Multiple babies; sign-in and encryption for the shared log; sharing without the user creating a database.
 5. Pumping and medication logs.

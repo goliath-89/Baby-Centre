@@ -168,6 +168,10 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .ms .d{display:block;color:var(--mile);font-size:12px;font-weight:700}
 .prog{display:flex;align-items:center;gap:12px}
 .prog .bar{flex:1}.prog .bar>i{background:var(--mile)}
+.sdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--mile)}
+.sdot.s-offline,.sdot.s-connecting,.sdot.s-syncing{background:var(--feed)}.sdot.s-denied{background:var(--cry)}
+.errlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.codebox{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere;user-select:all;-webkit-user-select:all}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .set{display:flex;flex-direction:column;gap:12px}
 .set .line{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap}
@@ -182,12 +186,13 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 <div id="snack" hidden role="status"></div>
 <input type="file" id="import-file" accept="application/json,.json" hidden>
 <input type="file" id="cry-file" accept="audio/*" hidden>
+<input type="file" id="xlsx-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 
 <script id="core">
 /* Pure logic: no DOM. Loaded by the app and by the unit tests. */
 var Core = (function () {
   'use strict';
-  var MIN = 60000, HOUR = 3600000, DAY = 86400000, SCHEMA = 1;
+  var MIN = 60000, HOUR = 3600000, DAY = 86400000, SCHEMA = 2;
   function T(x) { return typeof x === 'number' ? x : new Date(x).getTime(); }
   function median(a) { if (!a.length) return 0; var s = a.slice().sort(function (x, y) { return x - y; }), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
   function pct(a, p) { if (!a.length) return 0; var s = a.slice().sort(function (x, y) { return x - y; }); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; }
@@ -401,17 +406,326 @@ var Core = (function () {
     return { top: probs[0][0], probs: probs, distress: distressScore(ft) };
   }
 
+
+  /* ---- milestone catalogue ---- */
+  var BANDS = ['0–3 months', '4–6 months', '7–9 months', '10–12 months'], CATS = { m: 'Motor', s: 'Sensory', c: 'Communication', f: 'Feeding' };
+  var MS = [
+    ['m0a', 'Lifts head briefly during tummy time'], ['m0b', 'Pushes up on forearms when lying on tummy'], ['m0c', 'Opens and closes hands and brings them to the mouth'],
+    ['s0a', 'Follows a moving face or toy with the eyes'], ['s0b', 'Calms when rocked, held or spoken to softly'], ['s0c', 'Bats at or reaches toward a dangling toy'],
+    ['c0a', 'Makes eye contact and smiles back at you'], ['c0b', 'Coos and makes vowel sounds'], ['c0c', 'Cries in different ways for different needs'],
+    ['f0a', 'Latches onto the breast or bottle'], ['f0b', 'Sucks and swallows well during a feed'], ['f0c', 'Moves the tongue forward and back to suck'],
+    ['m1a', 'Rolls from tummy to back and back to tummy'], ['m1b', 'Sits with support and holds the head steady'], ['m1c', 'Reaches for a toy with both hands'],
+    ['s1a', 'Explores toys with hands and mouth'], ['s1b', 'Enjoys gentle movement such as swaying or bouncing'], ['s1c', 'Stays settled around everyday household sounds'],
+    ['c1a', 'Babbles with consonant sounds such as “ba” and “ga”'], ['c1b', 'Laughs and squeals'], ['c1c', 'Turns toward your voice or a new sound'],
+    ['f1a', 'Shows interest in what you are eating'], ['f1b', 'Opens the mouth when a spoon comes close'], ['f1c', 'Begins smooth purées or baby cereal (around 6 months)'],
+    ['m2a', 'Sits without support'], ['m2b', 'Gets around by crawling, shuffling or rolling'], ['m2c', 'Passes a toy from one hand to the other'],
+    ['s2a', 'Explores shapes and textures with hands and mouth'], ['s2b', 'Turns the head to follow things while sitting'], ['s2c', 'Focuses on objects both near and far'],
+    ['c2a', 'Strings sounds together, such as “mamama” and “bababa”'], ['c2b', 'Recognises their own name'], ['c2c', 'Looks at familiar people or objects when you name them'],
+    ['f2a', 'Holds a bottle or drinks from a cup you hold'], ['f2b', 'Eats thicker mashed foods'], ['f2c', 'Starts to chew soft lumps'],
+    ['m3a', 'Pulls up to stand and cruises along furniture'], ['m3b', 'Stands alone for a moment or takes first steps'], ['m3c', 'Picks up small things with thumb and finger'],
+    ['s3a', 'Enjoys listening to songs'], ['s3b', 'Explores toys with fingers as well as the mouth'], ['s3c', 'Crawls toward things seen across the room'],
+    ['c3a', 'Says one or two words with meaning, such as “mama” or “dada”'], ['c3b', 'Follows a simple request such as “come here”'], ['c3c', 'Waves, points and uses other gestures'],
+    ['f3a', 'Feeds self with fingers'], ['f3b', 'Eats a growing variety of foods'], ['f3c', 'Drinks from an open cup with help']
+  ];
+
+  /* ---- sync: every record carries `u` (last change, ms). Newest change wins per record. ----
+     Keys: e_<id> an entry (or {del:1,u} once deleted), m_<id> a milestone, baby the profile. */
+  function strip(e) { var o = {}; for (var k in e) if (k !== 'u') o[k] = e[k]; return JSON.stringify(o); }
+  function stamp(prev, next, now) {
+    var dirty = {}, pm = {}; (prev.events || []).forEach(function (e) { pm[e.id] = e; });
+    next.tombs = next.tombs || {}; next.msU = next.msU || {};
+    next.events.forEach(function (e) {
+      var p = pm[e.id]; delete pm[e.id];
+      if (!p || strip(p) !== strip(e) || next.tombs[e.id]) { e.u = now; dirty['e_' + e.id] = 1; delete next.tombs[e.id]; }
+      else e.u = p.u || e.u || 1;
+    });
+    Object.keys(pm).forEach(function (id) { next.tombs[id] = now; dirty['e_' + id] = 1; });
+    var a = prev.milestones || {}, b = next.milestones || {}, ids = {};
+    Object.keys(a).concat(Object.keys(b)).forEach(function (id) { ids[id] = 1; });
+    Object.keys(ids).forEach(function (id) { if ((a[id] || '') !== (b[id] || '')) { next.msU[id] = now; dirty['m_' + id] = 1; } });
+    if (next.baby) {
+      if (!prev.baby || prev.baby.name !== next.baby.name || prev.baby.dob !== next.baby.dob) { next.baby.u = now; dirty.baby = 1; }
+      else next.baby.u = prev.baby.u || next.baby.u || 1;
+    }
+    return Object.keys(dirty);
+  }
+  function record(state, key) {
+    if (key === 'baby') return state.baby ? { name: state.baby.name, dob: state.baby.dob, u: state.baby.u || 1 } : null;
+    var id = key.slice(2);
+    if (key[0] === 'm') return (state.msU || {})[id] ? { d: state.milestones[id] || '', u: state.msU[id] } : null;
+    for (var i = 0; i < state.events.length; i++) if (state.events[i].id === id) return state.events[i];
+    return (state.tombs || {})[id] ? { del: 1, u: state.tombs[id] } : null;
+  }
+  function syncKeys(state) {
+    var k = state.events.map(function (e) { return 'e_' + e.id; });
+    Object.keys(state.tombs || {}).forEach(function (id) { k.push('e_' + id); });
+    Object.keys(state.msU || {}).forEach(function (id) { k.push('m_' + id); });
+    if (state.baby) k.push('baby');
+    return k;
+  }
+  // Applies remote records that are newer than the local copy. Returns how many changed.
+  function mergeAll(state, map) {
+    var idx = {}, n = 0; state.events.forEach(function (e, i) { idx[e.id] = i; });
+    state.tombs = state.tombs || {}; state.msU = state.msU || {};
+    var drop = {};
+    Object.keys(map || {}).forEach(function (key) {
+      var v = map[key]; if (!v || typeof v !== 'object' || !(v.u > 0)) return;
+      if (key === 'baby') { if (v.name && v.dob && v.u > ((state.baby && state.baby.u) || 0)) { state.baby = { name: String(v.name), dob: String(v.dob), u: v.u }; n++; } return; }
+      var id = key.slice(2);
+      if (key.slice(0, 2) === 'm_') { if (v.u > (state.msU[id] || 0)) { if (v.d) state.milestones[id] = String(v.d); else delete state.milestones[id]; state.msU[id] = v.u; n++; } return; }
+      if (key.slice(0, 2) !== 'e_') return;
+      var has = idx[id] != null && !drop[id], lu = has ? (state.events[idx[id]].u || 1) : (state.tombs[id] || 0);
+      if (v.u <= lu) return;
+      if (v.del) { if (has) drop[id] = 1; state.tombs[id] = v.u; n++; }
+      else if (v.id === id && v.type && v.start) { if (has) state.events[idx[id]] = v; else { idx[id] = state.events.length; state.events.push(v); delete drop[id]; } delete state.tombs[id]; n++; }
+    });
+    if (Object.keys(drop).length) state.events = state.events.filter(function (e) { return !drop[e.id]; });
+    return n;
+  }
+  function needPush(state, remote) {
+    var out = [], chk = function (k, u) { if (u > ((remote[k] && remote[k].u) || 0)) out.push(k); };
+    state.events.forEach(function (e) { chk('e_' + e.id, e.u || 1); });
+    Object.keys(state.tombs || {}).forEach(function (id) { chk('e_' + id, state.tombs[id]); });
+    Object.keys(state.msU || {}).forEach(function (id) { chk('m_' + id, state.msU[id]); });
+    if (state.baby) chk('baby', state.baby.u || 1);
+    return out;
+  }
+
+  /* ---- Excel (.xlsx) without a library: a minimal zip + SpreadsheetML writer and reader ---- */
+  var CRC = (function () { var t = [], c, n, k; for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function zipStore(files) {
+    var enc = new TextEncoder(), parts = [], cd = [], off = 0;
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+      var h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(10, 0, true); h.setUint16(12, 0x21, true);
+      h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+      var c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+      c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      parts.push(new Uint8Array(h.buffer), name, data); cd.push(new Uint8Array(c.buffer), name); off += 30 + name.length + data.length;
+    });
+    var cdLen = cd.reduce(function (a, p) { return a + p.length; }, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdLen, true); e.setUint32(16, off, true);
+    var all = parts.concat(cd, [new Uint8Array(e.buffer)]), out = new Uint8Array(off + cdLen + 22), o = 0;
+    all.forEach(function (p) { out.set(p, o); o += p.length; });
+    return out;
+  }
+  function xesc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''); }
+  function xun(s) { return String(s).replace(/&(lt|gt|quot|apos|amp|#(\d+)|#x([0-9a-fA-F]+));/g, function (m, n, d, h) { return d ? String.fromCharCode(+d) : h ? String.fromCharCode(parseInt(h, 16)) : { lt: '<', gt: '>', quot: '"', apos: "'", amp: '&' }[n]; }).replace(/_x000D_/g, ''); }
+  function colName(i) { var s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; }
+  // cell: string | number | null | {dt: serial} date-time | {day: serial} date. First row of each sheet is the bold header.
+  function xlsxWrite(sheets) {
+    var X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n', M = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    var files = [{ name: '[Content_Types].xml', data: X + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map(function (s, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') + '</Types>' },
+      { name: '_rels/.rels', data: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+      { name: 'xl/workbook.xml', data: X + '<workbook xmlns="' + M + '" xmlns:r="' + R + '"><sheets>' + sheets.map(function (s, i) { return '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets></workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', data: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map(function (s, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="' + R + '/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') + '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + R + '/styles" Target="styles.xml"/></Relationships>' },
+      { name: 'xl/styles.xml', data: X + '<styleSheet xmlns="' + M + '"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd\\ hh:mm"/><numFmt numFmtId="165" formatCode="yyyy\\-mm\\-dd"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>' }];
+    sheets.forEach(function (s, si) {
+      var x = X + '<worksheet xmlns="' + M + '"><sheetViews><sheetView workbookViewId="0"' + (si === 0 ? ' tabSelected="1"' : '') + '><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>' + (s.widths || []).map(function (w, i) { return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols><sheetData>';
+      s.rows.forEach(function (row, r) {
+        x += '<row r="' + (r + 1) + '">';
+        row.forEach(function (c, ci) {
+          var ref = ' r="' + colName(ci) + (r + 1) + '"';
+          if (c == null || c === '') return;
+          if (typeof c === 'number') x += '<c' + ref + '><v>' + c + '</v></c>';
+          else if (typeof c === 'object') x += '<c' + ref + ' s="' + (c.dt != null ? 2 : 3) + '"><v>' + (c.dt != null ? c.dt : c.day) + '</v></c>';
+          else x += '<c' + ref + ' t="inlineStr"' + (r === 0 ? ' s="1"' : '') + '><is><t xml:space="preserve">' + xesc(c) + '</t></is></c>';
+        });
+        x += '</row>';
+      });
+      files.push({ name: 'xl/worksheets/sheet' + (si + 1) + '.xml', data: x + '</sheetData></worksheet>' });
+    });
+    return zipStore(files);
+  }
+  function unzip(bytes) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), i = bytes.length - 22, files = {};
+    while (i >= 0 && dv.getUint32(i, true) !== 0x06054b50) i--;
+    if (i < 0) throw new Error('This is not an Excel (.xlsx) file.');
+    var n = dv.getUint16(i + 10, true), p = dv.getUint32(i + 16, true), dec = new TextDecoder();
+    for (var k = 0; k < n; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('This Excel file is damaged.');
+      var method = dv.getUint16(p + 10, true), cs = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+      var name = dec.decode(bytes.subarray(p + 46, p + 46 + nl)), ds = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true);
+      files[name] = { method: method, data: bytes.subarray(ds, ds + cs) };
+      p += 46 + nl + el + cl;
+    }
+    return files;
+  }
+  function inflate(f) {
+    var dec = new TextDecoder();
+    if (f.method === 0) return Promise.resolve(dec.decode(f.data));
+    if (f.method !== 8 || typeof DecompressionStream === 'undefined') return Promise.reject(new Error('This browser cannot open Excel files. Update the browser and try again.'));
+    return new Response(new Blob([f.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(function (b) { return dec.decode(b); });
+  }
+  function tText(x) { var s = '', m, re = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g; x = x.replace(/<rPh[\s\S]*?<\/rPh>/g, ''); while ((m = re.exec(x))) s += xun(m[1]); return s; }
+  function attr(tag, name) { var m = new RegExp('(?:^|\\s)' + name + '="([^"]*)"').exec(tag); return m ? xun(m[1]) : null; }
+  // Resolves to { sheetName: [[cell, ...], ...] } with strings, numbers and nulls.
+  function xlsxRead(bytes) {
+    var files; try { files = unzip(bytes); } catch (e) { return Promise.reject(e); }
+    if (!files['xl/workbook.xml']) return Promise.reject(new Error('This is not an Excel (.xlsx) file.'));
+    var get = function (n) { return files[n] ? inflate(files[n]) : Promise.resolve(''); };
+    return Promise.all([get('xl/workbook.xml'), get('xl/_rels/workbook.xml.rels'), get('xl/sharedStrings.xml')]).then(function (r) {
+      var rel = {}, m, re = /<Relationship\s[^>]*>/g, shared = [], list = [];
+      while ((m = re.exec(r[1]))) rel[attr(m[0], 'Id')] = attr(m[0], 'Target');
+      re = /<si(?:\s[^>]*)?(?:\/>|>([\s\S]*?)<\/si>)/g; while ((m = re.exec(r[2]))) shared.push(tText(m[1] || ''));
+      re = /<sheet\s[^>]*>/g; while ((m = re.exec(r[0]))) { var t = rel[attr(m[0], 'r:id')] || ''; list.push([attr(m[0], 'name'), t[0] === '/' ? t.slice(1) : 'xl/' + t]); }
+      return Promise.all(list.map(function (s) { return get(s[1]); })).then(function (xmls) {
+        var out = {};
+        xmls.forEach(function (x, si) {
+          var rows = [], rm, rre = /<row(?:\s[^>]*)?>([\s\S]*?)<\/row>/g;
+          while ((rm = rre.exec(x))) {
+            var cm, cre = /<c\s([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+            while ((cm = cre.exec(rm[1]))) {
+              var ref = /(?:^|\s)r="([A-Z]+)(\d+)"/.exec(cm[1]); if (!ref) continue;
+              var ci = 0, L = ref[1]; for (var q = 0; q < L.length; q++) ci = ci * 26 + L.charCodeAt(q) - 64;
+              var ri = +ref[2] - 1, t = attr(cm[1], 't'), inner = cm[2] || '', vm = /<v>([\s\S]*?)<\/v>/.exec(inner), v = vm ? xun(vm[1]) : null, val = null;
+              if (t === 'inlineStr') val = tText(inner); else if (v == null) val = null; else if (t === 's') val = shared[+v]; else if (t === 'str' || t === 'e' || t === 'd') val = v; else if (t === 'b') val = v === '1' ? 'TRUE' : 'FALSE'; else val = isNaN(+v) ? v : +v;
+              if (typeof val === 'string') { val = val.trim(); if (!val) val = null; }
+              while (rows.length <= ri) rows.push([]);
+              while (rows[ri].length < ci) rows[ri].push(null);
+              rows[ri][ci - 1] = val;
+            }
+          }
+          out[list[si][0]] = rows;
+        });
+        return out;
+      });
+    });
+  }
+  function toSerial(ms) { var d = new Date(T(ms)); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()) / DAY + 25569; }
+  function fromSerial(n) { var u = new Date(Math.round((n - 25569) * DAY)); return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), u.getUTCHours(), u.getUTCMinutes(), u.getUTCSeconds(), u.getUTCMilliseconds()).getTime(); }
+  function ymd(ms) { var d = new Date(ms), p = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+  var DIAPERS = { wet: 'Wet', dirty: 'Dirty', both: 'Wet + dirty' };
+
+  function toSheets(state) {
+    var ev = sorted(state.events), dt = function (t) { return t ? { dt: toSerial(t) } : null; }, min = function (s) { return Math.round((s || 0) / 6) / 10; };
+    var feeds = [['Start', 'Type', 'Left (min)', 'Right (min)', 'Amount (ml)', 'Notes', 'ID']], sleeps = [['Start', 'End', 'Duration (min)', 'ID']], naps = [['Time', 'Type', 'ID']], cries = [['Time', 'Likely cause', 'Confirmed cause', 'Pitch (Hz)', 'Distress (0-100)', 'ID']];
+    ev.forEach(function (e) {
+      if (e.type === 'feed') feeds.push(e.kind === 'breast' ? [dt(e.start), 'Breast', e.end ? min(e.lsec) : null, e.end ? min(e.rsec) : null, null, e.end ? null : 'Feeding now', e.id] : e.kind === 'bottle' ? [dt(e.start), 'Bottle', null, null, Math.round((e.ml || 0) * 10) / 10, null, e.id] : [dt(e.start), 'Solids', null, null, null, e.note || null, e.id]);
+      else if (e.type === 'sleep') sleeps.push([dt(e.start), dt(e.end), e.end ? Math.round((T(e.end) - T(e.start)) / MIN) : null, e.id]);
+      else if (e.type === 'diaper') naps.push([dt(e.start), DIAPERS[e.kind] || 'Wet', e.id]);
+      else if (e.type === 'cry' && e.res) cries.push([dt(e.start), CAUSES[e.res.top].label, e.actual ? CAUSES[e.actual].label : null, e.res.f0, e.res.distress, e.id]);
+    });
+    var ms = [['Milestone', 'Age', 'Area', 'Reached on', 'ID']];
+    MS.forEach(function (m) { var d = state.milestones[m[0]]; ms.push([m[1], BANDS[+m[0][1]], CATS[m[0][0]], d ? { day: toSerial(new Date(d + 'T00:00').getTime()) } : null, m[0]]); });
+    return [
+      { name: 'Feeds', widths: [18, 10, 11, 11, 13, 30, 16], rows: feeds }, { name: 'Sleep', widths: [18, 18, 15, 16], rows: sleeps }, { name: 'Nappies', widths: [18, 14, 16], rows: naps },
+      { name: 'Cry checks', widths: [18, 18, 18, 11, 16, 16], rows: cries }, { name: 'Milestones', widths: [56, 14, 16, 13, 8], rows: ms },
+      { name: 'Baby', widths: [24, 14], rows: [['Name', 'Date of birth'], [state.baby ? state.baby.name : '', state.baby ? { day: toSerial(new Date(state.baby.dob + 'T00:00').getTime()) } : null]] },
+      { name: 'How to edit', widths: [110], rows: [['How to edit this file'], ['Each row is one entry. Change a value, add a row, or delete a row, then import the file in Baby Centre: More > Excel > Import.'], ['Importing makes the app match this file. Rows you delete are removed from the app. A sheet you delete entirely is left unchanged in the app.'], ['Leave the ID column alone for existing rows. Leave it empty for rows you add.'], ['Times are written as year-month-day hour:minute, for example 2026-11-12 14:30.'], ['Feeds: Type is Breast, Bottle or Solids. Breast uses the Left and Right minutes. Bottle uses Amount in ml. Solids uses Notes.'], ['Sleep: leave End empty only for a sleep that is still going. Duration is filled in for you and ignored on import.'], ['Nappies: Type is Wet, Dirty or Wet + dirty.'], ['Cry checks: only Confirmed cause can be changed (Hungry, Tired, Pain or distress, Uncomfortable, Wind or tummy, Wants comfort).'], ['Milestones: type a date in Reached on to mark one as reached. Clear it to unmark.']] }
+    ];
+  }
+  function fromSheets(book, state, now) {
+    now = T(now); var errors = [], names = {}, next = JSON.parse(JSON.stringify(state)), counts = { feeds: 0, sleeps: 0, nappies: 0, cries: 0, milestones: 0 };
+    Object.keys(book).forEach(function (n) { names[n.toLowerCase().replace(/[^a-z]/g, '')] = book[n]; });
+    var old = {}; state.events.forEach(function (e) { old[e.id] = e; });
+    var seen = {}, keep = function (type) { return state.events.filter(function (e) { return e.type === type; }); };
+    function table(key, label, fn) {
+      var rows = names[key]; if (!rows) return null;
+      var head = (rows[0] || []).map(function (h) { return String(h == null ? '' : h).toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z]/g, ''); }), out = [];
+      for (var r = 1; r < rows.length; r++) {
+        var row = rows[r] || []; if (!row.some(function (c) { return c != null && c !== ''; })) continue;
+        var get = function (h) { var i = head.indexOf(h); return i < 0 || row[i] == null ? null : row[i]; };
+        var res = fn(get, r + 1);
+        if (typeof res === 'string') { if (errors.length < 50) errors.push(label + ', row ' + (r + 1) + ': ' + res); } else if (res) out.push(res);
+      }
+      return out;
+    }
+    function time(v) { if (v == null) return NaN; if (typeof v === 'number') return v > 20000 && v < 80000 ? fromSerial(v) : NaN; var s = String(v).trim().replace(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2})/, function (m, a, b) { return a + 'T' + (b.length < 5 ? '0' : '') + b; }); return new Date(s).getTime(); }
+    function num(v) { if (v == null) return 0; var n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.')); return isNaN(n) ? NaN : n; }
+    function ident(get, type) {
+      var raw = get('id'), id = raw == null ? '' : String(raw).replace(/[^A-Za-z0-9_-]/g, '');
+      if (id && old[id] && old[id].type !== type) id = '';
+      if (!id) id = uid(); if (seen[id]) return null; seen[id] = 1; return id;
+    }
+    function start(get, col) { var t = time(get(col)); if (isNaN(t)) return 'the ' + col + ' time is missing or not a date and time.'; if (t > now + MIN) return 'the ' + col + ' time is in the future.'; return t; }
+    function same(a, b) { return Math.abs(a - b) < 1500; }
+    var feeds = table('feeds', 'Feeds', function (get) {
+      var t = start(get, 'start'); if (typeof t === 'string') return t;
+      var id = ident(get, 'feed'); if (!id) return 'this ID is used on more than one row.';
+      var o = old[id], ty = String(get('type') || '').toLowerCase(), st = o && same(T(o.start), t) ? o.start : new Date(t).toISOString();
+      if (/^br/.test(ty)) {
+        if (o && o.kind === 'breast' && !o.end) return o;
+        var l = num(get('left')), r = num(get('right'));
+        if (isNaN(l) || isNaN(r) || l < 0 || r < 0) return 'Left and Right must be minutes.';
+        var ob = o && o.kind === 'breast', ls = ob && Math.round(o.lsec / 6) / 10 === l ? o.lsec : Math.round(l * 60), rs = ob && Math.round(o.rsec / 6) / 10 === r ? o.rsec : Math.round(r * 60);
+        if (ob && st === o.start && ls === o.lsec && rs === o.rsec) return o; // untouched row, including feeds too short to show as minutes
+        if (l + r <= 0) return 'enter the minutes on at least one side.'; if (l + r > 240) return 'the feed is longer than 4 hours.';
+        return { id: id, type: 'feed', kind: 'breast', side: ob && ((o.side === 'R' && rs > 0) || (o.side === 'L' && ls > 0)) ? o.side : (rs > 0 ? 'R' : 'L'), start: st, end: new Date(T(st) + (ls + rs) * 1000).toISOString(), lsec: ls, rsec: rs };
+      }
+      if (/^bo/.test(ty)) {
+        var a = num(get('amount')); if (!(a > 0)) return 'enter the bottle amount in ml.'; if (a > 500) return 'the amount is over 500 ml.';
+        var ml = o && o.kind === 'bottle' && Math.round(o.ml * 10) / 10 === a ? o.ml : a;
+        if (o && o.kind === 'bottle' && st === o.start && ml === o.ml) return o;
+        return { id: id, type: 'feed', kind: 'bottle', start: st, end: st, ml: ml };
+      }
+      if (/^so/.test(ty)) { var note = String(get('notes') || '').slice(0, 80); if (o && o.kind === 'solids' && st === o.start && (o.note || '') === note) return o; return { id: id, type: 'feed', kind: 'solids', start: st, end: st, note: note }; }
+      return 'Type must be Breast, Bottle or Solids.';
+    });
+    var open = 0, sleeps = table('sleep', 'Sleep', function (get) {
+      var t = start(get, 'start'); if (typeof t === 'string') return t;
+      var id = ident(get, 'sleep'); if (!id) return 'this ID is used on more than one row.';
+      var o = old[id], st = o && same(T(o.start), t) ? o.start : new Date(t).toISOString(), ev = get('end'), en = null;
+      if (ev != null) { var e2 = time(ev); if (isNaN(e2)) return 'the end time is not a date and time.'; if (e2 <= T(st)) return 'the end time must be after the start.'; if (e2 > now + MIN) return 'the end time is in the future.'; if (e2 - T(st) > 20 * HOUR) return 'the sleep is longer than 20 hours.'; en = o && o.end && same(T(o.end), e2) ? o.end : new Date(e2).toISOString(); }
+      else if (++open > 1) return 'only one sleep can be left without an end time.';
+      if (o && st === o.start && (o.end || null) === en) return o;
+      return { id: id, type: 'sleep', start: st, end: en };
+    });
+    var naps = table('nappies', 'Nappies', function (get) {
+      var t = start(get, 'time'); if (typeof t === 'string') return t;
+      var id = ident(get, 'diaper'); if (!id) return 'this ID is used on more than one row.';
+      var o = old[id], st = o && same(T(o.start), t) ? o.start : new Date(t).toISOString(), ty = String(get('type') || '').toLowerCase();
+      var kind = /both|mix|\+|and/.test(ty) ? 'both' : /^w/.test(ty) ? 'wet' : /^d|poo/.test(ty) ? 'dirty' : '';
+      if (!kind) return 'Type must be Wet, Dirty or Wet + dirty.';
+      if (o && st === o.start && o.kind === kind) return o;
+      return { id: id, type: 'diaper', kind: kind, start: st };
+    });
+    var cries = table('crychecks', 'Cry checks', function (get) {
+      var id = String(get('id') || ''), o = old[id]; if (!o || o.type !== 'cry' || seen[id]) return null; seen[id] = 1;
+      var lab = String(get('confirmedcause') || '').toLowerCase().trim(), act = null;
+      if (lab) { Object.keys(CAUSES).forEach(function (k) { if (k === lab || CAUSES[k].label.toLowerCase() === lab) act = k; }); if (!act) return 'Confirmed cause is not one of the listed causes.'; }
+      if ((o.actual || null) === act) return o;
+      var c = JSON.parse(JSON.stringify(o)); c.actual = act; return c;
+    });
+    var msRows = table('milestones', 'Milestones', function (get) {
+      var id = String(get('id') || ''), txt = String(get('milestone') || '').toLowerCase(), hit = null;
+      MS.forEach(function (m) { if (m[0] === id || (!hit && m[1].toLowerCase() === txt)) hit = m[0]; });
+      if (!hit) return null;
+      var v = get('reachedon'); if (v == null) return [hit, ''];
+      var t = time(v); if (isNaN(t)) return 'Reached on is not a date.'; if (t > now + DAY) return 'Reached on is in the future.';
+      return [hit, ymd(t)];
+    });
+    if (names.baby && names.baby[1]) {
+      var bn = names.baby[1][0], bd = time(names.baby[1][1]);
+      if (bn != null && String(bn).trim() && !isNaN(bd)) { if (bd > now) errors.push('Baby: the date of birth is in the future.'); else { next.baby = { name: String(bn).trim().slice(0, 30), dob: ymd(bd), u: (state.baby && state.baby.u) || 1 }; next.demo = false; } }
+      else if (bn != null || names.baby[1][1] != null) errors.push('Baby: enter both the name and the date of birth.');
+    }
+    next.events = (feeds || keep('feed')).concat(sleeps || keep('sleep'), naps || keep('diaper'), cries || keep('cry'));
+    if (msRows) { next.milestones = {}; msRows.forEach(function (m) { if (m[1]) next.milestones[m[0]] = m[1]; }); }
+    if (!feeds && !sleeps && !naps && !cries && !msRows && !names.baby) errors.push('No Baby Centre sheets were found. The file needs sheets named Feeds, Sleep, Nappies, Cry checks, Milestones or Baby.');
+    next.events.forEach(function (e) { counts[e.type === 'feed' ? 'feeds' : e.type === 'sleep' ? 'sleeps' : e.type === 'diaper' ? 'nappies' : 'cries']++; });
+    counts.milestones = Object.keys(next.milestones).length;
+    return { errors: errors, next: next, counts: counts };
+  }
+
   /* ---- persistence ---- */
-  function blank() { return { baby: null, demo: false, settings: { units: 'ml', theme: 'system' }, events: [], milestones: {} }; }
-  var MIGRATIONS = {}; // MIGRATIONS[n] upgrades data from schema n to n+1
+  function blank() { return { baby: null, demo: false, settings: { units: 'ml', theme: 'system' }, events: [], milestones: {}, tombs: {}, msU: {} }; }
+  var MIGRATIONS = { // MIGRATIONS[n] upgrades data from schema n to n+1
+    1: function (d) { // v2 adds change stamps so two phones can merge their logs
+      d.events.forEach(function (e) { if (e && !e.u) e.u = 1; });
+      d.tombs = {}; d.msU = {}; Object.keys(d.milestones || {}).forEach(function (k) { d.msU[k] = 1; });
+      if (d.baby && !d.baby.u) d.baby.u = 1; return d;
+    }
+  };
   function migrate(wrapper) {
     if (!wrapper || typeof wrapper !== 'object' || !wrapper.data || typeof wrapper.schemaVersion !== 'number') throw new Error('This is not a Baby Centre backup.');
     if (wrapper.schemaVersion > SCHEMA) throw new Error('This backup comes from a newer version of the app.');
     var d = wrapper.data, v = wrapper.schemaVersion;
+    if (!Array.isArray(d.events)) throw new Error('This backup has no entries list.');
     while (v < SCHEMA) { d = MIGRATIONS[v](d); v++; }
     var b = blank();
-    if (!Array.isArray(d.events)) throw new Error('This backup has no entries list.');
-    return { baby: d.baby || null, demo: !!d.demo, settings: Object.assign(b.settings, d.settings || {}), events: d.events.filter(function (e) { return e && e.id && e.type && e.start; }), milestones: d.milestones || {} };
+    return { baby: d.baby || null, demo: !!d.demo, settings: Object.assign(b.settings, d.settings || {}), events: d.events.filter(function (e) { return e && e.id && e.type && e.start; }), milestones: d.milestones || {}, tombs: d.tombs || {}, msU: d.msU || {} };
   }
   var _id = 0;
   function uid() { return Date.now().toString(36) + (_id++).toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -435,20 +749,21 @@ var Core = (function () {
     }
     var dob = new Date(dayStart(now - 70 * DAY)).toISOString().slice(0, 10);
     var ms = {}; ['m0a', 'm0b', 's0a', 'c0a', 'c0b', 'f0a'].forEach(function (id, i) { ms[id] = new Date(now - (30 - i * 4) * DAY).toISOString().slice(0, 10); });
-    return { baby: { name: 'Sample baby', dob: dob }, demo: true, settings: { units: 'ml', theme: 'system' }, events: ev, milestones: ms };
+    return { baby: { name: 'Sample baby', dob: dob, u: 1 }, demo: true, settings: { units: 'ml', theme: 'system' }, events: ev, milestones: ms, tombs: {}, msU: {} };
   }
 
   return { SCHEMA: SCHEMA, MIN: MIN, HOUR: HOUR, DAY: DAY, T: T, median: median, clamp: clamp, dayStart: dayStart, ageDays: ageDays, ageMonths: ageMonths, ageLabel: ageLabel,
     wakeWindow: wakeWindow, feedGapDefault: feedGapDefault, sleepNeed: sleepNeed, feedGuide: feedGuide, bandForAge: bandForAge, isMilk: isMilk, sorted: sorted, last: last, active: active,
     predictFeed: predictFeed, predictSleep: predictSleep, dailyStats: dailyStats, analyzeCry: analyzeCry, classifyCry: classifyCry, cryContext: cryContext,
-    CAUSES: CAUSES, blank: blank, migrate: migrate, uid: uid, demoData: demoData };
+    CAUSES: CAUSES, MS: MS, BANDS: BANDS, CATS: CATS, DIAPERS: DIAPERS, stamp: stamp, record: record, syncKeys: syncKeys, mergeAll: mergeAll, needPush: needPush,
+    xlsxWrite: xlsxWrite, xlsxRead: xlsxRead, toSheets: toSheets, fromSheets: fromSheets, toSerial: toSerial, fromSerial: fromSerial, blank: blank, migrate: migrate, uid: uid, demoData: demoData };
 })();
 if (typeof module !== 'undefined') module.exports = Core;
 </script>
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.0.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.1.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -471,8 +786,17 @@ if (typeof module !== 'undefined') module.exports = Core;
 
   function commit(msg, fn) {
     var prev = JSON.stringify(state);
-    fn(); persist(); render();
+    fn(); settle(prev);
     if (msg) snack(msg, prev);
+  }
+  // Stamps what changed since `prevJson`, saves, redraws and queues the changes for the partner's phone.
+  function settle(prevJson) {
+    var prev = JSON.parse(prevJson), dirty = C.stamp(prev, state, Date.now());
+    if (prev.demo) { // sample entries are never shared, and leave no trace behind
+      state.tombs = {}; Object.keys(state.msU).forEach(function (id) { if (!state.milestones[id]) delete state.msU[id]; });
+      dirty = state.demo ? [] : C.syncKeys(state);
+    }
+    persist(); render(); Sync.mark(dirty);
   }
   function snack(msg, prev) {
     ui.undo = prev || null;
@@ -480,6 +804,146 @@ if (typeof module !== 'undefined') module.exports = Core;
     el.innerHTML = '<span>' + esc(msg) + '</span>' + (prev ? '<button data-action="undo">Undo</button>' : '');
     el.hidden = false; clearTimeout(ui.snackT);
     ui.snackT = setTimeout(function () { el.hidden = true; ui.undo = null; }, prev ? 6000 : 3000);
+  }
+
+
+  /* ---------- sharing with a partner ----------
+     Every record is merged on its own, newest change wins (see Core.stamp / Core.mergeAll).
+     Two connections: Firebase Realtime Database over plain REST + EventSource (the installed app),
+     and the host page's shared store when the app runs as a Claude artifact. */
+  var SK = 'babycentre.sync', host = { db: null, dl: null };
+  function fbTransport(cfg, h) {
+    var base = cfg.url + '/rooms/' + cfg.room + '/r', es = null, stopped = false, again = 0;
+    function refetch() { fetch(base + '.json').then(function (r) { return r.json(); }).then(function (d) { h.full(d || {}, true); }, function () { h.status('offline'); }); }
+    function open() {
+      if (stopped) return;
+      es = new EventSource(base + '.json');
+      es.addEventListener('put', function (e) {
+        var d = JSON.parse(e.data), p = d.path.split('/');
+        if (d.path === '/') h.full(d.data || {}, true); else if (p.length === 2) { var m = {}; m[p[1]] = d.data; h.remote(m); } else refetch();
+      });
+      es.addEventListener('patch', function (e) { var d = JSON.parse(e.data); if (d.path === '/') h.remote(d.data || {}); else refetch(); });
+      es.addEventListener('cancel', function () { h.status('denied'); });
+      es.addEventListener('auth_revoked', function () { h.status('denied'); });
+      es.onerror = function () { h.status('offline'); if (es.readyState === 2) { clearTimeout(again); again = setTimeout(open, 10000); } };
+    }
+    return {
+      start: open, stop: function () { stopped = true; clearTimeout(again); if (es) es.close(); },
+      push: function (map) { return fetch(base + '.json', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(map) }).then(function (r) { if (!r.ok) throw { denied: r.status === 401 || r.status === 403 }; }); }
+    };
+  }
+  function claudeTransport(db, h) {
+    // Records are grouped into 65 documents (one field per record, stored as text) to stay well inside the store's document limits.
+    var col = db.collection('log'), unsub = null, seen = {}, all = {}, ready = false, chain = {};
+    function bucket(k) { if (k[0] !== 'e') return 'meta'; var x = 0; for (var i = 0; i < k.length; i++) x = (x * 31 + k.charCodeAt(i)) >>> 0; return 'b' + (x % 64); }
+    function write(id, fields) {
+      var ref = col.doc(id);
+      return ref.update(fields).catch(function (e) {
+        if (!e || e.code !== 'invalid_argument') throw e;
+        return ref.get().then(function (snap) { if (snap.exists) throw { denied: true }; return ref.set(fields).catch(function (e2) { throw e2 && e2.code === 'invalid_argument' ? { denied: true } : e2; }); });
+      });
+    }
+    return {
+      start: function () {
+        unsub = col.onSnapshot(function (snap) {
+          var map = {};
+          snap.docChanges().forEach(function (ch) {
+            if (ch.type === 'removed') return; var data = ch.doc.data() || {};
+            Object.keys(data).forEach(function (k) { if (typeof data[k] === 'string' && seen[k] !== data[k]) { seen[k] = data[k]; try { map[k] = all[k] = JSON.parse(data[k]); } catch (e) { } } });
+          });
+          if (ready) h.remote(map); else { ready = !snap.metadata.fromCache; h.full(all, ready); }
+        }, function (e) { h.status(e && e.code === 'revoked' ? 'denied' : 'offline'); });
+      },
+      stop: function () { if (unsub) unsub(); },
+      push: function (map) {
+        var groups = {}; Object.keys(map).forEach(function (k) { var b = bucket(k); (groups[b] = groups[b] || {})[k] = JSON.stringify(map[k]); });
+        return Promise.all(Object.keys(groups).map(function (b) { var run = function () { return write(b, groups[b]); }; return (chain[b] = (chain[b] || Promise.resolve()).then(run, run)); }));
+      }
+    };
+  }
+  var Sync = (function () {
+    var cfg = null, tr = null, R = {}, st = 'off', busy = false, ready = false, joining = false, wait = null;
+    try { cfg = JSON.parse(localStorage.getItem(SK) || 'null'); } catch (e) { }
+    if (cfg && (!cfg.mode || typeof cfg.dirty !== 'object')) cfg = null;
+    function save() { try { if (cfg) localStorage.setItem(SK, JSON.stringify(cfg)); else localStorage.removeItem(SK); } catch (e) { } }
+    function set(s) { if (st !== s) { st = s; if (!ui.sheet || ui.view === 'more') render(); } }
+    function settle(err) { var w = wait; wait = null; if (w) { clearTimeout(w.t); if (err) w.no(new Error(err)); else w.ok(); } }
+    function flush() {
+      if (!cfg || !tr || busy || !ready || st === 'denied') return;
+      var keys = Object.keys(cfg.dirty), map = {}, us = {};
+      keys.forEach(function (k) { var r = C.record(state, k); if (r) { map[k] = r; us[k] = r.u || 1; } else delete cfg.dirty[k]; });
+      if (!Object.keys(map).length) { save(); return set('on'); }
+      busy = true; set('syncing');
+      tr.push(map).then(function () {
+        busy = false; if (!cfg) return;
+        Object.keys(map).forEach(function (k) { R[k] = { u: us[k] }; var r = C.record(state, k); if (!r || (r.u || 1) === us[k]) delete cfg.dirty[k]; });
+        save(); flush();
+      }, function (e) { busy = false; set(e && e.denied ? 'denied' : 'offline'); });
+    }
+    function queueStale() { C.needPush(state, R).forEach(function (k) { cfg.dirty[k] = 1; }); save(); flush(); }
+    var handlers = {
+      status: function (s) { if (cfg) { set(s); if (s === 'denied') settle('This device is not allowed to use that shared log.'); } },
+      full: function (map, auth) {
+        if (!cfg) return;
+        if (joining) {
+          if (!auth) return; joining = false;
+          if (!map.baby) { stop(); return settle('Nothing has been shared there yet. Set up your baby on the first phone, start sharing there, then join from this one.'); }
+          var keep = state.settings; state = C.blank(); state.settings = keep; state.baby = { name: 'Baby', dob: toInput(Date.now()).slice(0, 10), u: 0 }; ui.band = null; ui.undo = null;
+        }
+        R = {}; Object.keys(map).forEach(function (k) { if (map[k]) R[k] = map[k]; });
+        if (C.mergeAll(state, map) || auth) { persist(); render(); }
+        if (auth) { ready = true; settle(); queueStale(); }
+      },
+      remote: function (map) {
+        if (!cfg || !ready) return;
+        Object.keys(map).forEach(function (k) { if (map[k]) R[k] = map[k]; });
+        if (C.mergeAll(state, map)) { persist(); render(); }
+        queueStale();
+      }
+    };
+    function connect() {
+      if (!cfg || tr) return;
+      if (cfg.mode === 'claude' && !host.db) return; // waits for the host page
+      ready = false; busy = false; set('connecting');
+      tr = cfg.mode === 'claude' ? claudeTransport(host.db, handlers) : fbTransport(cfg, handlers);
+      try { tr.start(); } catch (e) { set('offline'); }
+    }
+    function stop() { if (tr) { try { tr.stop(); } catch (e) { } } tr = null; cfg = null; R = {}; ready = false; joining = false; save(); set('off'); }
+    setInterval(function () { if (cfg && tr && (st === 'offline' || st === 'syncing')) flush(); }, 20000);
+    window.addEventListener('online', function () { flush(); });
+    return {
+      boot: connect, stop: stop, flush: flush,
+      status: function () { return st; }, config: function () { return cfg; }, waiting: function () { return cfg ? Object.keys(cfg.dirty).length : 0; },
+      mark: function (keys) { if (!cfg || !keys.length) return; keys.forEach(function (k) { cfg.dirty[k] = 1; }); save(); flush(); },
+      // Resolves once the shared log has answered; rejects with a message the user can act on.
+      start: function (c) {
+        if (tr) stop();
+        cfg = { mode: c.mode, url: c.url || '', room: c.room || '', dirty: {} }; joining = !!state.demo; save();
+        return new Promise(function (ok, no) {
+          wait = { ok: ok, no: no, t: setTimeout(function () { stop(); settle(c.mode === 'claude' ? 'The shared log did not answer. Check your connection and try again.' : 'That database did not answer. Check the address, the database rules and your connection.'); }, 12000) };
+          connect(); if (!tr) { stop(); settle('Sharing is not available here.'); }
+        });
+      }
+    };
+  })();
+  function invite(c) { return 'BC1.' + btoa(JSON.stringify({ u: c.url, r: c.room })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function parseInvite(t) {
+    var m = /BC1\.([A-Za-z0-9_-]+)/.exec(t || ''); if (!m) return null;
+    try { var o = JSON.parse(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))), u = cleanUrl(o.u); return u && /^[A-Za-z0-9]{12,40}$/.test(o.r) ? { mode: 'fb', url: u, room: o.r } : null; } catch (e) { return null; }
+  }
+  function cleanUrl(u) {
+    var m = /^\s*(https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:firebaseio\.com|firebasedatabase\.app)|http:\/\/(?:localhost|127\.0\.0\.1):\d+)\/?\s*$/i.exec(u || '');
+    return m ? m[1] : '';
+  }
+  function newRoom() { var a = new Uint8Array(20), s = '', abc = 'abcdefghijkmnpqrstuvwxyz23456789'; (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 20; i++) s += abc[a[i] % 32]; return s; }
+  var SYNC_TEXT = { off: 'Not shared', connecting: 'Connecting…', on: 'Shared · up to date', syncing: 'Sending changes…', offline: 'Offline', denied: 'This device cannot save to the shared log' };
+  function syncLine() { var s = Sync.status(), n = Sync.waiting(); return SYNC_TEXT[s] + (s === 'offline' && n ? ' · ' + n + ' change' + (n === 1 ? '' : 's') + ' waiting' : s === 'offline' ? ' · will reconnect' : ''); }
+  function saveFile(name, data, mime) {
+    if (host.dl) return host.dl.save({ filename: name, data: data }).then(function () { return true; }, function (e) { if (e && e.code === 'declined') return false; throw e; });
+    return new Promise(function (ok) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: mime })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000); ok(true);
+    });
   }
 
   /* ---------- formatting ---------- */
@@ -507,7 +971,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function icon(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + I[n] + '</svg>'; }
 
   /* ---------- descriptions ---------- */
-  var DIAPER = { wet: 'Wet', dirty: 'Dirty', both: 'Wet + dirty' };
+  var DIAPER = C.DIAPERS;
   function breastSecs(e, now) {
     var l = e.lsec || 0, r = e.rsec || 0;
     if (!e.end && e.segStart) { var x = Math.max(0, (now - T(e.segStart)) / 1000); if (e.side === 'L') l += x; else r += x; }
@@ -581,6 +1045,8 @@ if (typeof module !== 'undefined') module.exports = Core;
     var ev = state.events, dob = state.baby.dob, h = '';
     if (state.demo) h += '<div class="banner"><span>You are looking at sample data.</span><button class="btn pri" data-action="profile-open">Start with my baby</button></div>';
     if (!storageOk) h += '<div class="banner"><span>This browser is not saving data. Export a backup from More before closing.</span></div>';
+    var ss0 = Sync.status();
+    if (ss0 === 'offline' || ss0 === 'denied') h += '<div class="banner" id="sync-banner"><span>' + syncLine() + '. ' + (ss0 === 'offline' ? 'Keep logging; changes are sent when you are back online.' : 'Ask your partner to check your access.') + '</span></div>';
     var af = C.active(ev, 'feed'), as = C.active(ev, 'sleep');
     if (af) { var b = breastSecs(af, now); h += '<div class="live feed"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + af.start + '">' + timer(now - T(af.start)) + '</span><span>Feeding on the ' + (af.side === 'L' ? 'left' : 'right') + ' · L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) + '</span></div><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div>'; }
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
@@ -779,25 +1245,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
 
   /* ---------- milestones ---------- */
-  var BANDS = ['0–3 months', '4–6 months', '7–9 months', '10–12 months'], CATS = { m: 'Motor', s: 'Sensory', c: 'Communication', f: 'Feeding' };
-  var MS = [
-    ['m0a', 'Lifts head briefly during tummy time'], ['m0b', 'Pushes up on forearms when lying on tummy'], ['m0c', 'Opens and closes hands and brings them to the mouth'],
-    ['s0a', 'Follows a moving face or toy with the eyes'], ['s0b', 'Calms when rocked, held or spoken to softly'], ['s0c', 'Bats at or reaches toward a dangling toy'],
-    ['c0a', 'Makes eye contact and smiles back at you'], ['c0b', 'Coos and makes vowel sounds'], ['c0c', 'Cries in different ways for different needs'],
-    ['f0a', 'Latches onto the breast or bottle'], ['f0b', 'Sucks and swallows well during a feed'], ['f0c', 'Moves the tongue forward and back to suck'],
-    ['m1a', 'Rolls from tummy to back and back to tummy'], ['m1b', 'Sits with support and holds the head steady'], ['m1c', 'Reaches for a toy with both hands'],
-    ['s1a', 'Explores toys with hands and mouth'], ['s1b', 'Enjoys gentle movement such as swaying or bouncing'], ['s1c', 'Stays settled around everyday household sounds'],
-    ['c1a', 'Babbles with consonant sounds such as “ba” and “ga”'], ['c1b', 'Laughs and squeals'], ['c1c', 'Turns toward your voice or a new sound'],
-    ['f1a', 'Shows interest in what you are eating'], ['f1b', 'Opens the mouth when a spoon comes close'], ['f1c', 'Begins smooth purées or baby cereal (around 6 months)'],
-    ['m2a', 'Sits without support'], ['m2b', 'Gets around by crawling, shuffling or rolling'], ['m2c', 'Passes a toy from one hand to the other'],
-    ['s2a', 'Explores shapes and textures with hands and mouth'], ['s2b', 'Turns the head to follow things while sitting'], ['s2c', 'Focuses on objects both near and far'],
-    ['c2a', 'Strings sounds together, such as “mamama” and “bababa”'], ['c2b', 'Recognises their own name'], ['c2c', 'Looks at familiar people or objects when you name them'],
-    ['f2a', 'Holds a bottle or drinks from a cup you hold'], ['f2b', 'Eats thicker mashed foods'], ['f2c', 'Starts to chew soft lumps'],
-    ['m3a', 'Pulls up to stand and cruises along furniture'], ['m3b', 'Stands alone for a moment or takes first steps'], ['m3c', 'Picks up small things with thumb and finger'],
-    ['s3a', 'Enjoys listening to songs'], ['s3b', 'Explores toys with fingers as well as the mouth'], ['s3c', 'Crawls toward things seen across the room'],
-    ['c3a', 'Says one or two words with meaning, such as “mama” or “dada”'], ['c3b', 'Follows a simple request such as “come here”'], ['c3c', 'Waves, points and uses other gestures'],
-    ['f3a', 'Feeds self with fingers'], ['f3b', 'Eats a growing variety of foods'], ['f3c', 'Drinks from an open cup with help']
-  ];
+  var BANDS = C.BANDS, CATS = C.CATS, MS = C.MS;
   function vMilestones(now) {
     var cur = C.bandForAge(state.baby.dob, now), band = ui.band == null ? cur : ui.band;
     var h = '<div class="seg" role="tablist">' + BANDS.map(function (b, i) { return '<button aria-pressed="' + (i === band) + '" data-action="band:' + i + '">' + b.replace(' months', 'm') + '</button>'; }).join('') + '</div>';
@@ -816,12 +1264,21 @@ if (typeof module !== 'undefined') module.exports = Core;
 
   /* ---------- more ---------- */
   function seg(name, opts, cur) { return '<div class="seg">' + opts.map(function (o) { return '<button aria-pressed="' + (o[0] === cur) + '" data-action="' + name + ':' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>'; }
+  function vShare() {
+    var c = Sync.config(), h = '<section class="sec"><h2>Share with partner</h2><div class="card set"><div><b id="sync-status">' + syncLine() + '</b></div>';
+    if (c) h += '<span class="note">Both phones show the same log. Changes appear on the other phone within a second or two, and changes made offline are sent later. Units and appearance stay per phone.</span><div class="rowbtns">' + (c.mode === 'fb' ? '<button class="btn" data-action="share-code">Show invite</button>' : '') + '<button class="btn danger" data-action="share-stop">Stop sharing</button></div>';
+    else if (host.db) h += '<span class="note">Keep one log between you. Your partner opens this same page signed in to Claude; in the page’s Share menu, invite them by email as an Editor so they can add entries.</span><button class="btn pri" data-action="share-claude">Share this log</button>';
+    else h += '<span class="note">Keep one log between two phones, updated live. It uses a free database that you own.</span><div class="rowbtns"><button class="btn pri" data-action="share-start">Start sharing</button><button class="btn" data-action="share-join">Join with a code</button></div>';
+    return h + '</div></section>';
+  }
   function vMore(now) {
     var b = state.baby;
     return '<section class="sec"><h2>Baby</h2><div class="card set"><div class="line"><span><b>' + esc(b.name) + '</b><br><span class="note">Born ' + new Date(b.dob + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span><button class="btn" data-action="profile-open">' + (state.demo ? 'Start with my baby' : 'Edit') + '</button></div></div></section>' +
       '<section class="sec"><h2>Bottle units</h2>' + seg('units', [['ml', 'Millilitres'], ['oz', 'Ounces']], state.settings.units) + '</section>' +
       '<section class="sec"><h2>Appearance</h2>' + seg('theme', [['system', 'Match phone'], ['light', 'Light'], ['dark', 'Dark']], state.settings.theme) + '</section>' +
-      '<section class="sec"><h2>Backup</h2><div class="card set"><span class="note">Everything is stored only on this device. Save a backup now and then, and use it to move to another phone.</span><div class="rowbtns"><button class="btn" data-action="export">Save backup</button><button class="btn" data-action="import-open">Restore</button></div></div></section>' +
+      vShare() +
+      '<section class="sec"><h2>Excel</h2><div class="card set"><span class="note">Export the whole log as an Excel workbook. Edit it, then import it and the app matches the file.</span><div class="rowbtns"><button class="btn" data-action="xl-export">Export</button><button class="btn" data-action="xl-pick">Import</button></div></div></section>' +
+      '<section class="sec"><h2>Backup</h2><div class="card set"><span class="note">' + (Sync.status() === 'off' ? 'Everything is stored only on this device. ' : '') + 'Save a backup now and then, and use it to move to another phone.</span><div class="rowbtns"><button class="btn" data-action="export">Save backup</button><button class="btn" data-action="import-open">Restore</button></div></div></section>' +
       '<section class="sec"><h2>About</h2><div class="card set"><span>Baby Centre ' + VERSION + ' · ' + state.events.length + ' entries stored</span><span class="note">Cry analysis draws on published infant cry acoustics (Wasz-Höckert 1968; Porter 1986; Zeskind &amp; Lester; LaGasse 2005) and the approach of apps such as ChatterBaby. Milestones follow CDC and Pathways.org checklists. Sleep ranges follow the American Academy of Sleep Medicine. This app gives guidance only and does not replace medical advice.</span></div></section>' +
       '<button class="btn danger wide" data-action="erase-open">Erase all data</button>';
   }
@@ -896,8 +1353,20 @@ if (typeof module !== 'undefined') module.exports = Core;
       h = sheetWrap('Save backup', '<p class="note" style="margin:0">' + (s.saved ? 'Check your downloads for the backup file. If nothing appeared, copy the text below instead.' : 'Download a backup file, or copy the backup text and keep it in a note or email.') + '</p><textarea class="in1" id="f-backup" readonly>' + esc(s.text) + '</textarea><div class="rowbtns"><button class="btn" data-action="export-file">Download file</button><button class="btn pri" data-action="export-copy">Copy text</button></div>');
     } else if (s.name === 'import') {
       h = sheetWrap('Restore backup', '<p class="note" style="margin:0">Restoring replaces everything on this device with the backup. You can undo straight after.</p><button class="btn wide" data-action="import-pick">Choose backup file</button>' + field('Or paste backup text', '<textarea class="in1" id="f-paste"></textarea>') + err + '<button class="btn pri wide" data-action="import-paste">Restore from text</button>');
+    } else if (s.name === 'share-start') {
+      h = sheetWrap('Start sharing', '<ol class="steps note" style="color:var(--ink-2)"><li>At console.firebase.google.com create a free project, then Build → Realtime Database → Create database.</li><li>In its Rules tab paste the rules from this app’s README and publish.</li><li>Copy the database address shown at the top of the Data tab and paste it here.</li></ol>' + field('Database address', '<input class="in1" type="url" inputmode="url" id="f-url" autocomplete="off" autocapitalize="off" placeholder="https://your-project-default-rtdb.firebaseio.com" value="' + esc(s.url || '') + '">') + err + '<button class="btn pri wide" data-action="share-create"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Connecting…' : 'Start sharing') + '</button>');
+    } else if (s.name === 'share-join') {
+      h = sheetWrap('Join your partner', '<p class="note" style="margin:0">Paste the invite your partner sent from More → Share with partner. ' + (state.demo ? 'The sample data is replaced by the shared log.' : 'Your log and theirs are combined.') + '</p>' + field('Invite code or link', '<textarea class="in1" id="f-invite" autocapitalize="off" style="min-height:90px">' + esc(s.code || '') + '</textarea>') + err + '<button class="btn pri wide" data-action="share-join-go"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Connecting…' : 'Join') + '</button>');
+    } else if (s.name === 'share-code') {
+      var cc = Sync.config(), code = cc ? invite(cc) : '', link = /^https?:$/.test(location.protocol) && !window.claude ? location.origin + location.pathname + '#join=' + code : '';
+      h = sheetWrap('Invite your partner', '<p class="note" style="margin:0">Send this to your partner. They open the app, go to More → Share with partner → Join with a code, and paste it. Anyone with this code can see and change the log, so share it privately.</p><div class="codebox" id="f-code">' + esc(link || code) + '</div><button class="btn pri wide" data-action="share-copy">Copy invite</button>');
+    } else if (s.name === 'xl-confirm') {
+      var n = s.counts;
+      h = sheetWrap('Import from Excel', '<p style="margin:0">The file has <b>' + n.feeds + '</b> feeds, <b>' + n.sleeps + '</b> sleeps, <b>' + n.nappies + '</b> nappies, <b>' + n.cries + '</b> cry checks and <b>' + n.milestones + '</b> milestones reached.</p><p class="note" style="margin:0">Importing makes the app match the file' + (Sync.config() ? ', on your partner’s phone too' : '') + '. You can undo straight after.</p><div class="rowbtns"><button class="btn" data-action="sheet-close">Cancel</button><button class="btn pri" data-action="xl-apply">Import</button></div>');
+    } else if (s.name === 'xl-errors') {
+      h = sheetWrap('Fix the file first', '<p class="note" style="margin:0">Nothing was imported. Correct these rows in Excel and import again.</p><ul class="errlist" id="xl-errors">' + s.errors.slice(0, 8).map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>' + (s.errors.length > 8 ? '<p class="note" style="margin:0">…and ' + (s.errors.length - 8) + ' more.</p>' : '') + '<button class="btn wide" data-action="sheet-close">Close</button>');
     } else if (s.name === 'erase') {
-      h = sheetWrap('Erase all data', '<p style="margin:0">This removes every feed, sleep, nappy, cry check and milestone from this device. It cannot be undone.</p><div class="rowbtns"><button class="btn" data-action="sheet-close">Keep my data</button><button class="btn danger" data-action="erase-yes">' + (s.armed ? 'Tap again to erase' : 'Erase everything') + '</button></div>');
+      h = sheetWrap('Erase all data', '<p style="margin:0">This removes every feed, sleep, nappy, cry check and milestone from this device' + (Sync.config() ? ' and stops sharing here. Your partner’s phone keeps its copy' : '') + '. It cannot be undone.</p><div class="rowbtns"><button class="btn" data-action="sheet-close">Keep my data</button><button class="btn danger" data-action="erase-yes">' + (s.armed ? 'Tap again to erase' : 'Erase everything') + '</button></div>');
     }
     root.innerHTML = h;
   }
@@ -915,7 +1384,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   function render() {
     var now = Date.now(), v = ui.view;
     applyTheme();
-    $('top').innerHTML = '<h1>' + (v === 'home' ? esc(state.baby.name) : TITLES[v]) + '</h1><span class="age">' + (v === 'home' ? '' : esc(state.baby.name) + ' · ') + C.ageLabel(state.baby.dob, now) + '</span>';
+    $('top').innerHTML = '<h1>' + (v === 'home' ? esc(state.baby.name) : TITLES[v]) + '</h1><span class="age">' + (Sync.status() === 'off' ? '' : '<i class="sdot s-' + Sync.status() + '" title="' + syncLine() + '"></i>') + (v === 'home' ? '' : esc(state.baby.name) + ' · ') + C.ageLabel(state.baby.dob, now) + '</span>';
     $('view').innerHTML = v === 'home' ? vHome(now) : v === 'trends' ? vTrends(now) : v === 'cry' ? vCry(now) : v === 'milestones' ? vMilestones(now) : vMore(now);
     var dock = $('dock'); dock.hidden = v !== 'home'; if (v === 'home') dock.innerHTML = vDock(now);
     $('app').className = v === 'home' ? '' : 'nodock';
@@ -927,13 +1396,6 @@ if (typeof module !== 'undefined') module.exports = Core;
   function go(v) { if (VIEWS.indexOf(v) < 0) v = 'home'; if (recStop && v !== 'cry') recStop(); ui.view = v; if (v !== 'cry' && ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; try { if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v); } catch (e) { } render(); window.scrollTo(0, 0); }
 
   /* ---------- actions ---------- */
-  function download(text) {
-    try {
-      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-      a.download = 'baby-centre-backup-' + toInput(Date.now()).slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000); return true;
-    } catch (e) { return false; }
-  }
   function restore(text) {
     var data;
     try { data = C.migrate(JSON.parse(text)); } catch (e) { return e instanceof SyntaxError ? 'That text is not a complete backup. Copy all of it and try again.' : e.message; }
@@ -944,7 +1406,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   var A = {
     nav: function (v) { go(v); },
-    undo: function () { if (!ui.undo) return; state = C.migrate({ schemaVersion: C.SCHEMA, data: JSON.parse(ui.undo) }); ui.undo = null; $('snack').hidden = true; if (ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; persist(); render(); },
+    undo: function () { if (!ui.undo) return; var cur = JSON.stringify(state); state = C.migrate({ schemaVersion: C.SCHEMA, data: JSON.parse(ui.undo) }); ui.undo = null; $('snack').hidden = true; if (ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; settle(cur); },
     older: function () { ui.days += 3; render(); },
     breast: function (s) {
       var now = Date.now(), af = C.active(state.events, 'feed');
@@ -996,7 +1458,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     units: function (u) { commit(null, function () { state.settings.units = u; }); },
     theme: function (t) { commit(null, function () { state.settings.theme = t; }); },
     'export': function () { var text = JSON.stringify({ app: 'baby-centre', schemaVersion: C.SCHEMA, exportedAt: iso(Date.now()), data: state }); openSheet({ name: 'export', text: text, saved: false }); },
-    'export-file': function () { if (download(ui.sheet.text)) { ui.sheet.saved = true; renderSheet(); } },
+    'export-file': function () { saveFile('baby-centre-backup-' + toInput(Date.now()).slice(0, 10) + '.json', ui.sheet.text, 'application/json').then(function (ok) { if (ok && ui.sheet && ui.sheet.name === 'export') { ui.sheet.saved = true; renderSheet(); } }, function () { snack('A file cannot be saved here. Copy the text instead.'); }); },
     'export-copy': function () {
       var ta = $('f-backup'), ok = function () { snack('Backup text copied'); }, sel = function () { ta.focus(); ta.select(); snack('Text selected. Use Copy from the menu.'); };
       try { navigator.clipboard.writeText(ta.value).then(ok, sel); } catch (e) { sel(); }
@@ -1007,8 +1469,28 @@ if (typeof module !== 'undefined') module.exports = Core;
     'erase-open': function () { openSheet({ name: 'erase', armed: false }); },
     'erase-yes': function () {
       if (!ui.sheet.armed) { ui.sheet.armed = true; return renderSheet(); }
-      closeSheet(); state = C.demoData(Date.now()); try { localStorage.removeItem(KEY); } catch (e) { } ui.cry = { phase: 'idle' }; ui.band = null; go('home'); snack('All data erased. Showing sample data.');
+      closeSheet(); Sync.stop(); state = C.demoData(Date.now()); try { localStorage.removeItem(KEY); } catch (e) { } ui.cry = { phase: 'idle' }; ui.band = null; go('home'); snack('All data erased. Showing sample data.');
     },
+    'xl-export': function () {
+      var bytes = C.xlsxWrite(C.toSheets(state));
+      saveFile('baby-centre-' + toInput(Date.now()).slice(0, 10) + '.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').then(function (ok) { if (ok) snack('Excel file saved'); }, function () { snack('A file cannot be saved here.'); });
+    },
+    'xl-pick': function () { $('xlsx-file').click(); },
+    'xl-apply': function () { var next = ui.sheet.next; closeSheet(); commit('Excel file imported', function () { state = next; }); },
+    'share-start': function () { if (state.demo) return snack('Set up your baby first: tap “Start with my baby”.'); openSheet({ name: 'share-start' }); },
+    'share-join': function () { openSheet({ name: 'share-join' }); },
+    'share-create': function () {
+      var url = cleanUrl($('f-url').value); if (!url) return sheetErr('Enter the database address. It starts with https:// and ends with firebaseio.com or firebasedatabase.app.');
+      shareGo({ mode: 'fb', url: url, room: newRoom() }, { name: 'share-start', url: url }, true);
+    },
+    'share-join-go': function () {
+      var c = parseInvite($('f-invite').value); if (!c) return sheetErr('That is not a Baby Centre invite. Paste the whole code or link.');
+      shareGo(c, { name: 'share-join', code: $('f-invite').value.trim() }, false);
+    },
+    'share-claude': function () { Sync.start({ mode: 'claude' }).then(function () { snack('Sharing is on'); render(); }, function (e) { snack(e.message); render(); }); render(); },
+    'share-code': function () { openSheet({ name: 'share-code' }); },
+    'share-copy': function () { var t = $('f-code').textContent; try { navigator.clipboard.writeText(t).then(function () { snack('Invite copied'); }, function () { snack('Press and hold the code to copy it.'); }); } catch (e) { snack('Press and hold the code to copy it.'); } },
+    'share-stop': function () { Sync.stop(); snack('Sharing stopped on this phone'); render(); },
     week: function (d) { ui.week = Math.max(0, ui.week + (+d)); render(); },
     band: function (i) { ui.band = +i; render(); },
     ms: function (id) { commit(null, function () { if (state.milestones[id]) delete state.milestones[id]; else state.milestones[id] = toInput(Date.now()).slice(0, 10); }); },
@@ -1019,6 +1501,12 @@ if (typeof module !== 'undefined') module.exports = Core;
     'cry-show': function (id) { ui.cry = { phase: 'result', id: id }; render(); window.scrollTo(0, 0); },
     'cry-actual': function (id, label) { commit(null, function () { var e = state.events.filter(function (x) { return x.id === id; })[0]; if (e) e.actual = e.actual === label ? null : label; }); }
   };
+  function shareGo(cfg, sheet, showCode) {
+    sheet.busy = true; openSheet(sheet);
+    Sync.start(cfg).then(function () { if (showCode) openSheet({ name: 'share-code' }); else { closeSheet(); go('home'); snack('You are now sharing one log'); } },
+      function (e) { sheet.busy = false; openSheet(sheet); sheetErr(e.message); });
+  }
+  function joinFromHash() { var m = /^#join=(BC1\.[A-Za-z0-9_-]+)/.exec(location.hash); if (!m) return false; try { history.replaceState(null, '', '#more'); } catch (e) { } ui.view = 'more'; render(); if (!Sync.config()) openSheet({ name: 'share-join', code: m[1] }); return true; }
   document.addEventListener('click', function (ev) {
     var el = ev.target.closest('[data-action]'); if (!el || el.disabled) return;
     var p = el.getAttribute('data-action').split(':'), fn = A[p[0]];
@@ -1029,8 +1517,20 @@ if (typeof module !== 'undefined') module.exports = Core;
     var f = this.files[0]; this.value = ''; if (!f) return;
     var fr = new FileReader(); fr.onload = function () { var e = restore(String(fr.result)); if (e) { if (!ui.sheet) openSheet({ name: 'import' }); sheetErr(e); } }; fr.readAsText(f);
   });
+  $('xlsx-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    var fr = new FileReader();
+    fr.onerror = function () { openSheet({ name: 'xl-errors', errors: ['The file could not be read.'] }); };
+    fr.onload = function () {
+      C.xlsxRead(new Uint8Array(fr.result)).then(function (book) {
+        var r = C.fromSheets(book, state, Date.now());
+        openSheet(r.errors.length ? { name: 'xl-errors', errors: r.errors } : { name: 'xl-confirm', next: r.next, counts: r.counts });
+      }, function (e) { openSheet({ name: 'xl-errors', errors: [e && e.message ? e.message : 'The file could not be read.'] }); });
+    };
+    fr.readAsArrayBuffer(f);
+  });
   $('cry-file').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (f) cryUpload(f); });
-  window.addEventListener('hashchange', function () { var v = location.hash.slice(1); if (v !== ui.view) go(v); });
+  window.addEventListener('hashchange', function () { if (joinFromHash()) return; var v = location.hash.slice(1); if (v !== ui.view) go(v); });
 
   /* ---------- boot ---------- */
   var ticks = 0;
@@ -1042,6 +1542,11 @@ if (typeof module !== 'undefined') module.exports = Core;
   document.addEventListener('visibilitychange', function () { if (!document.hidden && !ui.sheet && ui.cry.phase !== 'rec') render(); });
   ui.view = VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'home';
   render();
+  if (!joinFromHash()) Sync.boot();
+  if (window.claude && typeof window.claude.use === 'function') { // running as a hosted Claude page
+    window.claude.use('downloads').then(function (d) { host.dl = d; }, function () { });
+    window.claude.use('db').then(function (d) { host.db = d; if (d) { Sync.boot(); render(); } }, function () { });
+  }
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { try { navigator.serviceWorker.register('sw.js').catch(function () { }); } catch (e) { } }
 })();
 </script>
