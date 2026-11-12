@@ -82,6 +82,15 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('add-open'); await act('add-kind:solids'); await page.fill('#f-note', 'Banana'); await act('save-edit'); ok((await text('#view')).includes('Banana'));
     await noOverflow('home with data'); await shot('03-home-own');
   });
+  await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
+    eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/Today\s+1 change/.test(await text('#tl .day')), await text('#tl .day'));
+    await act('filter:feed'); eq(await rows(), 4); ok(/3 feeds · .*breast · 150 ml · 1 solids/.test(await text('#tl .day')), await text('#tl .day'));
+    await act('filter:sleep'); eq(await rows(), 2); ok(/2 sleeps/.test(await text('#tl .day')));
+    await act('filter:all'); eq(await rows(), 7); await page.evaluate(() => scrollTo(0, 0));
+    await act('show:diaper'); eq(await rows(), 1); eq(await page.getAttribute('[data-action="filter:diaper"]', 'aria-pressed'), 'true'); ok(await page.evaluate(() => scrollY > 50), 'scrolled to the timeline');
+    await shot('03b-nappies'); await page.locator('#view .row').first().click(); await act('delete'); ok((await text('#tl .empty')).includes('No nappies logged in the last 7 days')); await act('undo');
+    await act('show:feed'); eq(await rows(), 4); await act('show:sleep'); eq(await rows(), 2); await act('filter:all'); await noOverflow('filtered timeline');
+  });
   await step('trends reflect the log', async () => {
     await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 5);
     ok(await page.locator('#view svg.chart rect[fill="var(--sleep)"]').count() >= 2, 'sleep blocks drawn'); await shot('04-trends-own');

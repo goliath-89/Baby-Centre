@@ -70,6 +70,10 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-
 /* status */
 .status{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+button.stat{text-align:left;width:100%;align-items:stretch}
+button.stat:active{transform:scale(.98)}
+.stat .go{margin-left:auto;font-size:18px;line-height:1;color:var(--ink-2)}
+#tl{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
 .stat .k{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
 .stat .v{font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
 .stat .s{color:var(--ink-2);font-size:13px;font-weight:600}
@@ -90,7 +94,8 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 /* timeline */
 .tl{display:flex;flex-direction:column}
-.tl .day{font-size:12px;font-weight:700;color:var(--ink-2);padding:10px 2px 4px}
+.tl .day{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--ink-2);padding:10px 2px 4px}
+.tl .day .sum{color:var(--ink)}
 .row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:9px 2px;min-height:52px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .dot{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none}
@@ -782,7 +787,7 @@ if (typeof module !== 'undefined') module.exports = Core;
   }
   var state = load() || C.demoData(Date.now());
   var VIEWS = ['home', 'trends', 'cry', 'milestones', 'more'];
-  var ui = { view: 'home', sheet: null, days: 2, week: 0, band: null, cry: { phase: 'idle' }, undo: null, snackT: 0 };
+  var ui = { view: 'home', sheet: null, filter: 'all', days: 2, week: 0, band: null, cry: { phase: 'idle' }, undo: null, snackT: 0 };
 
   function commit(msg, fn) {
     var prev = JSON.stringify(state);
@@ -1064,9 +1069,9 @@ if (typeof module !== 'undefined') module.exports = Core;
     else { sv = '–'; ss = 'No sleep logged yet'; }
     var ld = C.last(ev, function (e) { return e.type === 'diaper'; });
     h += '<div class="status">' +
-      '<div class="stat feed wide"><span class="k">' + icon('feed') + 'Last feed' + (lastB ? ' · last side ' + (lastB.side === 'L' ? 'left' : 'right') : '') + '</span><span class="v num" id="stat-feed">' + fv + '</span><span class="s">' + fs + '</span></div>' +
-      '<div class="stat sleep"><span class="k">' + icon('sleep') + 'Sleep</span><span class="v num" id="stat-sleep">' + sv + '</span><span class="s">' + ss + '</span></div>' +
-      '<div class="stat diaper"><span class="k">' + icon('diaper') + 'Nappy</span><span class="v num" id="stat-diaper">' + (ld ? ago(now - T(ld.start)) : '–') + '</span><span class="s">' + today.diapers + ' today' + (ld ? ' · last ' + DIAPER[ld.kind].toLowerCase() : '') + '</span></div>' +
+      '<button class="stat feed wide" data-action="show:feed" aria-label="Show all feeds"><span class="k">' + icon('feed') + 'Last feed' + (lastB ? ' · last side ' + (lastB.side === 'L' ? 'left' : 'right') : '') + '<span class="go">›</span></span><span class="v num" id="stat-feed">' + fv + '</span><span class="s">' + fs + '</span></button>' +
+      '<button class="stat sleep" data-action="show:sleep" aria-label="Show all sleeps"><span class="k">' + icon('sleep') + 'Sleep<span class="go">›</span></span><span class="v num" id="stat-sleep">' + sv + '</span><span class="s">' + ss + '</span></button>' +
+      '<button class="stat diaper" data-action="show:diaper" aria-label="Show all nappies"><span class="k">' + icon('diaper') + 'Nappy<span class="go">›</span></span><span class="v num" id="stat-diaper">' + (ld ? ago(now - T(ld.start)) : '–') + '</span><span class="s">' + today.diapers + ' today' + (ld ? ' · last ' + DIAPER[ld.kind].toLowerCase() : '') + '</span></button>' +
       '</div>';
     h += '<section class="sec"><h2>Today so far</h2><div class="card"><div class="kv" style="grid-template-columns:repeat(4,1fr)">' +
       '<div><b class="num">' + today.breastN + '</b><span>Breast</span></div><div><b class="num">' + dur(today.lMs + today.rMs) + '</b><span>Breast time</span></div>' +
@@ -1074,17 +1079,37 @@ if (typeof module !== 'undefined') module.exports = Core;
       '<p class="note" style="margin:10px 0 0">Sleep today ' + dur(today.sleepMs) + ' · longest stretch ' + dur(today.longestMs) + '</p></div></section>';
     h += '<section class="sec"><h2>Last 24 hours</h2><div class="card">' + ribbon(now) + '<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feed</span><span><i style="background:var(--diaper)"></i>Nappy</span><span><i style="background:var(--cry)"></i>Cry check</span></div></div></section>';
 
-    var cut = C.dayStart(now) - (ui.days - 1) * DAY, list = ev.filter(function (e) { return T(e.start) >= cut; }).sort(function (a, b) { return T(b.start) - T(a.start); });
-    h += '<section class="sec"><div class="sechead"><h2>Timeline</h2><button class="link" data-action="add-open">+ Add past entry</button></div><div class="card tl">';
-    if (!list.length) h += '<p class="empty">Nothing logged yet. Use the buttons below to log a feed, sleep or nappy with one tap.</p>';
-    var lastDay = '';
-    list.forEach(function (e) {
-      var dn = dayName(e.start), d = describe(e, now);
-      if (dn !== lastDay) { h += '<div class="day">' + dn + '</div>'; lastDay = dn; }
-      h += '<button class="row" data-action="edit:' + e.id + '"><span class="dot ' + d.c + '">' + icon(d.i) + '</span><span class="mid"><span class="ti">' + d.t + '</span><br><span class="su">' + esc(d.s) + '</span></span><span class="tm num">' + clock(e.start) + '</span></button>';
+    // Timeline: everything for the last two days, or one activity grouped by day with a daily total.
+    var F = ui.filter, span = F === 'all' ? ui.days : Math.max(ui.days, 7), cut = C.dayStart(now) - (span - 1) * DAY;
+    var typed = F === 'all' ? ev : ev.filter(function (e) { return e.type === F; });
+    var list = typed.filter(function (e) { return T(e.start) >= cut; }).sort(function (a, b) { return T(b.start) - T(a.start); });
+    var NAMES = { feed: 'feeds', sleep: 'sleep', diaper: 'nappies' };
+    h += '<section class="sec" id="tl"><div class="sechead"><h2>Timeline</h2><button class="link" data-action="add-open">+ Add past entry</button></div>' +
+      '<div class="seg" role="group" aria-label="Show">' + [['all', 'All'], ['feed', 'Feeds'], ['sleep', 'Sleep'], ['diaper', 'Nappies']].map(function (o) { return '<button aria-pressed="' + (o[0] === F) + '" data-action="filter:' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div><div class="card tl">';
+    if (!list.length) h += '<p class="empty">' + (F === 'all' ? 'Nothing logged yet. Use the buttons below to log a feed, sleep or nappy with one tap.' : 'No ' + NAMES[F] + ' logged in the last ' + span + ' days.') + '</p>';
+    var groups = [], byDay = {};
+    list.forEach(function (e) { var k = C.dayStart(e.start); if (!byDay[k]) groups.push(byDay[k] = { day: k, items: [] }); byDay[k].items.push(e); });
+    groups.forEach(function (g) {
+      var sum = '';
+      if (F === 'feed') {
+        var milk = 0, sol = 0, ml = 0, br = 0;
+        g.items.forEach(function (e) { if (e.kind === 'solids') sol++; else milk++; if (e.kind === 'bottle') ml += e.ml || 0; if (e.kind === 'breast') { var b = breastSecs(e, now); br += (b[0] + b[1]) * 1000; } });
+        sum = milk + (milk === 1 ? ' feed' : ' feeds') + (br ? ' · ' + dur(br) + ' breast' : '') + (ml ? ' · ' + vol(ml) : '') + (sol ? ' · ' + sol + ' solids' : '');
+      } else if (F === 'sleep') {
+        var tot = 0; g.items.forEach(function (e) { tot += (e.end ? T(e.end) : now) - T(e.start); });
+        sum = dur(tot) + ' · ' + g.items.length + (g.items.length === 1 ? ' sleep' : ' sleeps');
+      } else if (F === 'diaper') {
+        var dirty = g.items.filter(function (e) { return e.kind !== 'wet'; }).length;
+        sum = g.items.length + (g.items.length === 1 ? ' change' : ' changes') + (dirty ? ' · ' + dirty + ' dirty' : '');
+      }
+      h += '<div class="day"><span>' + dayName(g.day) + '</span>' + (sum ? '<span class="sum num">' + sum + '</span>' : '') + '</div>';
+      g.items.forEach(function (e) {
+        var d = describe(e, now);
+        h += '<button class="row" data-action="edit:' + e.id + '"><span class="dot ' + d.c + '">' + icon(d.i) + '</span><span class="mid"><span class="ti">' + d.t + '</span><br><span class="su">' + esc(d.s) + '</span></span><span class="tm num">' + clock(e.start) + '</span></button>';
+      });
     });
     h += '</div>';
-    if (state.events.some(function (e) { return T(e.start) < cut; })) h += '<button class="btn" data-action="older">Show earlier days</button>';
+    if (typed.some(function (e) { return T(e.start) < cut; })) h += '<button class="btn" data-action="older">Show earlier days</button>';
     return h + '</section>';
   }
   function vDock(now) {
@@ -1407,7 +1432,9 @@ if (typeof module !== 'undefined') module.exports = Core;
   var A = {
     nav: function (v) { go(v); },
     undo: function () { if (!ui.undo) return; var cur = JSON.stringify(state); state = C.migrate({ schemaVersion: C.SCHEMA, data: JSON.parse(ui.undo) }); ui.undo = null; $('snack').hidden = true; if (ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; settle(cur); },
-    older: function () { ui.days += 3; render(); },
+    older: function () { ui.days = (ui.filter === 'all' ? ui.days : Math.max(ui.days, 7)) + 7; render(); },
+    filter: function (f) { ui.filter = f; render(); },
+    show: function (t) { ui.filter = t; render(); var el = $('tl'); if (el) el.scrollIntoView({ block: 'start' }); },
     breast: function (s) {
       var now = Date.now(), af = C.active(state.events, 'feed');
       if (af) { if (af.side === s) return; commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { var x = Math.round((now - T(af.segStart)) / 1000); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x; af.side = s; af.segStart = iso(now); }); }
