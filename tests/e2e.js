@@ -49,10 +49,21 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('breast:R'); ok((await text('.live.feed')).includes('right')); await page.waitForTimeout(1200);
     await act('feed-stop'); eq(await page.locator('.live.feed').count(), 0); eq(await rows(), 1);
     const e = (await stored()).events[0]; ok(e.end && e.lsec >= 1 && e.rsec >= 1 && e.side === 'R' && !e.segStart, JSON.stringify(e));
-    eq(await page.locator('[data-action="breast:L"] .tag').count(), 1, 'left is tagged next'); ok(/last side right/i.test(await text('.stat.feed')), 'last side shown');
+    eq(await page.locator('[data-action="breast:L"] .tag').count(), 1, 'left is tagged next'); eq((await text('#last-side')).toUpperCase(), 'RIGHT', 'last side shown'); ok(/^\s*LAST FEED\s*RIGHT/i.test(await text('.stat.feed .k')), await text('.stat.feed .k'));
   });
   await step('undo brings back the running feed, then finish it again', async () => {
     await act('undo'); eq(await page.locator('.live.feed').count(), 1); await act('feed-stop'); eq(await rows(), 1);
+  });
+  await step('pause stops the feed clock, resume continues on the same side, paused time is not counted', async () => {
+    await act('breast:L'); await page.waitForTimeout(1200); await act('feed-pause');
+    ok((await text('#feed-state')).startsWith('Paused on the left')); const frozen = await text('.live.feed .t'); eq(await page.locator('[data-action="feed-resume"]').count(), 2, 'banner and dock both offer Resume');
+    await page.waitForTimeout(2300); eq(await text('.live.feed .t'), frozen, 'clock stands still'); await page.reload(); eq(await text('.live.feed .t'), frozen, 'still paused after reopening'); await shot('02b-paused');
+    await act('feed-resume'); ok((await text('#feed-state')).startsWith('Feeding on the left')); await page.waitForTimeout(1200); await act('feed-pause');
+    await act('breast:R'); ok((await text('#feed-state')).startsWith('Feeding on the right'), 'switching while paused resumes on the other side'); await page.waitForTimeout(1100);
+    await act('feed-pause'); await page.waitForTimeout(1200); await act('feed-stop');
+    const e = (await stored()).events.filter(x => x.kind === 'breast').sort((a, b) => a.start < b.start ? 1 : -1)[0];
+    ok(e.end && !e.paused && !e.segStart && e.lsec >= 2 && e.lsec <= 3 && e.rsec >= 1 && e.rsec <= 2, 'only feeding time counted: ' + JSON.stringify(e));
+    await page.locator('#view .row').first().click(); await act('delete'); eq(await rows(), 1);
   });
   await step('bottle: stepper and save in two taps', async () => {
     await act('bottle-open'); eq(await page.inputValue('#f-amount'), '120'); await act('amt:1'); await act('save-bottle');
@@ -165,7 +176,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('small phone (320px) and large text do not break the layout', async () => {
     await page.setViewportSize({ width: 320, height: 568 }); for (const v of ['home', 'trends', 'cry', 'milestones', 'more']) { await act('nav:' + v); await noOverflow(v + ' @320'); }
-    await act('nav:home'); await act('bottle-open'); await noOverflow('sheet @320'); await act('sheet-close'); await shot('11-home-320');
+    await act('nav:home'); await act('bottle-open'); await noOverflow('sheet @320'); await act('sheet-close'); await act('breast:L'); await noOverflow('feed banner @320'); await shot('11-home-320'); await act('feed-stop');
   });
   await step('no console errors during the whole run', async () => { eq(errors.filter(e => !/Failed to load resource/.test(e)).join(' | '), ''); });
   // Microphone refused

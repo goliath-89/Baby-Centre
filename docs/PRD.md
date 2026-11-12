@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.2 · 12 November 2026 · Status: shipped as v1.2.0
+Version 1.3 · 12 November 2026 · Status: shipped as v1.3.0
 
 ## 1. Problem
 
@@ -38,10 +38,11 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Status tiles are buttons: each opens the Timeline filtered to its activity (v1.2).
 - Timeline: entries by day, tap to edit or delete; add past entry. A filter (All, Feeds, Sleep, Nappies) shows one activity for the last 7 days, grouped by day with a daily total (v1.2).
 - Baby photo next to the name; an initial is shown when there is no photo (v1.2).
-- Dock pinned above the tab bar: **L**, **R**, **Bottle**, **Sleep**, **Nappy**. The side to offer next is tagged.
+- Action tray floating above the tab bar: **L**, **R**, **Bottle**, **Sleep**, **Nappy**. The side to offer next is tagged. The tray is a raised panel and each button has its own depth, so actions read as buttons and the flat bar beneath reads as navigation (v1.3).
 
 ### 5.2 Feeds
 - Breast: tap L or R to start. Tap the other side to switch. Time per side is recorded.
+- Pause and resume (v1.3): Pause banks the time fed so far and stops the clock; Resume continues on the same side; Switch while paused resumes on the other side. The clock and the saved feed count feeding time only. A paused feed stays paused across app restarts and on the partner's phone.
 - Bottle: amount stepper pre-filled with the last amount, quick amounts, ml or oz.
 - Solids: free text, added from "Add past entry".
 - Prediction: median of the baby's recent feed-to-feed gaps (last 4 days, at least 3 gaps), otherwise a typical gap for the age.

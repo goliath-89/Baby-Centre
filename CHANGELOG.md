@@ -2,6 +2,18 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.3.0] - 2026-11-12
+
+### Added
+- **Pause and resume a feed.** Pause stops the feed clock (for burping, a nappy, a break); Resume continues on the same side. Switch while paused resumes on the other side. Paused time is not counted in the feed. Works from the feed banner and from the action tray, and the paused state is shared with the partner's phone.
+- New app icon: a blue outline bottle with "Baby Centre" inside, on navy. A separate maskable icon keeps the whole bottle visible on launchers that crop icons to a circle.
+
+### Changed
+- The feed clock now shows feeding time (left + right), not time since the feed started, so it stands still while paused.
+- Last feed tile reads "Last feed" followed by a solid LEFT or RIGHT badge for the side last used.
+- The five log buttons sit in a raised tray that floats above the page, each button with a border, a thicker bottom edge and a tinted icon disc. The navigation bar is a separate flat bar with its own shadow, and the current tab is marked with a pill.
+- Toasts sit higher so they clear the tray, and no longer wrap on narrow phones.
+
 ## [1.2.0] - 2026-11-12
 
 ### Added

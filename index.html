@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0D1124">
+<meta name="theme-color" content="#1B2B4B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Baby Centre">
@@ -49,7 +49,7 @@ button{cursor:pointer;border:0;background:none;padding:0;touch-action:manipulati
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .num{font-variant-numeric:tabular-nums}
-#app{max-width:560px;margin:0 auto;padding-block:14px 190px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+#app{max-width:560px;margin:0 auto;padding-block:14px 232px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 #app.nodock{padding-bottom:110px}
 header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px}
 header.top h1{font-size:26px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
@@ -84,11 +84,14 @@ button.stat:active{transform:scale(.98)}
 .stat .s{color:var(--ink-2);font-size:13px;font-weight:600}
 .stat.feed .k{color:var(--feed)} .stat.sleep .k{color:var(--sleep)} .stat.diaper .k{color:var(--diaper)} .stat.cry .k{color:var(--cry)}
 .stat.wide{grid-column:1/-1}
-.live{display:flex;align-items:center;gap:12px;border-radius:var(--r);padding:12px 14px;font-weight:700}
+.live{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;border-radius:var(--r);padding:12px 14px;font-weight:700}
 .live.feed{background:var(--feed-bg);color:var(--feed)} .live.sleep{background:var(--sleep-bg);color:var(--sleep)}
 .live .t{font-size:26px;font-weight:800;line-height:1}
 .live .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
 .live .btn{background:var(--surface);color:var(--ink)}
+.live .acts{display:flex;gap:8px;flex-basis:100%}.live .acts .btn{flex:1;padding:0 8px}
+.live.paused .pulse{animation:none;opacity:.35}
+.pill{background:var(--feed);color:var(--surface);border-radius:8px;padding:2px 9px;font-size:13px;letter-spacing:.08em;margin-left:4px}
 .pulse{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none;animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.pulse{animation:none}*{transition:none!important}}
@@ -112,19 +115,25 @@ button.stat:active{transform:scale(.98)}
 .row .tm{color:var(--ink-2);font-weight:600;font-size:13px;white-space:nowrap}
 .empty{color:var(--ink-2);text-align:center;padding:22px 10px}
 /* dock + nav */
-#dock{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:20;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
-#dock .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.qa{position:relative;min-height:64px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;box-shadow:var(--shadow);background:var(--surface)}
+/* Actions sit in a raised tray that floats above the page; navigation is a flat bar fixed to the bottom edge. */
+#dock{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:20;padding:18px max(12px,env(safe-area-inset-right,0px)) 16px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 62%,transparent)}
+#dock .in{max-width:536px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:8px;border-radius:24px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 10px 28px rgba(13,17,36,.22)}
+.qa{position:relative;min-height:72px;border-radius:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-bottom-width:4px;box-shadow:0 2px 5px rgba(13,17,36,.10)}
 .qa.feed{color:var(--feed)} .qa.sleep{color:var(--sleep)} .qa.diaper{color:var(--diaper)}
-.qa.on.feed{background:var(--feed);color:var(--surface)} .qa.on.sleep{background:var(--sleep);color:var(--surface)}
-.qa .big{font-size:20px;font-weight:800;line-height:1}
-.qa .tag{position:absolute;top:-6px;right:-2px;background:var(--feed);color:var(--surface);font-size:10px;padding:1px 6px;border-radius:8px}
-.qa:active{transform:scale(.95)}
-#nav{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-top:1px solid var(--line);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
-#nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:64px}
-#nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;color:var(--ink-2)}
+.qa .ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 -2px 0 rgba(13,17,36,.10)}
+.qa.feed .ic{background:var(--feed-bg)} .qa.sleep .ic{background:var(--sleep-bg)} .qa.diaper .ic{background:var(--diaper-bg)}
+.qa.on.feed{background:var(--feed);color:var(--surface);border-color:var(--feed)} .qa.on.sleep{background:var(--sleep);color:var(--surface);border-color:var(--sleep)}
+.qa.on .ic{background:rgba(255,255,255,.24)}
+.qa .big{font-size:19px;font-weight:800;line-height:1}
+.qa .tag{position:absolute;top:-9px;right:-3px;background:var(--feed);color:var(--surface);font-size:10px;padding:1px 6px;border-radius:8px}
+.qa:active{transform:translateY(2px);border-bottom-width:2px}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(13,17,36,.10);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+#nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:66px}
+#nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11px;font-weight:700;color:var(--ink-2)}
+#nav .ic{width:54px;height:30px;border-radius:15px;display:grid;place-items:center}
 #nav button[aria-current="page"]{color:var(--accent)}
-#nav .crybtn span.c{width:46px;height:46px;border-radius:50%;background:var(--cry);color:var(--surface);display:grid;place-items:center;margin-top:-18px;box-shadow:var(--shadow)}
+#nav button[aria-current="page"] .ic{background:var(--sleep-bg)}
+#nav .crybtn span.c{width:48px;height:48px;border-radius:50%;background:var(--cry);color:var(--surface);display:grid;place-items:center;margin-top:-20px;border:3px solid var(--surface);box-shadow:0 4px 12px rgba(13,17,36,.25)}
 /* sheet */
 #scrim{position:fixed;inset:0;background:rgba(8,10,24,.5);z-index:30;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--surface);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:18px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-height:92%;overflow:auto}
@@ -145,7 +154,7 @@ textarea.in1{padding:10px 12px;min-height:110px;font:12px/1.4 ui-monospace,Menlo
 .err{color:var(--cry);font-weight:700;font-size:13px}
 .rowbtns{display:flex;gap:10px}.rowbtns .btn{flex:1}
 /* snack */
-#snack{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+#snack{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(196px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:var(--shadow);width:max-content;max-width:calc(100% - 32px)}
 #snack.top{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 #snack button{min-height:40px;padding:0 14px;border-radius:10px;color:var(--bg);background:rgba(128,128,128,.35);font-weight:800}
 /* cry */
@@ -778,7 +787,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.2.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.3.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -1017,7 +1026,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       if (e.kind === 'bottle') return { c: 'feed', i: 'feed', t: 'Bottle', s: vol(e.ml || 0) };
       if (e.kind === 'solids') return { c: 'feed', i: 'spoon', t: 'Solids', s: e.note || '' };
       var b = breastSecs(e, now);
-      return { c: 'feed', i: 'feed', t: 'Breast' + (e.end ? '' : ' (feeding now)'), s: 'L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) };
+      return { c: 'feed', i: 'feed', t: 'Breast' + (e.end ? '' : e.paused ? ' (paused)' : ' (feeding now)'), s: 'L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) };
     }
     if (e.type === 'sleep') return { c: 'sleep', i: 'sleep', t: e.end ? 'Sleep' : 'Asleep now', s: e.end ? dur(T(e.end) - T(e.start)) + ' · woke ' + clock(e.end) : 'for ' + dur(now - T(e.start)) };
     if (e.type === 'diaper') return { c: 'diaper', i: 'diaper', t: 'Nappy', s: DIAPER[e.kind] || '' };
@@ -1084,7 +1093,12 @@ if (typeof module !== 'undefined') module.exports = Core;
     var ss0 = Sync.status();
     if (ss0 === 'offline' || ss0 === 'denied') h += '<div class="banner" id="sync-banner"><span>' + syncLine() + '. ' + (ss0 === 'offline' ? 'Keep logging; changes are sent when you are back online.' : 'Ask your partner to check your access.') + '</span></div>';
     var af = C.active(ev, 'feed'), as = C.active(ev, 'sleep');
-    if (af) { var b = breastSecs(af, now); h += '<div class="live feed"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + af.start + '">' + timer(now - T(af.start)) + '</span><span>Feeding on the ' + (af.side === 'L' ? 'left' : 'right') + ' · L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) + '</span></div><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div>'; }
+    if (af) {
+      var b = breastSecs(af, now), fed = (b[0] + b[1]) * 1000, sd = af.side === 'L' ? 'left' : 'right';
+      // The clock counts feeding time only, so it stands still while paused.
+      h += '<div class="live feed' + (af.paused ? ' paused' : '') + '"><span class="pulse"></span><div class="grow"><span class="t num"' + (af.paused ? '' : ' data-timer="' + iso(now - fed) + '"') + '>' + timer(fed) + '</span><span id="feed-state">' + (af.paused ? 'Paused on the ' : 'Feeding on the ') + sd + ' · L ' + dur(b[0] * 1000) + ' · R ' + dur(b[1] * 1000) + '</span></div>' +
+        '<div class="acts"><button class="btn" data-action="' + (af.paused ? 'feed-resume">Resume' : 'feed-pause">Pause') + '</button><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div></div>';
+    }
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
 
     var pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), today = C.dailyStats(ev, now, 1)[0];
@@ -1100,7 +1114,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     else { sv = '–'; ss = 'No sleep logged yet'; }
     var ld = C.last(ev, function (e) { return e.type === 'diaper'; });
     h += '<div class="status">' +
-      '<button class="stat feed wide" data-action="show:feed" aria-label="Show all feeds"><span class="k">' + icon('feed') + 'Last feed' + (lastB ? ' · last side ' + (lastB.side === 'L' ? 'left' : 'right') : '') + '<span class="go">›</span></span><span class="v num" id="stat-feed">' + fv + '</span><span class="s">' + fs + '</span></button>' +
+      '<button class="stat feed wide" data-action="show:feed" aria-label="Show all feeds"><span class="k">' + icon('feed') + 'Last feed' + (lastB ? '<span class="pill" id="last-side">' + (lastB.side === 'L' ? 'Left' : 'Right') + '</span>' : '') + '<span class="go">›</span></span><span class="v num" id="stat-feed">' + fv + '</span><span class="s">' + fs + '</span></button>' +
       '<button class="stat sleep" data-action="show:sleep" aria-label="Show all sleeps"><span class="k">' + icon('sleep') + 'Sleep<span class="go">›</span></span><span class="v num" id="stat-sleep">' + sv + '</span><span class="s">' + ss + '</span></button>' +
       '<button class="stat diaper" data-action="show:diaper" aria-label="Show all nappies"><span class="k">' + icon('diaper') + 'Nappy<span class="go">›</span></span><span class="v num" id="stat-diaper">' + (ld ? ago(now - T(ld.start)) : '–') + '</span><span class="s">' + today.diapers + ' today' + (ld ? ' · last ' + DIAPER[ld.kind].toLowerCase() : '') + '</span></button>' +
       '</div>';
@@ -1147,13 +1161,13 @@ if (typeof module !== 'undefined') module.exports = Core;
     var af = C.active(state.events, 'feed'), as = C.active(state.events, 'sleep');
     var lastB = C.last(state.events, function (e) { return e.type === 'feed' && e.kind === 'breast'; }), next = lastB && !af ? (lastB.side === 'L' ? 'R' : 'L') : '';
     function side(s) {
-      var on = af && af.side === s;
-      return '<button class="qa feed' + (on ? ' on' : '') + '" data-action="' + (on ? 'feed-stop' : 'breast:' + s) + '" aria-label="' + (on ? 'Stop feed' : (af ? 'Switch to ' : 'Start breast feed, ') + (s === 'L' ? 'left' : 'right')) + '"><span class="big">' + s + '</span><span>' + (on ? 'Stop' : af ? 'Switch' : s === 'L' ? 'Left' : 'Right') + '</span>' + (next === s ? '<span class="tag">next</span>' : '') + '</button>';
+      var on = af && af.side === s, paused = on && af.paused;
+      return '<button class="qa feed' + (on ? ' on' : '') + '" data-action="' + (paused ? 'feed-resume' : on ? 'feed-stop' : 'breast:' + s) + '" aria-label="' + (paused ? 'Resume feed' : on ? 'Stop feed' : (af ? 'Switch to ' : 'Start breast feed, ') + (s === 'L' ? 'left' : 'right')) + '"><span class="ic big">' + s + '</span><span>' + (paused ? 'Resume' : on ? 'Stop' : af ? 'Switch' : s === 'L' ? 'Left' : 'Right') + '</span>' + (next === s ? '<span class="tag">next</span>' : '') + '</button>';
     }
-    return '<div class="in">' + side('L') + side('R') +
-      '<button class="qa feed" data-action="bottle-open">' + icon('feed') + '<span>Bottle</span></button>' +
-      '<button class="qa sleep' + (as ? ' on' : '') + '" data-action="sleep-toggle">' + icon(as ? 'sun' : 'sleep') + '<span>' + (as ? 'Woke up' : 'Sleep') + '</span></button>' +
-      '<button class="qa diaper" data-action="diaper-open">' + icon('diaper') + '<span>Nappy</span></button></div>';
+    return '<div class="in" role="group" aria-label="Log an activity">' + side('L') + side('R') +
+      '<button class="qa feed" data-action="bottle-open"><span class="ic">' + icon('feed') + '</span><span>Bottle</span></button>' +
+      '<button class="qa sleep' + (as ? ' on' : '') + '" data-action="sleep-toggle"><span class="ic">' + icon(as ? 'sun' : 'sleep') + '</span><span>' + (as ? 'Woke up' : 'Sleep') + '</span></button>' +
+      '<button class="qa diaper" data-action="diaper-open"><span class="ic">' + icon('diaper') + '</span><span>Nappy</span></button></div>';
   }
 
   function vTrends(now) {
@@ -1462,7 +1476,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     $('app').className = v === 'home' ? '' : 'nodock';
     $('nav').innerHTML = '<div class="in">' + VIEWS.map(function (n) {
       var lab = n === 'home' ? 'Home' : TITLES[n].replace(' check', '');
-      return '<button data-action="nav:' + n + '"' + (n === v ? ' aria-current="page"' : '') + (n === 'cry' ? ' class="crybtn"' : '') + '>' + (n === 'cry' ? '<span class="c">' + icon(n) + '</span>' : icon(n)) + '<span>' + lab + '</span></button>';
+      return '<button data-action="nav:' + n + '"' + (n === v ? ' aria-current="page"' : '') + (n === 'cry' ? ' class="crybtn"' : '') + '>' + (n === 'cry' ? '<span class="c">' + icon(n) + '</span>' : '<span class="ic">' + icon(n) + '</span>') + '<span>' + lab + '</span></button>';
     }).join('') + '</div>';
   }
   function go(v) { if (VIEWS.indexOf(v) < 0) v = 'home'; if (recStop && v !== 'cry') recStop(); ui.view = v; if (v !== 'cry' && ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; try { if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v); } catch (e) { } render(); window.scrollTo(0, 0); }
@@ -1476,6 +1490,12 @@ if (typeof module !== 'undefined') module.exports = Core;
     commit('Backup restored', function () { state = data; });
     return '';
   }
+  // Adds the running stretch to the current side and stops the clock (used by pause, switch and done).
+  function bank(af, now) {
+    if (!af.segStart) return;
+    var x = Math.max(0, Math.round((now - T(af.segStart)) / 1000)); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x;
+    delete af.segStart;
+  }
   var A = {
     nav: function (v) { go(v); },
     undo: function () { if (!ui.undo) return; var cur = JSON.stringify(state); state = C.migrate({ schemaVersion: C.SCHEMA, data: JSON.parse(ui.undo) }); ui.undo = null; $('snack').hidden = true; if (ui.cry.phase === 'result') ui.cry = { phase: 'idle' }; settle(cur); },
@@ -1484,12 +1504,16 @@ if (typeof module !== 'undefined') module.exports = Core;
     show: function (t) { ui.filter = t; render(); var el = $('tl'); if (el) el.scrollIntoView({ block: 'start' }); },
     breast: function (s) {
       var now = Date.now(), af = C.active(state.events, 'feed');
-      if (af) { if (af.side === s) return; commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { var x = Math.round((now - T(af.segStart)) / 1000); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x; af.side = s; af.segStart = iso(now); }); }
+      if (af && af.side === s) { if (af.paused) A['feed-resume'](); return; }
+      if (af) commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { bank(af, now); af.side = s; af.segStart = iso(now); delete af.paused; });
       else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right'), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
     },
+    'feed-pause': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || af.paused) return; commit('Feed paused', function () { bank(af, now); af.paused = iso(now); }); },
+    'feed-resume': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || !af.paused) return; commit('Feed resumed on the ' + (af.side === 'L' ? 'left' : 'right'), function () { af.segStart = iso(now); delete af.paused; }); },
     'feed-stop': function () {
       var now = Date.now(), af = C.active(state.events, 'feed'); if (!af) return;
-      commit('Feed saved · ' + dur(now - T(af.start)), function () { var x = Math.round((now - T(af.segStart)) / 1000); if (af.side === 'L') af.lsec = (af.lsec || 0) + x; else af.rsec = (af.rsec || 0) + x; af.end = iso(now); delete af.segStart; });
+      var b = breastSecs(af, now);
+      commit('Feed saved · ' + dur((b[0] + b[1]) * 1000), function () { bank(af, now); af.end = iso(now); delete af.paused; });
     },
     'sleep-toggle': function () {
       var now = Date.now(), as = C.active(state.events, 'sleep');

@@ -63,7 +63,8 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   });
   await step('breast feed started on A, switched on B, finished on A', async () => {
     await A.act('breast:L'); await B.page.waitForSelector('.live.feed', { timeout: 3000 }); await B.page.waitForTimeout(1100); await B.act('breast:R');
-    await A.until(() => /right/.test(document.querySelector('.live.feed')?.textContent || ''), null, 3000); await A.page.waitForTimeout(1100); await A.act('feed-stop');
+    await A.until(() => /right/.test(document.querySelector('.live.feed')?.textContent || ''), null, 3000); await A.page.waitForTimeout(1100);
+    await A.act('feed-pause'); await B.until(() => /Paused on the right/.test(document.querySelector('#feed-state')?.textContent || ''), null, 3000); await B.act('feed-resume'); await A.until(() => /Feeding on the right/.test(document.querySelector('#feed-state')?.textContent || ''), null, 3000); await A.act('feed-stop');
     await B.until(() => !document.querySelector('.live.feed'), null, 3000); const e = (await B.stored()).events.find(e => e.kind === 'breast'); ok(e.end && e.lsec >= 1 && e.rsec >= 1, JSON.stringify(e));
   });
   await step('delete and undo travel to the other phone', async () => {

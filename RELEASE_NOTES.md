@@ -1,5 +1,25 @@
 # Release notes
 
+## 1.3.0 · 12 November 2026
+
+### New
+- **Pause a feed.** Tap **Pause** on the feed banner while you burp or change your baby, then **Resume** to carry on with the same side. The clock stops while paused, and the pause is left out of the feed's length. The lit L or R button in the tray also shows **Resume**.
+- **New icon.** A blue outline bottle with "Baby Centre" inside. If the app is already on your home screen, remove it and add it again to pick up the new icon.
+- **Last feed tile** now says LAST FEED with a solid **LEFT** or **RIGHT** badge.
+- **Clearer bottom of the screen.** The five log buttons are in a raised tray with depth on each button; the navigation bar is a separate bar underneath with the current tab highlighted.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit | 29 of 29 pass |
+| End-to-end, one phone | 27 of 27 pass |
+| End-to-end, two phones | 23 of 23 pass |
+
+### Notes
+- The icon is an original drawing in the style of the reference you sent. The reference itself is a licensed Font Awesome Pro icon, so it was not copied.
+- The words inside the icon are readable on a large icon and on the splash screen; at the smallest home-screen sizes they become fine print.
+
+
 ## 1.2.0 · 12 November 2026
 
 ### New
