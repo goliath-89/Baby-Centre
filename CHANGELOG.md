@@ -2,6 +2,19 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.5.1] - 2026-11-13
+
+### Changed
+- **Stopping the burp timer no longer starts sleep.** It saves the burp and shows the countdown to the next nap in the toast ("next nap in about 35m").
+- The Sleep tile now counts down while the baby is awake: "Next nap in 35m · 2:42–3:12 AM", then "Nap window open until 3:12 AM".
+- When no sleep has been logged yet, the nap countdown runs from the end of the last burp.
+
+### Added
+- **Asleep button** (moon icon) beside Stop on the burp timer: saves the burp and starts the sleep timer in one tap, for when the baby has actually gone to sleep. One Undo reverses both.
+
+### Fixed
+- A burp started before a feed ended could stop the Burp time strip from being offered after the next feed.
+
 ## [1.5.0] - 2026-11-12
 
 ### Added

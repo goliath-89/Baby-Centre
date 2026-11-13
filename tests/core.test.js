@@ -39,6 +39,12 @@ test('next sleep window follows the last wake time', () => {
   assert.equal(p.asleep, false); assert.equal(p.from, NOW + 30 * M); assert.equal(p.to, NOW + 60 * M);
   assert.equal(C.predictSleep([sleep(NOW - 20 * M)], DOB, NOW).asleep, true);
 });
+test('with no sleep logged yet, the nap countdown runs from the end of the last burp', () => {
+  const p = C.predictSleep([{ id: 'b', type: 'burp', start: iso(NOW - 40 * M), end: iso(NOW - 30 * M) }], DOB, NOW);
+  assert.equal(p.basis, 'burp'); assert.equal(p.from, NOW + 30 * M); assert.equal(p.to, NOW + 60 * M);
+  const q = C.predictSleep([{ id: 'b', type: 'burp', start: iso(NOW - 40 * M), end: iso(NOW - 30 * M) }, sleep(NOW - 3 * H, NOW - 50 * M)], DOB, NOW);
+  assert.equal(q.basis, undefined); assert.equal(q.from, NOW + 10 * M, 'a logged wake time takes priority');
+});
 test('daily stats split sleep across midnight and count an ongoing sleep', () => {
   const mid = C.dayStart(NOW);
   const ev = [sleep(mid - 2 * H, mid + 5 * H), sleep(NOW - H), feed(NOW - 2 * H), feed(mid - 3 * H),

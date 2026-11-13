@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.5.1 · 13 November 2026
+
+### Changed
+- **■ Stop** on the burp timer now only saves the burp and tells you how long until the next nap. It no longer starts sleep.
+- **☾ Asleep**, a new button beside Stop, is for when your baby has actually fallen asleep: it saves the burp and starts the sleep timer together.
+- The Sleep tile on Home counts down to the nap window while your baby is awake.
+
+How the countdown is worked out: the nap window is the typical awake time for your baby's age, counted from when they last woke. If no sleep has been logged yet, it is counted from the end of the last burp.
+
+Tests: 30 unit, 30 one-phone and 23 two-phone checks pass.
+
+
 ## 1.5.0 · 12 November 2026
 
 ### New

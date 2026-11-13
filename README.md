@@ -22,7 +22,7 @@ The microphone only works on HTTPS pages (or `localhost`), which is why A or B i
 
 ## Using it
 - **Home**: tap **L** or **R** to start a breast feed, the other side to switch, the lit side to stop. **Bottle** and **Nappy** take two taps. **Sleep** toggles.
-- After a feed (or while one is paused) a **Burp time** strip appears: ▶ starts the burp timer, ■ stops it and starts the sleep timer.
+- After a feed (or while one is paused) a **Burp time** strip appears: ▶ starts the burp timer, ■ stops it and shows the time to the next nap, ☾ stops it and starts the sleep timer.
 - Every change shows **Undo** for a few seconds. Tap any timeline row to edit or delete it.
 - Under **Timeline**, tap Feeds, Sleep or Nappies to see one activity grouped by day. The Last feed, Sleep and Nappy tiles do the same.
 - **More → Baby → Edit** to add a photo.

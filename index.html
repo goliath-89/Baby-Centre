@@ -283,7 +283,11 @@ var Core = (function () {
     var cur = active(events, 'sleep');
     if (cur) return { asleep: true, since: T(cur.start), window: ww };
     var l = last(events, function (e) { return e.type === 'sleep' && e.end; });
-    if (!l) return { asleep: false, since: null, window: ww, from: null, to: null };
+    if (!l) {
+      var bp = last(events, function (e) { return e.type === 'burp' && e.end; });
+      if (!bp) return { asleep: false, since: null, window: ww, from: null, to: null };
+      var be = T(bp.end); return { asleep: false, since: be, window: ww, from: be + ww[0] * MIN, to: be + ww[1] * MIN, basis: 'burp' };
+    }
     var end = T(l.end);
     return { asleep: false, since: end, window: ww, from: end + ww[0] * MIN, to: end + ww[1] * MIN };
   }
@@ -806,7 +810,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.5.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.5.1', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -1187,7 +1191,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
     // Burp / upright timer: offered while a feed is paused and for half an hour after a feed ends.
     var ab = C.active(ev, 'burp');
-    if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button></div>';
+    if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><div class="acts"><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button>' + (as ? '' : '<button class="btn" data-action="burp-sleep" aria-label="Stop burp timer, baby is asleep">' + icon('sleep') + 'Asleep</button>') + '</div></div>';
     else if (burpDue(now)) h += '<div class="live burp offer" id="burp-offer"><span class="dot burp">' + icon('burp') + '</span><div class="grow"><b>Burp time</b><span>' + (af ? 'Feed is paused' : 'Feed finished') + ' · time upright</span></div><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
 
     var pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), today = C.dailyStats(ev, now, 1)[0];
@@ -1199,7 +1203,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     }
     var sv, ss;
     if (ps.asleep) { sv = 'Asleep ' + dur(now - ps.since); ss = 'Since ' + clock(ps.since); }
-    else if (ps.since) { sv = 'Awake ' + dur(now - ps.since); ss = now > ps.to ? 'Past the usual ' + ps.window[0] + '–' + ps.window[1] + ' min awake window' : 'Nap window ' + clock(ps.from) + '–' + clock(ps.to); }
+    else if (ps.since) { sv = 'Awake ' + dur(now - ps.since); ss = now > ps.to ? 'Past the usual ' + ps.window[0] + '–' + ps.window[1] + ' min awake window' : now >= ps.from ? 'Nap window open until ' + clock(ps.to) : 'Next nap in ' + dur(ps.from - now) + ' · ' + clock(ps.from) + '–' + clock(ps.to); if (ps.basis === 'burp') sv = 'Up ' + dur(now - ps.since); }
     else { sv = '–'; ss = 'No sleep logged yet'; }
     var ld = C.last(ev, function (e) { return e.type === 'diaper'; });
     h += '<div class="status">' +
@@ -1252,7 +1256,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (C.active(ev, 'sleep')) return false;
     var lf = C.last(ev, C.isMilk); if (!lf) return false;
     var end = T(lf.end || lf.start);
-    return now - end < 30 * MIN && !ev.some(function (e) { return e.type === 'burp' && T(e.start) >= end - MIN; });
+    return now - end < 30 * MIN && !ev.some(function (e) { return e.type === 'burp' && T(e.start) >= end; });
   }
   // Ends a running burp timer; called inside the commit that starts or resumes something else.
   function endBurp(now) { var ab = C.active(state.events, 'burp'); if (ab) ab.end = iso(now); }
@@ -1624,11 +1628,18 @@ if (typeof module !== 'undefined') module.exports = Core;
       commit('Feed saved · ' + dur((b[0] + b[1]) * 1000), function () { bank(af, now); af.end = iso(now); delete af.paused; });
     },
     'burp-start': function () { var now = Date.now(); if (C.active(state.events, 'burp')) return; commit('Burp timer started', function () { state.events.push({ id: C.uid(), type: 'burp', start: iso(now), end: null }); }); },
-    // Stopping the burp timer puts the baby down: the sleep timer starts, unless a feed is still paused or a sleep is already running.
+    // Stop only saves the burp; the countdown to the next nap then shows on the Sleep tile and in the toast.
     'burp-stop': function () {
       var now = Date.now(), ab = C.active(state.events, 'burp'); if (!ab) return;
-      var toSleep = !C.active(state.events, 'feed') && !C.active(state.events, 'sleep');
-      commit('Burp saved · ' + dur(now - T(ab.start)) + (toSleep ? ' · sleep started' : ''), function () { ab.end = iso(now); if (toSleep) state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+      commit(null, function () { ab.end = iso(now); });
+      var ps = C.predictSleep(state.events, state.baby.dob, now), msg = 'Burp saved · ' + dur(now - T(ab.start));
+      if (!ps.asleep && ps.from && !C.active(state.events, 'feed')) msg += now < ps.from ? ' · next nap in about ' + dur(ps.from - now) : now <= ps.to ? ' · nap window is open' : ' · nap is due';
+      snack(msg);
+    },
+    // Asleep: the baby went down during or straight after burping. Saves the burp and starts the sleep timer together.
+    'burp-sleep': function () {
+      var now = Date.now(), ab = C.active(state.events, 'burp'); if (!ab) return;
+      commit('Burp saved · ' + dur(now - T(ab.start)) + ' · sleep started', function () { ab.end = iso(now); if (!C.active(state.events, 'sleep')) state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
     },
     'sleep-toggle': function () {
       var now = Date.now(), as = C.active(state.events, 'sleep');
