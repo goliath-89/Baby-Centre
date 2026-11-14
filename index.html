@@ -86,6 +86,7 @@ button.stat:active{transform:scale(.98)}
 .stat.wide{grid-column:1/-1}
 .live{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;border-radius:var(--r);padding:12px 14px;font-weight:700}
 .live.burp{background:var(--mile-bg);color:var(--mile)}.live.burp .btn{gap:6px}.live.offer{color:var(--ink)}.live.offer .btn{background:var(--mile);color:var(--surface)}
+.burpq{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:8px 10px 8px 12px}.burpq b{flex:1}.burpq .btn{gap:6px;background:var(--mile-bg);color:var(--mile)}
 .dot.burp{background:var(--mile-bg);color:var(--mile)}.live.offer .dot.burp{background:var(--surface)}
 .live.feed{background:var(--feed-bg);color:var(--feed)} .live.sleep{background:var(--sleep-bg);color:var(--sleep)}
 .live .t{font-size:26px;font-weight:800;line-height:1}
@@ -810,7 +811,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.5.1', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.5.2', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -1189,10 +1190,12 @@ if (typeof module !== 'undefined') module.exports = Core;
         '<div class="acts"><button class="btn" data-action="' + (af.paused ? 'feed-resume">Resume' : 'feed-pause">Pause') + '</button><button class="btn" data-action="breast:' + (af.side === 'L' ? 'R' : 'L') + '">Switch</button><button class="btn" data-action="feed-stop">Done</button></div></div>';
     }
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
-    // Burp / upright timer: offered while a feed is paused and for half an hour after a feed ends.
+    // Burp / upright timer: highlighted while a feed is paused and for half an hour after a feed ends.
     var ab = C.active(ev, 'burp');
     if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><div class="acts"><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button>' + (as ? '' : '<button class="btn" data-action="burp-sleep" aria-label="Stop burp timer, baby is asleep">' + icon('sleep') + 'Asleep</button>') + '</div></div>';
     else if (burpDue(now)) h += '<div class="live burp offer" id="burp-offer"><span class="dot burp">' + icon('burp') + '</span><div class="grow"><b>Burp time</b><span>' + (af ? 'Feed is paused' : 'Feed finished') + ' · time upright</span></div><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
+    // Always reachable: a quieter row when the app has no reason to suggest it (later on, baby marked asleep, already burped once).
+    else h += '<div class="burpq" id="burp-quiet"><span class="dot burp">' + icon('burp') + '</span><b>Burp timer</b><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
 
     var pf = C.predictFeed(ev, dob, now), ps = C.predictSleep(ev, dob, now), today = C.dailyStats(ev, now, 1)[0];
     var lastB = C.last(ev, function (e) { return e.type === 'feed' && e.kind === 'breast'; });

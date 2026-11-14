@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.5.1 · 13 November 2026 · Status: shipped as v1.5.1
+Version 1.5.2 · 14 November 2026 · Status: shipped as v1.5.2
 
 ## 1. Problem
 
@@ -50,6 +50,7 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 ### 5.2a Burp timer (v1.5)
 - Purpose: record burping or upright time after a feed, and hand over to sleep without another tap.
 - Offered on Home while a feed is paused, and for 30 minutes after the last milk feed ends, once per feed. Not offered while the baby is asleep.
+- Outside those cases a quieter "Burp timer" row with the same play button sits in the same place, so the timer can always be started by hand (v1.5.2).
 - Start has a play icon; while running, the strip shows a clock and a stop icon.
 - Stop saves the burp and shows the time to the next nap; it does not start sleep (v1.5.1).
 - Asleep (moon icon, beside Stop) saves the burp and starts the sleep timer at the same moment; one Undo reverses both (v1.5.1).

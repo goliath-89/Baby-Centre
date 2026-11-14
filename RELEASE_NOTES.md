@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.5.2 · 14 November 2026
+
+- **Burp timer you can always reach.** A "Burp timer ▶ Start" row now sits at the top of Home whenever the green Burp time strip is not showing, so you can start it by hand at any time, including after a feed has been saved.
+- The green strip still appears on its own while a feed is paused and for 30 minutes after a feed ends. It does not appear while a sleep timer is running, which is the most likely reason it was missing for you; check whether an old sleep is still running at the top of Home.
+
+Tests: 30 unit, 30 one-phone and 23 two-phone checks pass.
+
+
 ## 1.5.1 · 13 November 2026
 
 ### Changed

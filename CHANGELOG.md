@@ -2,6 +2,14 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.5.2] - 2026-11-14
+
+### Added
+- **Burp timer is always available.** When the green "Burp time" strip is not being suggested, a quieter "Burp timer ▶ Start" row takes its place at the top of Home, so the timer can be started at any time.
+
+### Why the strip was sometimes missing
+The highlighted strip is only suggested while a feed is paused or within 30 minutes of a feed ending, once per feed, and not while a sleep timer is running. Outside those cases there was previously no way to start the burp timer.
+
 ## [1.5.1] - 2026-11-13
 
 ### Changed

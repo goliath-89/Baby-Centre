@@ -191,16 +191,22 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('burp timer: offered after a feed, play to start, stop saves it and starts sleep; undo reverses both', async () => {
     await act('nav:home'); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('babycentre.v1')); d.data.events.forEach(e => { if (e.type === 'feed') { e.start = e.end = new Date(Date.parse(e.start) - 2 * 36e5).toISOString(); } }); localStorage.setItem('babycentre.v1', JSON.stringify(d)); }); await page.reload();
-    eq(await page.locator('#burp-offer').count(), 0, 'not offered when the last feed was hours ago');
+    eq(await page.locator('#burp-offer').count(), 0, 'not highlighted when the last feed was hours ago'); eq(await page.locator('#burp-quiet [data-action="burp-start"] svg').count(), 1, 'but always startable from the quiet row');
     const n0 = (await stored()).events.length;
-    await act('bottle-open'); await act('save-bottle'); await page.waitForSelector('#burp-offer'); ok((await text('#burp-offer')).includes('Feed finished')); ok(await page.locator('[data-action="burp-start"] svg').count() === 1, 'play icon');
+    await act('bottle-open'); await act('save-bottle'); await page.waitForSelector('#burp-offer'); eq(await page.locator('#burp-quiet').count(), 0, 'one burp entry at a time'); ok((await text('#burp-offer')).includes('Feed finished')); ok(await page.locator('[data-action="burp-start"] svg').count() === 1, 'play icon');
     await shot('12-burp-offer'); await act('burp-start'); eq(await page.locator('#burp-offer').count(), 0); ok((await text('.live.burp')).includes('Burping')); ok(await page.locator('[data-action="burp-stop"] svg rect').count() === 1, 'stop icon');
     await page.waitForTimeout(2200); ok(/0:0[1-9]/.test(await text('.live.burp .t')), 'timer runs'); await shot('13-burping'); await noOverflow('burp banner');
     eq(await page.locator('.live.burp [data-action="burp-stop"] svg rect').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"] svg').count(), 1, 'sleep icon button beside Stop');
     await act('burp-stop'); ok(/Burp saved · .*(next nap in about|nap window is open|nap is due)/.test(await text('#snack')), await text('#snack')); eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 0, 'Stop does not start sleep');
     let ev = (await stored()).events; eq(ev.length, n0 + 2); const bp = ev.find(e => e.type === 'burp'); ok(bp.end && new Date(bp.end) - new Date(bp.start) >= 2000);
     ok((await text('#view')).includes('Upright'), 'burp shows in the timeline'); ok(/upright/.test(await text('#view .card .note')), 'today summary'); ok(/Next nap in|Nap window open|Past the usual/.test(await text('.stat.sleep')), await text('.stat.sleep'));
-    eq(await page.locator('#burp-offer').count(), 0, 'not offered twice for the same feed');
+    eq(await page.locator('#burp-offer').count(), 0, 'not highlighted twice for the same feed');
+    // manual start any time: after the feed was already burped, and while the sleep timer is running
+    await page.click('#burp-quiet [data-action="burp-start"]'); eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('#burp-quiet').count(), 0); await act('burp-stop'); await page.locator('#view .row', { hasText: 'Burp' }).first().click(); await act('delete');
+    await act('sleep-toggle'); await act('breast:L'); await page.waitForTimeout(1100); await act('feed-stop'); eq(await page.locator('#burp-offer').count(), 0); await page.click('#burp-quiet [data-action="burp-start"]');
+    eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"]').count(), 0, 'no Asleep button when sleep is already running'); await shot('15-burp-quiet');
+    await act('burp-stop'); eq(await page.locator('.live.sleep').count(), 1, 'running sleep untouched');
+    for (const name of ['Burp', 'Breast']) { await page.locator('#view .row', { hasText: name }).first().click(); await act('delete'); } await act('sleep-toggle'); await page.locator('#view .row', { hasText: 'Sleep' }).first().click(); await act('delete');
     // Asleep button: ends the burp and starts sleep in one tap; one undo reverses both
     await act('bottle-open'); await act('save-bottle'); await act('burp-start'); await page.waitForTimeout(1100); await act('burp-sleep'); ok((await text('#snack')).includes('sleep started'));
     eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 1); ev = (await stored()).events; const b2 = ev.filter(e => e.type === 'burp').sort((a, b) => a.start < b.start ? 1 : -1)[0]; ok(ev.some(e => e.type === 'sleep' && !e.end && e.start === b2.end), 'sleep starts when the burp ends');
