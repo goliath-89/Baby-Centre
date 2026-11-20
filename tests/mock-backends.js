@@ -4,7 +4,7 @@
 const http = require('http');
 function strip(v) { if (v === null || v === undefined) return undefined; if (typeof v !== 'object') return v; const o = Array.isArray(v) ? [] : {}; let n = 0; for (const k in v) { const x = strip(v[k]); if (x !== undefined) { o[k] = x; n++; } } return n ? o : undefined; }
 function start(staticHandler) {
-  const rooms = {}, streams = new Set(), docs = {}, docStreams = new Set(), state = { down: false, denyWrites: false, writes: 0 };
+  const rooms = {}, streams = new Set(), docs = {}, pdocs = {}, docStreams = new Set(), state = { down: false, denyWrites: false, writes: 0 };
   const send = (res, ev, data) => res.write(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`);
   const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
@@ -16,6 +16,12 @@ function start(staticHandler) {
       if (url.startsWith('/cdb')) { // fake document store: GET stream, POST {op,id,fields,level}
         if (req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }); send(res, 'docs', docs); docStreams.add(res); res.on('close', () => docStreams.delete(res)); return; }
         const m = JSON.parse(body); let out = { ok: true };
+        if (m.ns === 'prefs') { // a viewer's private area: never broadcast; view-only viewers cannot write
+          const own = m.path.startsWith('data/users/' + m.uid + '/');
+          if (m.op === 'get') out = { exists: own && !!pdocs[m.path], data: own ? pdocs[m.path] || null : null };
+          else if (!own || m.level === 'view') out = { error: 'invalid_argument' }; else pdocs[m.path] = m.fields;
+          res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(out));
+        }
         if (m.op === 'get') out = { exists: !!docs[m.id], data: docs[m.id] || null };
         else if (m.level === 'view') out = { error: 'invalid_argument' };
         else if (m.op === 'update') { if (!docs[m.id]) out = { error: 'invalid_argument' }; else Object.assign(docs[m.id], m.fields); }
@@ -36,13 +42,17 @@ function start(staticHandler) {
       res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data === undefined ? null : data));
     });
   });
-  return { server, rooms, docs, state, goDown() { state.down = true; streams.forEach(s => s.res.destroy()); docStreams.forEach(s => s.destroy()); }, goUp() { state.down = false; } };
+  return { server, rooms, docs, pdocs, state, goDown() { state.down = true; streams.forEach(s => s.res.destroy()); docStreams.forEach(s => s.destroy()); }, goUp() { state.down = false; } };
 }
 // Runs inside the page (addInitScript). Mimics the parts of the host store the app uses.
-function fakeClaude(level) {
-  const post = m => fetch('/cdb', { method: 'POST', body: JSON.stringify(Object.assign({ level }, m)) }).then(r => r.json()).then(r => { if (r.error) throw { code: r.error, message: r.error }; return r; });
+function fakeClaude(arg) {
+  const o = typeof arg === 'string' ? { level: arg } : arg, level = o.level, uid = o.uid || null;
+  const post = m => fetch('/cdb', { method: 'POST', body: JSON.stringify(Object.assign({ level, uid }, m)) }).then(r => r.json()).then(r => { if (r.error) throw { code: r.error, message: r.error }; return r; });
   const snapDoc = (id, data) => ({ id, exists: !!data, data: () => data, metadata: { fromCache: false, hasPendingWrites: false } });
+  const pdoc = path => ({ path, set: fields => post({ ns: 'prefs', op: 'set', path, fields }).then(() => { }), get: () => post({ ns: 'prefs', op: 'get', path }).then(r => snapDoc(path.split('/').pop(), r.exists ? r.data : null)) });
+  const user = { isOwner: () => Promise.resolve(!!o.owner), id: () => Promise.resolve(uid), canEdit: () => Promise.resolve(!!o.owner) };
   const db = {
+    doc: pdoc,
     collection: () => ({
       doc: id => ({ id, update: fields => post({ op: 'update', id, fields }).then(() => { }), set: fields => post({ op: 'set', id, fields }).then(() => { }), get: () => post({ op: 'get', id }).then(r => snapDoc(id, r.data)) }),
       onSnapshot(next) {
@@ -57,6 +67,6 @@ function fakeClaude(level) {
     })
   };
   window.BC_SHARE_URL = 'https://claude.ai/artifact/test123';
-  window.claude = { use: name => new Promise(ok => setTimeout(() => ok(name === 'db' ? db : null), 50)) };
+  window.claude = { use: name => new Promise(ok => setTimeout(() => ok(name === 'db' ? db : name === 'user' ? user : null), 50)) };
 }
 module.exports = { start, fakeClaude };

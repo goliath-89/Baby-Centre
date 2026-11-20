@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '..'), TMP = fs.mkdtempSync(path.join(os.tmpdi
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const mock = start((q, r) => { const u = q.url.split(/[?#]/)[0], f = path.join(ROOT, u === '/' ? 'index.html' : u); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); });
 let passed = 0; const fails = [];
-async function step(name, fn) { try { await fn(); passed++; console.log('  ok  ' + name); } catch (e) { fails.push(name); console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n')[0]); } }
+async function step(name, fn) { try { await fn(); passed++; console.log('  ok  ' + name); } catch (e) { fails.push(name); console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 5).join(' / ')); } }
 function eq(a, b, m) { if (a !== b) throw new Error((m || 'expected') + ': ' + JSON.stringify(b) + ', got ' + JSON.stringify(a)); }
 function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
 const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio: 'ignore' }); return true; } catch { return false; } })();
@@ -53,6 +53,12 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     if (SHOTS) await B.page.screenshot({ path: path.join(SHOTS, 's2-join.png') });
     await B.act('share-join-go'); await B.until(() => document.querySelector('#top h1').textContent === 'Mia'); await B.untilRows(1);
     eq(await B.page.locator('.banner').count(), 0); const s = await B.stored(); eq(s.demo, false); eq(s.events.length, 1); eq(s.baby.name, 'Mia');
+  });
+  await step('only the phone that started sharing can edit the profile, import, restore or erase; the partner can still download', async () => {
+    await B.go('more'); eq(await B.page.locator('#view [data-action="import-open"], #view [data-action="xl-pick"], #view [data-action="erase-open"], #view [data-action="profile-open"]').count(), 0, 'partner controls hidden');
+    ok((await B.text('#owner-note')).includes('Only the owner')); eq(await B.page.locator('#view [data-action="export"], #view [data-action="xl-export"]').count(), 2, 'partner can download');
+    await A.go('more'); eq(await A.page.locator('#view [data-action="import-open"], #view [data-action="xl-pick"], #view [data-action="erase-open"], #view [data-action="profile-open"]').count(), 4, 'owner controls'); eq(await A.page.locator('#owner-note').count(), 0);
+    await B.go('home');
   });
   await step('a nappy logged on one phone appears on the other within seconds', async () => {
     await A.go('home'); await A.act('diaper-open'); await A.act('diaper:wet'); await B.untilRows(2, 3000); ok((await B.text('.stat.diaper')).includes('1 today'));
@@ -128,7 +134,7 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     mock.state.denyWrites = false; await A.page.reload(); await B.untilRows(9, 8000);
   });
   await step('stop sharing on one phone keeps its copy and stops updates', async () => {
-    await B.go('more'); await B.act('share-stop'); eq(await B.text('#sync-status'), 'Not shared'); await A.act('diaper-open'); await A.act('diaper:wet');
+    await B.go('more'); await B.act('share-stop'); eq(await B.text('#sync-status'), 'Not shared'); eq(await B.page.locator('#view [data-action="erase-open"]').count(), 1, 'after stopping, the phone is its own again'); await A.act('diaper-open'); await A.act('diaper:wet');
     await B.go('home'); await B.page.waitForTimeout(1500); eq(await B.rows(), 9); eq(await A.rows(), 10);
   });
   await step('rejoining with the code catches up; bad codes and empty logs are explained', async () => {
@@ -140,7 +146,7 @@ wb.save(sys.argv[2])`, xlsx, edited]);
   });
 
   // Hosted (Claude page) mode with the fake shared store
-  const CA = await phone(fakeClaude, 'interact'), CB = await phone(fakeClaude, 'interact'), CV = await phone(fakeClaude, 'view');
+  const CA = await phone(fakeClaude, { level: 'interact', owner: true, uid: 'u_a' }), CB = await phone(fakeClaude, { level: 'interact', uid: 'u_b' }), CV = await phone(fakeClaude, { level: 'view', uid: 'u_v' });
   const CN = await phone(() => { window.claude = { use: () => new Promise(ok => setTimeout(() => ok(null), 300)) }; });
   await step('hosted page without a shared store says so instead of offering a setup that cannot work', async () => {
     await CN.go('more'); ok((await CN.text('#share')).includes('Checking')); await CN.until(() => /not available in this view/.test(document.querySelector('#share').textContent));
@@ -155,11 +161,35 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     await CA.act('sheet-close'); await CA.until(() => document.querySelector('#sync-status').textContent === 'Shared · up to date');
     ok(mock.docs.meta && Object.keys(mock.docs).some(k => /^b\d+$/.test(k)), 'records stored in bucket documents: ' + Object.keys(mock.docs));
   });
-  await step('hosted page: partner sees a Join banner on opening and joins in one tap', async () => {
-    await CB.page.reload(); await CB.page.waitForSelector('#join-banner'); ok((await CB.text('#join-banner')).includes('Noah’s log is shared'));
-    if (SHOTS) await CB.page.screenshot({ path: path.join(SHOTS, 's6-hosted-join.png') });
-    await CB.go('more'); ok((await CB.text('#share')).includes('Join Noah’s log')); await CB.go('home'); await CB.page.click('#join-banner [data-action="share-claude"]');
-    await CB.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CB.untilRows(1); eq(await CB.page.locator('#join-banner').count(), 0);
+  await step('hosted page: partner opening the page joins the shared log automatically', async () => {
+    await CB.page.reload(); await CB.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CB.untilRows(1); eq(await CB.page.locator('#join-banner').count(), 0);
+    ok((await CB.text('#snack')).includes('Showing Noah’s shared log')); await CB.go('more'); eq(await CB.text('#sync-status'), 'Shared · up to date');
+  });
+  await step('hosted page: the partner cannot edit the profile, import, restore or erase; the owner can', async () => {
+    await CB.go('more'); eq(await CB.page.locator('#view [data-action="import-open"], #view [data-action="xl-pick"], #view [data-action="erase-open"], #view [data-action="profile-open"]').count(), 0); ok((await CB.text('#owner-note')).includes('Only the owner'));
+    eq(await CB.page.locator('#view [data-action="export"], #view [data-action="xl-export"]').count(), 2); if (SHOTS) await CB.page.screenshot({ path: path.join(SHOTS, 's7-partner-more.png'), fullPage: true });
+    await CA.page.reload(); await CA.go('more'); await CA.until(() => document.querySelector('#sync-status').textContent === 'Shared · up to date'); eq(await CA.page.locator('#view [data-action="import-open"], #view [data-action="xl-pick"], #view [data-action="erase-open"], #view [data-action="profile-open"]').count(), 4);
+  });
+  await step('hosted page: when the browser forgets everything, the partner is rejoined and keeps their units and theme', async () => {
+    await CB.go('more'); await CB.act('units:oz'); await CB.act('theme:dark'); await CB.page.waitForTimeout(400); ok(mock.pdocs['data/users/u_b/prefs'] && mock.pdocs['data/users/u_b/prefs'].units === 'oz', JSON.stringify(mock.pdocs));
+    await CB.page.evaluate(() => localStorage.clear()); await CB.page.reload(); await CB.go('home');
+    await CB.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CB.untilRows(1); await CB.go('more');
+    eq(await CB.page.getAttribute('[data-action="units:oz"]', 'aria-pressed'), 'true', 'units remembered'); eq(await CB.page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'theme remembered');
+    eq(await CB.text('#sync-status'), 'Shared · up to date');
+    // after a deliberate Stop sharing, a forgotten browser does not rejoin by itself
+    await CB.act('share-stop'); await CB.page.waitForTimeout(400); await CB.page.evaluate(() => localStorage.clear()); await CB.page.reload(); await CB.go('home');
+    await CB.page.waitForSelector('#join-banner'); eq(await CB.text('#top h1'), 'Sample baby');
+    await CB.page.click('#join-banner [data-action="share-claude"]'); await CB.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CB.go('home'); await CB.untilRows(1);
+  });
+  await step('hosted page: someone with their own log is asked before it is combined', async () => {
+    const P = await phone(); await P.setup('Own'); await P.act('diaper-open'); await P.act('diaper:wet'); const seed = await P.page.evaluate(() => localStorage.getItem('babycentre.v1')); await P.ctx.close();
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' }); await ctx.addInitScript(fakeClaude, { level: 'interact', uid: 'u_d' });
+    await ctx.addInitScript(s => { if (!localStorage.getItem('babycentre.v1')) localStorage.setItem('babycentre.v1', s); }, seed);
+    const pg = await ctx.newPage(); await pg.goto(URL); await pg.waitForSelector('#join-banner'); eq(await pg.locator('#top h1').innerText(), 'Own', 'not combined without asking');
+    await pg.click('#join-banner [data-action="share-claude"]'); await pg.waitForFunction(() => document.querySelector('#top h1').textContent === 'Noah', null, { timeout: 6000 });
+    await pg.waitForFunction(() => document.querySelectorAll('#view .row').length === 2, null, { timeout: 6000 }); await CB.untilRows(2, 4000);
+    await CA.go('home'); await CA.untilRows(2, 4000); await CA.page.locator('#view .row', { hasText: 'Nappy' }).first().click(); await CA.act('delete');
+    await pg.waitForFunction(() => document.querySelectorAll('#view .row').length === 1, null, { timeout: 6000 }); await ctx.close();
   });
   await step('hosted page: changes flow both ways and survive a reload', async () => {
     await CB.act('sleep-toggle'); await CA.go('home'); await CA.page.waitForSelector('.live.sleep', { timeout: 3000 }); await CA.act('diaper-open'); await CA.act('diaper:wet'); await CB.untilRows(3, 3000);
@@ -167,7 +197,7 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     await CB.page.reload(); await CB.untilRows(2); await CA.act('sleep-toggle'); await CB.until(() => !document.querySelector('.live.sleep'), null, 4000);
   });
   await step('hosted page: a view-only visitor sees the log but is told they cannot save', async () => {
-    await CV.page.reload(); await CV.page.waitForSelector('#join-banner'); await CV.page.click('#join-banner [data-action="share-claude"]'); await CV.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CV.untilRows(2);
+    await CV.page.reload(); await CV.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CV.untilRows(2);
     const before = JSON.stringify(mock.docs); await CV.act('diaper-open'); await CV.act('diaper:wet'); await CV.page.waitForSelector('#sync-banner'); ok((await CV.text('#sync-banner')).includes('cannot save'));
     eq(JSON.stringify(mock.docs), before, 'store untouched'); await CA.page.waitForTimeout(500); eq(await CA.rows(), 2);
   });

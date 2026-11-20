@@ -82,6 +82,7 @@ npm run test:sync    # two phones against mock sync backends
 - `index.html`: the whole app. `<script id="core">` is pure logic; `<script id="app-js">` is the UI.
 - `sw.js`, `manifest.webmanifest`, `icon-*.png`: install and offline support. Bump `CACHE` in `sw.js` on each release.
 - `docs/PRD.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`: requirements, change log, release notes.
+- Before each release run `node scripts/stamp-build.js`; it writes the build time and the release notes into `index.html` for More → About.
 
 ## Safety
 The cry check and all guidance in this app are estimates for information only. They do not replace advice from a doctor, midwife or health visitor. If you are worried about your baby, get medical help.

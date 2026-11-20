@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.6.1 · 20 November 2026 · Status: shipped as v1.6.1
+Version 1.7 · 20 November 2026 · Status: shipped as v1.7.0
 
 ## 1. Problem
 
@@ -114,6 +114,7 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 
 ### 5.7 More
 - Baby profile, bottle units, appearance (match phone, light, dark).
+- About: version, build date and time, and the release notes shown in the app (v1.7).
 - Share with partner (5.8), Excel (5.9).
 - Backup: download a file or copy text; restore from file or pasted text.
 - Erase all data (two taps).
@@ -142,6 +143,10 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - If the hosted page cannot reach its shared store, the section says so and offers nothing that cannot work.
 
 **Profile photo (v1.2).** Cropped to a 256 px square JPEG on the phone (about 10–25 KB), stored with the profile and shared like any other record. Images arriving from a partner or a backup are accepted only if they are small inline JPEG, PNG or WebP data.
+
+**Owner and partner (v1.7).** On a shared log, Edit baby, Excel Import, Restore and Erase all data are available to the owner only (hosted page: the page owner, from the platform; installed app: the phone that started sharing). Partners log everything else and can download Excel and backups. This is a UI rule, not a database permission.
+
+**Remembering each person (v1.7).** On the hosted page, units, appearance and whether the person has joined are stored in that person's private area of the page's store (`data/users/<id>/prefs`) as well as in the browser. On load they are restored, and a phone without its own log rejoins an existing shared log automatically unless the person chose Stop sharing.
 
 **Privacy.** The invite code holds the database address and a random 20-character log id. Anyone with the code can read and change the log. The database rules stop anyone listing logs, so the id works as the key. Data is not end-to-end encrypted.
 

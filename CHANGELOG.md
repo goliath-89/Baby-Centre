@@ -2,6 +2,18 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.7.0] - 2026-11-20
+
+### Added
+- More → About shows the build date and time and opens the release notes in the app (stamped by `scripts/stamp-build.js`).
+- Owner-only controls on a shared log: Edit baby, Excel Import, Restore and Erase all data are hidden for the partner, who keeps logging and can download Excel and backups. Hosted page: page owner. Installed app: the phone that started sharing.
+- Hosted page: each person's units, appearance and joined state are saved in their private area of the page's store and restored on load.
+- Hosted page: a phone with no log of its own joins an existing shared log automatically; after Stop sharing it does not.
+
+### Fixed
+- Partner had to tap Join again and re-select Ounces after the browser cleared storage for the embedded page.
+- Joining a shared log from a phone with its own log could replace the shared baby profile with that phone's; the shared profile now always wins on join.
+
 ## [1.6.1] - 2026-11-20
 
 ### Changed

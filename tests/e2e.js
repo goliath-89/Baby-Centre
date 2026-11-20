@@ -36,6 +36,12 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     for (const v of ['trends', 'cry', 'milestones', 'more', 'home']) { await act('nav:' + v); await noOverflow(v); if (v !== 'home') await shot('02-' + v + '-sample'); }
     await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 7); await act('week:1'); eq(await page.locator('#view svg.chart').count(), 7); await act('week:-1'); await act('nav:home');
   });
+  await step('About shows the version, build date and time, and opens the release notes', async () => {
+    await act('nav:more'); const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+    ok((await text('#view')).includes('Baby Centre ' + v), 'version'); ok(/^Built \d{1,2} \w{3} \d{4}, \d{1,2}:\d{2}/.test(await text('#build')) || /^Built \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2}/.test(await text('#build')), await text('#build'));
+    await act('notes-open'); ok((await text('#notes h3')).startsWith(v), 'newest notes first: ' + await text('#notes h3')); ok(await page.locator('#notes table').count() > 0, 'tables rendered'); await shot('22-notes'); await noOverflow('release notes');
+    await act('sheet-close'); await act('nav:home');
+  });
   await step('profile form validates, then replaces sample data', async () => {
     await act('profile-open'); await act('save-profile'); ok((await text('#sheet-err')).includes('name'));
     await page.fill('#f-name', 'Mia <b>'); await act('save-profile'); ok((await text('#sheet-err')).includes('date of birth'));

@@ -1,5 +1,34 @@
 # Release notes
 
+## 1.7.0 · 20 November 2026
+
+### New
+- **Build date and release notes.** More → About now shows the version with the date and time it was built, and a **Release notes** button that opens these notes inside the app.
+- **Only the owner changes the shared log in bulk.** When a log is shared, only its owner sees Edit (baby's details), Excel Import, Restore and Erase all data. Your partner can still log feeds, sleep and everything else, and can still download an Excel file or a backup.
+  - On the shared Claude link, the owner is the owner of the page.
+  - On the installed app, the owner is the phone that started sharing.
+
+### Fixed
+- **Partner kept having to tap Join, and Ounces did not stick.** On the shared Claude link, both were saved only in the phone's browser storage, which some browsers clear for pages shown inside another site. Each person's bottle units, appearance and "joined" choice are now also saved in their own private area of the shared page. If the browser forgets, the app puts them back and rejoins the shared log on its own.
+  - A phone with no log of its own joins the shared log automatically when it opens the page.
+  - A phone that has its own log is still asked first, so two logs are never combined without you choosing to.
+  - After a deliberate **Stop sharing**, the app does not rejoin by itself.
+
+### Good to know
+- The owner-only rule is enforced by the app's screens, not by the database. Someone determined could still change data with other tools; this stops accidental or casual changes.
+- Fixed while testing: a phone that already had its own log could overwrite the shared baby's name and details when it joined. Joining now always keeps the shared profile.
+- I could not test your partner's actual phone. The fix is tested by clearing a phone's storage between visits, which reproduces what she described.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit | 32 of 32 pass |
+| End-to-end, one phone | 34 of 34 pass |
+| End-to-end, two phones | 27 of 27 pass |
+
+The two-phone suite now covers: partner controls hidden on both kinds of sharing, a phone whose storage is wiped between visits (rejoins, keeps Ounces and Dark), Stop sharing followed by a wipe (does not rejoin), and a phone with its own log being asked before joining.
+
+
 ## 1.6.1 · 20 November 2026
 
 - **Asleep while feeding or burping.** The sleep timer now runs alongside a feed or the burp timer; starting one never stops the other. **☾ Asleep** on the burp timer starts sleep and keeps the burp timer running.
