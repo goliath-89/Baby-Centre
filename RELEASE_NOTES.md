@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.6.1 · 20 November 2026
+
+- **Asleep while feeding or burping.** The sleep timer now runs alongside a feed or the burp timer; starting one never stops the other. **☾ Asleep** on the burp timer starts sleep and keeps the burp timer running.
+- **Warnings instead of guesses.** If something looks off, for example a sleep timer left running for 7 hours or tummy time started while asleep, the confirmation message ends with "Check: …" and says what to look at. Nothing is changed for you.
+- Resuming or switching a breast feed still stops the burp timer, and now says so.
+
+Tests: 32 unit, 33 one-phone and 23 two-phone checks pass.
+
+
 ## 1.6.0 · 20 November 2026
 
 ### New

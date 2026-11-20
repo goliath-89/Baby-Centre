@@ -851,7 +851,7 @@ if (typeof module !== 'undefined') module.exports = Core;
 <script id="app-js">
 (function () {
   'use strict';
-  var C = Core, VERSION = '1.6.0', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
+  var C = Core, VERSION = '1.6.1', KEY = 'babycentre.v1', MIN = C.MIN, HOUR = C.HOUR, DAY = C.DAY, T = C.T;
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
@@ -1100,7 +1100,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (e.type === 'diaper') return { c: 'diaper', i: 'diaper', t: 'Nappy', s: DIAPER[e.kind] || '' };
     if (e.type === 'tummy') return { c: 'tummy', i: 'tummy', t: e.end ? 'Tummy time' : 'Tummy time now', s: durS((e.end ? T(e.end) : now) - T(e.start)) };
     if (e.type === 'moment') return { c: 'mile', i: 'milestones', t: e.title || 'Milestone', s: e.note || '' };
-    if (e.type === 'burp') return { c: 'burp', i: 'burp', t: e.end ? 'Burp' : 'Burping now', s: 'Upright ' + dur((e.end ? T(e.end) : now) - T(e.start)) };
+    if (e.type === 'burp') return { c: 'burp', i: 'burp', t: e.end ? 'Burp' : 'Burping now', s: 'Upright ' + durS((e.end ? T(e.end) : now) - T(e.start)) };
     return { c: 'cry', i: 'cry', t: 'Cry check', s: e.res ? 'Likely ' + C.CAUSES[e.res.top].label.toLowerCase() + (e.actual ? ' · was ' + C.CAUSES[e.actual].label.toLowerCase() : '') : '' };
   }
 
@@ -1240,7 +1240,7 @@ if (typeof module !== 'undefined') module.exports = Core;
     if (as) h += '<div class="live sleep"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + as.start + '">' + timer(now - T(as.start)) + '</span><span>Asleep since ' + clock(as.start) + '</span></div><button class="btn" data-action="sleep-toggle">Woke up</button></div>';
     // Burp / upright timer: highlighted while a feed is paused and for half an hour after a feed ends.
     var ab = C.active(ev, 'burp');
-    if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><div class="acts"><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button>' + (as ? '' : '<button class="btn" data-action="burp-sleep" aria-label="Stop burp timer, baby is asleep">' + icon('sleep') + 'Asleep</button>') + '</div></div>';
+    if (ab) h += '<div class="live burp"><span class="pulse"></span><div class="grow"><span class="t num" data-timer="' + ab.start + '">' + timer(now - T(ab.start)) + '</span><span>Burping · upright time</span></div><div class="acts"><button class="btn" data-action="burp-stop" aria-label="Stop burp timer">' + icon('stop') + 'Stop</button>' + (as ? '' : '<button class="btn" data-action="burp-sleep" aria-label="Baby fell asleep: start the sleep timer, keep burping">' + icon('sleep') + 'Asleep</button>') + '</div></div>';
     else if (burpDue(now)) h += '<div class="live burp offer" id="burp-offer"><span class="dot burp">' + icon('burp') + '</span><div class="grow"><b>Burp time</b><span>' + (af ? 'Feed is paused' : 'Feed finished') + ' · time upright</span></div><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
     // Always reachable: a quieter row when the app has no reason to suggest it (later on, baby marked asleep, already burped once).
     else h += '<div class="burpq" id="burp-quiet"><span class="dot burp">' + icon('burp') + '</span><b>Burp timer</b><button class="btn" data-action="burp-start" aria-label="Start burp timer">' + icon('play') + 'Start</button></div>';
@@ -1328,12 +1328,24 @@ if (typeof module !== 'undefined') module.exports = Core;
   function burpDue(now) {
     var ev = state.events, af = C.active(ev, 'feed');
     if (af) return !!af.paused;
-    if (C.active(ev, 'sleep')) return false;
     var lf = C.last(ev, C.isMilk); if (!lf) return false;
     var end = T(lf.end || lf.start);
     return now - end < 30 * MIN && !ev.some(function (e) { return e.type === 'burp' && T(e.start) >= end; });
   }
-  // Ends a running burp timer; called inside the commit that starts or resumes something else.
+  // Timers may overlap (a baby can feed or burp and fall asleep). This only points out combinations that look like a mistake.
+  function check(action, now) {
+    var ev = state.events, sl = C.active(ev, 'sleep'), fd = C.active(ev, 'feed'), tm = C.active(ev, 'tummy'), out = [];
+    if (sl && now - T(sl.start) > 6 * HOUR && action !== 'sleep') out.push('the sleep timer has been running ' + dur(now - T(sl.start)) + '. Tap Woke up if your baby is awake');
+    if (fd && !fd.paused && now - T(fd.start) > 2 * HOUR && action !== 'feed') out.push('the feed timer has been running ' + dur(now - T(fd.start)) + '. Tap Done if the feed has finished');
+    if (action === 'tummy' && sl) out.push('the sleep timer is running, and tummy time is for when your baby is awake');
+    if (action === 'tummy' && fd && !fd.paused) out.push('a feed is still running');
+    if (action === 'sleep' && tm) out.push('tummy time is still running. Stop it if your baby has fallen asleep');
+    if (action === 'feed' && tm) out.push('tummy time is still running');
+    if (action === 'burp' && fd && !fd.paused) out.push('the feed is still running. Pause it while you burp, or tap Done');
+    return out.length ? ' · Check: ' + out.join('; ') + '.' : '';
+  }
+  function burpNote() { return C.active(state.events, 'burp') ? ' · burp timer stopped' : ''; }
+  // Ends a running burp timer; called inside the commit that starts or resumes a feed (you stop burping to feed).
   function endBurp(now) { var ab = C.active(state.events, 'burp'); if (ab) ab.end = iso(now); }
   function vDock(now) {
     var af = C.active(state.events, 'feed'), as = C.active(state.events, 'sleep');
@@ -1722,17 +1734,17 @@ if (typeof module !== 'undefined') module.exports = Core;
     breast: function (s) {
       var now = Date.now(), af = C.active(state.events, 'feed');
       if (af && af.side === s) { if (af.paused) A['feed-resume'](); return; }
-      if (af) commit('Switched to the ' + (s === 'L' ? 'left' : 'right'), function () { endBurp(now); bank(af, now); af.side = s; af.segStart = iso(now); delete af.paused; });
-      else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right'), function () { endBurp(now); state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
+      if (af) commit('Switched to the ' + (s === 'L' ? 'left' : 'right') + burpNote(), function () { endBurp(now); bank(af, now); af.side = s; af.segStart = iso(now); delete af.paused; });
+      else commit('Feed started on the ' + (s === 'L' ? 'left' : 'right') + burpNote() + check('feed', now), function () { endBurp(now); state.events.push({ id: C.uid(), type: 'feed', kind: 'breast', side: s, start: iso(now), segStart: iso(now), end: null, lsec: 0, rsec: 0 }); });
     },
     'feed-pause': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || af.paused) return; commit('Feed paused', function () { bank(af, now); af.paused = iso(now); }); },
-    'feed-resume': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || !af.paused) return; commit('Feed resumed on the ' + (af.side === 'L' ? 'left' : 'right'), function () { endBurp(now); af.segStart = iso(now); delete af.paused; }); },
+    'feed-resume': function () { var now = Date.now(), af = C.active(state.events, 'feed'); if (!af || !af.paused) return; commit('Feed resumed on the ' + (af.side === 'L' ? 'left' : 'right') + burpNote(), function () { endBurp(now); af.segStart = iso(now); delete af.paused; }); },
     'feed-stop': function () {
       var now = Date.now(), af = C.active(state.events, 'feed'); if (!af) return;
       var b = breastSecs(af, now);
       commit('Feed saved · ' + dur((b[0] + b[1]) * 1000), function () { bank(af, now); af.end = iso(now); delete af.paused; });
     },
-    'tummy-start': function () { var now = Date.now(); if (C.active(state.events, 'tummy')) return; commit('Tummy time started', function () { state.events.push({ id: C.uid(), type: 'tummy', start: iso(now), end: null }); }); },
+    'tummy-start': function () { var now = Date.now(); if (C.active(state.events, 'tummy')) return; commit('Tummy time started' + check('tummy', now), function () { state.events.push({ id: C.uid(), type: 'tummy', start: iso(now), end: null }); }); },
     'tummy-stop': function () {
       var now = Date.now(), run = C.active(state.events, 'tummy'); if (!run) return;
       var prev = tummyStats(now).rec, len = now - T(run.start);
@@ -1756,24 +1768,24 @@ if (typeof module !== 'undefined') module.exports = Core;
       });
     },
     'moment-delete': function () { var id = ui.sheet.id; closeSheet(); commit('Milestone deleted', function () { state.events = state.events.filter(function (x) { return x.id !== id; }); }); },
-    'burp-start': function () { var now = Date.now(); if (C.active(state.events, 'burp')) return; commit('Burp timer started', function () { state.events.push({ id: C.uid(), type: 'burp', start: iso(now), end: null }); }); },
+    'burp-start': function () { var now = Date.now(); if (C.active(state.events, 'burp')) return; commit('Burp timer started' + check('burp', now), function () { state.events.push({ id: C.uid(), type: 'burp', start: iso(now), end: null }); }); },
     // Stop only saves the burp; the countdown to the next nap then shows on the Sleep tile and in the toast.
     'burp-stop': function () {
       var now = Date.now(), ab = C.active(state.events, 'burp'); if (!ab) return;
       commit(null, function () { ab.end = iso(now); });
-      var ps = C.predictSleep(state.events, state.baby.dob, now), msg = 'Burp saved · ' + dur(now - T(ab.start));
+      var ps = C.predictSleep(state.events, state.baby.dob, now), msg = 'Burp saved · ' + durS(now - T(ab.start));
       if (!ps.asleep && ps.from && !C.active(state.events, 'feed')) msg += now < ps.from ? ' · next nap in about ' + dur(ps.from - now) : now <= ps.to ? ' · nap window is open' : ' · nap is due';
       snack(msg);
     },
-    // Asleep: the baby went down during or straight after burping. Saves the burp and starts the sleep timer together.
+    // Asleep: the baby fell asleep while being burped. Starts the sleep timer; the burp timer keeps running until Stop.
     'burp-sleep': function () {
-      var now = Date.now(), ab = C.active(state.events, 'burp'); if (!ab) return;
-      commit('Burp saved · ' + dur(now - T(ab.start)) + ' · sleep started', function () { ab.end = iso(now); if (!C.active(state.events, 'sleep')) state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+      var now = Date.now(); if (!C.active(state.events, 'burp') || C.active(state.events, 'sleep')) return;
+      commit('Sleep started · burp timer still running' + check('sleep', now), function () { state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
     },
     'sleep-toggle': function () {
       var now = Date.now(), as = C.active(state.events, 'sleep');
       if (as) commit('Sleep saved · ' + dur(now - T(as.start)), function () { as.end = iso(now); });
-      else commit('Sleep started', function () { endBurp(now); state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
+      else commit('Sleep started' + (C.active(state.events, 'burp') ? ' · burp timer still running' : '') + check('sleep', now), function () { state.events.push({ id: C.uid(), type: 'sleep', start: iso(now), end: null }); });
     },
     'bottle-open': function () { openSheet({ name: 'bottle' }); },
     amt: function (d) { var el = $('f-amount'), st = +el.step || 10; el.value = Math.max(0, Math.round(((+el.value || 0) + d * st) * 10) / 10); },
@@ -1782,7 +1794,7 @@ if (typeof module !== 'undefined') module.exports = Core;
       var a = +$('f-amount').value; if (!(a > 0)) return sheetErr('Enter the amount.');
       var ml = state.settings.units === 'oz' ? a * 29.5735 : a; if (ml > 500) return sheetErr('That amount looks too large. Check it.');
       var now = iso(Date.now()); closeSheet();
-      commit('Bottle saved · ' + vol(ml), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'bottle', start: now, end: now, ml: ml }); });
+      commit('Bottle saved · ' + vol(ml) + check('feed', Date.now()), function () { state.events.push({ id: C.uid(), type: 'feed', kind: 'bottle', start: now, end: now, ml: ml }); });
     },
     'diaper-open': function () { openSheet({ name: 'diaper' }); },
     diaper: function (k) { closeSheet(); commit('Nappy saved · ' + DIAPER[k].toLowerCase(), function () { state.events.push({ id: C.uid(), type: 'diaper', kind: k, start: iso(Date.now()) }); }); },

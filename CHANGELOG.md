@@ -2,6 +2,23 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.6.1] - 2026-11-20
+
+### Changed
+- **Sleep can overlap feeding and burping.** Starting the sleep timer no longer stops a running burp timer, and feeds never stopped sleep. A baby can now be feeding and asleep, or burping and asleep, at the same time.
+- **Asleep** on the burp timer now starts the sleep timer and leaves the burp timer running; tap Stop when you finish burping.
+- The Burp time strip is offered after a feed even while the sleep timer is running.
+- Starting, switching or resuming a breast feed still stops a running burp timer (you stop burping to feed), and the confirmation now says so ("burp timer stopped").
+- Burp times show seconds when short ("45s", "3m 05s").
+
+### Added
+- **Consistency checks.** Nothing is ever cancelled for you, but the confirmation adds "Check: …" when a combination looks like a mistake:
+  - the sleep timer has been running more than 6 hours when you log something else;
+  - a feed has been running (not paused) more than 2 hours when you log something else;
+  - tummy time started while the sleep timer runs, or while a feed is running;
+  - sleep or a feed started while tummy time runs;
+  - the burp timer started while a feed is still running (not paused).
+
 ## [1.6.0] - 2026-11-20
 
 ### Added

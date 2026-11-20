@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.6 · 20 November 2026 · Status: shipped as v1.6.0
+Version 1.6.1 · 20 November 2026 · Status: shipped as v1.6.1
 
 ## 1. Problem
 
@@ -53,7 +53,7 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Outside those cases a quieter "Burp timer" row with the same play button sits in the same place, so the timer can always be started by hand (v1.5.2).
 - Start has a play icon; while running, the strip shows a clock and a stop icon.
 - Stop saves the burp and shows the time to the next nap; it does not start sleep (v1.5.1).
-- Asleep (moon icon, beside Stop) saves the burp and starts the sleep timer at the same moment; one Undo reverses both (v1.5.1).
+- Asleep (moon icon, beside Stop) starts the sleep timer and leaves the burp timer running (v1.6.1).
 - The Sleep tile counts down to the nap window while the baby is awake. The window is the age-based awake time counted from the last wake, or from the end of the last burp when no sleep has been logged.
 - Resuming or switching a feed, starting another feed, or starting sleep by hand ends a running burp timer.
 - Stored as its own entry type with start and end; included in timeline, daily summary, Day timeline, Excel (Burps sheet), backup and sync.
@@ -64,6 +64,10 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - A session that beats the previous record is announced in the confirmation ("new record!").
 - Guidance shown: short, frequent sessions while awake and supervised, building to 15–30 minutes a day by about 7 weeks (AAP).
 - Timeline filter "Tummy" with per-day total, count and longest; Trends chart with the 15–30 minute band; Day timeline lane; Excel sheet "Tummy time"; sync and backup.
+
+### 5.2c Overlapping timers (v1.6.1)
+- Sleep may run at the same time as a feed or the burp timer; none of them stops the others. The only automatic stop: starting, switching or resuming a breast feed ends a running burp timer, and the confirmation says so.
+- Consistency checks append "Check: …" to the confirmation, never change data: sleep running over 6 hours or an unpaused feed over 2 hours when logging something else; tummy time while asleep or while feeding; sleep or a feed started during tummy time; burp started while a feed is running unpaused.
 
 ### 5.3 Sleep
 - One tap starts, one tap ends. A running sleep survives closing the app.
