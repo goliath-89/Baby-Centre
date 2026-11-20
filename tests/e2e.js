@@ -34,7 +34,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('every tab renders without sideways scroll', async () => {
     for (const v of ['trends', 'cry', 'milestones', 'more', 'home']) { await act('nav:' + v); await noOverflow(v); if (v !== 'home') await shot('02-' + v + '-sample'); }
-    await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 6); await act('week:1'); eq(await page.locator('#view svg.chart').count(), 6); await act('week:-1'); await act('nav:home');
+    await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 7); await act('week:1'); eq(await page.locator('#view svg.chart').count(), 7); await act('week:-1'); await act('nav:home');
   });
   await step('profile form validates, then replaces sample data', async () => {
     await act('profile-open'); await act('save-profile'); ok((await text('#sheet-err')).includes('name'));
@@ -138,7 +138,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.focus('#rib'); await page.keyboard.press('Enter'); eq(await text('#top h1'), 'Trends'); await act('nav:home');
   });
   await step('trends reflect the log', async () => {
-    await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 6);
+    await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 7);
     ok(await page.locator('#view svg.chart rect[fill="var(--sleep)"]').count() >= 2, 'sleep blocks drawn'); await shot('04-trends-own');
   });
   await step('milestones tick, count and persist', async () => {
@@ -199,7 +199,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     eq(await page.locator('.live.burp [data-action="burp-stop"] svg rect').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"] svg').count(), 1, 'sleep icon button beside Stop');
     await act('burp-stop'); ok(/Burp saved · .*(next nap in about|nap window is open|nap is due)/.test(await text('#snack')), await text('#snack')); eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 0, 'Stop does not start sleep');
     let ev = (await stored()).events; eq(ev.length, n0 + 2); const bp = ev.find(e => e.type === 'burp'); ok(bp.end && new Date(bp.end) - new Date(bp.start) >= 2000);
-    ok((await text('#view')).includes('Upright'), 'burp shows in the timeline'); ok(/upright/.test(await text('#view .card .note')), 'today summary'); ok(/Next nap in|Nap window open|Past the usual/.test(await text('.stat.sleep')), await text('.stat.sleep'));
+    ok((await text('#view')).includes('Upright'), 'burp shows in the timeline'); ok(/upright/.test(await page.locator('#view .sec', { hasText: 'Today so far' }).innerText()), 'today summary'); ok(/Next nap in|Nap window open|Past the usual/.test(await text('.stat.sleep')), await text('.stat.sleep'));
     eq(await page.locator('#burp-offer').count(), 0, 'not highlighted twice for the same feed');
     // manual start any time: after the feed was already burped, and while the sleep timer is running
     await page.click('#burp-quiet [data-action="burp-start"]'); eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('#burp-quiet').count(), 0); await act('burp-stop'); await page.locator('#view .row', { hasText: 'Burp' }).first().click(); await act('delete');
@@ -221,13 +221,43 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.locator('#view .row', { hasText: 'Burp' }).first().click(); ok((await text('.sheet h3')).toLowerCase().includes('burp')); await act('save-edit');
     await act('add-open'); await act('add-kind:burp'); await act('save-edit'); eq((await stored()).events.filter(e => e.type === 'burp').length, 5);
   });
+  await step('tummy time: start and stop, sessions and total for today, personal record, history', async () => {
+    await act('nav:home'); await page.locator('#tummy').scrollIntoViewIfNeeded(); eq(await text('#tummy-n'), '0'); eq(await text('#tummy-rec'), '–'); ok(await page.locator('#tummy [data-action="tummy-start"] svg').count() === 1, 'play icon');
+    await act('tummy-start'); ok(await page.locator('#tummy.on').count() === 1); await page.waitForTimeout(2200); ok(/0:0[1-9]/.test(await text('#tummy .v')), 'live timer'); await shot('16-tummy-running');
+    await act('tummy-stop'); ok(/Tummy time saved · \ds · first session/.test(await text('#snack')), await text('#snack'), 'check 1'); eq(await text('#tummy-n'), '1'); const rec1 = await text('#tummy-rec'); ok(/^\ds$/.test(rec1), rec1);
+    await act('tummy-start'); await page.waitForTimeout(300); await act('tummy-stop'); ok(!(await text('#snack')).includes('record'), 'shorter session is not a record'); eq(await text('#tummy-rec'), rec1);
+    await act('tummy-start'); await page.waitForTimeout(3300); await act('tummy-stop'); ok((await text('#snack')).includes('new record!'), 'check 2'); ok(await text('#tummy-rec') !== rec1, 'record updated');
+    eq(await text('#tummy-n'), '3'); ok(/^\ds$/.test(await text('#tummy-today')) || /^\d+s$/.test(await text('#tummy-today')), await text('#tummy-today'), 'check 3'); await shot('17-tummy'); await noOverflow('tummy card');
+    await page.click('#tummy [data-action="show:tummy"]'); eq(await page.getAttribute('[data-action="filter:tummy"]', 'aria-pressed'), 'true'); eq(await rows(), 3); ok(/\ds · 3 sessions · longest \ds/.test(await text('#tl .day')), await text('#tl .day'), 'check 4');
+    await page.locator('#view .row').first().click(); ok((await text('.sheet h3')).toLowerCase().includes('tummy'), 'check 5'); await act('save-edit');
+    await act('add-open'); await act('add-kind:tummy'); await act('save-edit'); eq(await rows(), 4); await page.reload(); eq(await text('#tummy-n'), '4'); await act('filter:all');
+    await act('nav:trends'); ok(/tummy time per day/i.test(await text('#view')), 'check 6'); ok((await page.locator('#day-svg').innerHTML()).includes('var(--tummy)'), 'on the day timeline'); await act('nav:home');
+  });
+  await step('milestone journal: suggestions or free text, date and notes, list newest first, edit, delete with undo', async () => {
+    await act('nav:milestones'); ok((await text('#journal')).includes('Record your baby'), 'check 7'); await shot('18-journal-empty');
+    await act('moment-new'); eq(await page.locator('#m-sugs .sug').count(), 30, '30 suggestions'); await act('moment-save'); ok((await text('#sheet-err')).includes('Enter the milestone'), 'check 8');
+    await page.locator('#m-sugs .sug', { hasText: 'First laugh' }).click(); eq(await page.inputValue('#f-mtitle'), 'First laugh'); await page.fill('#f-mnote', 'Giggled at the cat\nTwice!'); await shot('19-journal-add');
+    const today = await page.inputValue('#f-mday'); await act('moment-save'); ok((await text('#snack')).includes('Milestone added · First laugh'), 'check 9');
+    let r = await text('#journal .row'); ok(r.includes('First laugh') && r.includes('Giggled at the cat') && /at \d+ weeks/.test(r), r);
+    await act('moment-new'); await page.fill('#f-mtitle', 'Grabbed my hair'); await page.fill('#f-mday', '2020-01-01'); await act('moment-save'); ok((await text('#sheet-err')).includes('before your baby was born'), 'check 10');
+    await page.fill('#f-mday', '2099-01-01'); await act('moment-save'); ok((await text('#sheet-err')).includes('in the future'), 'check 11');
+    const dob = (await stored()).baby.dob, d2 = new Date(dob + 'T12:00'); d2.setDate(d2.getDate() + 10); const day2 = d2.getFullYear() + '-' + String(d2.getMonth() + 1).padStart(2, '0') + '-' + String(d2.getDate()).padStart(2, '0');
+    await page.fill('#f-mday', day2); await act('moment-save');
+    const titles = await page.locator('#journal .row .ti').allInnerTexts(); eq(titles.join('|'), 'First laugh|Grabbed my hair', 'newest first'); ok((await page.locator('#journal .row').nth(1).innerText()).includes('at 10 days'), 'check 12');
+    await act('moment-new'); ok(await page.locator('#m-sugs .sug.done', { hasText: 'First laugh' }).count() === 1, 'recorded suggestion is ticked'); await act('sheet-close');
+    await page.locator('#journal .row', { hasText: 'First laugh' }).click(); eq(await page.inputValue('#f-mday'), today); await page.fill('#f-mnote', 'Giggled at the cat'); await page.fill('#f-mtitle', 'First real laugh'); await act('moment-save');
+    ok((await text('#journal')).includes('First real laugh'), 'check 13'); await page.locator('#journal .row', { hasText: 'Grabbed my hair' }).click(); await act('moment-delete'); eq(await page.locator('#journal .row').count(), 1);
+    await act('undo'); eq(await page.locator('#journal .row').count(), 2); await page.reload(); eq(await page.locator('#journal .row').count(), 2); await shot('20-journal'); await noOverflow('journal');
+    eq((await stored()).events.filter(e => e.type === 'moment').length, 2); await act('nav:home'); eq(await page.locator('#view .row', { hasText: 'First real laugh' }).count(), 0, 'journal entries stay out of the care timeline');
+    await act('nav:trends'); ok(!(await page.locator('#day-svg').innerHTML()).includes('First real laugh'), 'check 14'); await act('nav:home');
+  });
   await step('unreadable saved data is kept aside, not destroyed', async () => {
     await page.evaluate(() => localStorage.setItem('babycentre.v1', '{broken')); await page.goto(URL + '#home'); await page.reload();
     eq(await text('#top h1'), 'Sample baby'); eq(await page.evaluate(() => localStorage.getItem('babycentre.v1.unreadable')), '{broken');
   });
   await step('works installed and offline (service worker)', async () => {
     await page.evaluate(() => navigator.serviceWorker.ready); await page.reload(); await page.waitForFunction(() => !!navigator.serviceWorker.controller);
-    await ctx.setOffline(true); await page.reload(); eq(await text('#top h1'), 'Sample baby'); await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 6); await ctx.setOffline(false);
+    await ctx.setOffline(true); await page.reload(); eq(await text('#top h1'), 'Sample baby'); await act('nav:trends'); eq(await page.locator('#view svg.chart').count(), 7); await ctx.setOffline(false);
   });
   await step('small phone (320px) and large text do not break the layout', async () => {
     await page.setViewportSize({ width: 320, height: 568 }); for (const v of ['home', 'trends', 'cry', 'milestones', 'more']) { await act('nav:' + v); await noOverflow(v + ' @320'); }

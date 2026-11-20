@@ -74,7 +74,8 @@ const writeBook = s => Buffer.from(C.xlsxWrite(C.toSheets(s)));
 test('Excel: export then import gives back exactly the same log', async () => {
   const s = C.demoData(NOW); s.events.push({ id: 'cry1', type: 'cry', start: iso(NOW - H), actual: 'tired', why: ['x'], res: { top: 'hungry', probs: [['hungry', 0.6]], distress: 20, f0: 430, bursts: 4 } }, { id: 'bp1', type: 'burp', start: iso(NOW - 3 * H), end: iso(NOW - 3 * H + 7.5 * M) }, { id: 'sol', type: 'feed', kind: 'solids', start: iso(NOW - 2 * H), end: iso(NOW - 2 * H), note: 'Banana & "oats" <1>' });
   const book = await C.xlsxRead(new Uint8Array(writeBook(s)));
-  assert.deepEqual(Object.keys(book), ['Feeds', 'Sleep', 'Nappies', 'Burps', 'Cry checks', 'Milestones', 'Baby', 'How to edit']); assert.equal(book.Burps[1][2], 7.5);
+  assert.deepEqual(Object.keys(book), ['Feeds', 'Sleep', 'Nappies', 'Burps', 'Tummy time', 'Cry checks', 'Milestones', 'Milestone journal', 'Baby', 'How to edit']);
+  assert.ok(book['Tummy time'].length > 2, 'sample tummy sessions exported'); assert.deepEqual([...book['Milestone journal'][0]], ['Date', 'Milestone', 'Notes', 'ID']); assert.equal(book['Milestone journal'].length, 4); assert.equal(book.Burps[1][2], 7.5);
   assert.equal(book.Feeds[0][0], 'Start'); assert.equal(typeof book.Feeds[1][0], 'number');
   const r = C.fromSheets(book, s, NOW);
   assert.deepEqual([...r.errors], []); assert.deepEqual(plain(r.next), plain(s)); assert.deepEqual({ ...r.next.milestones }, { ...s.milestones });
@@ -86,6 +87,23 @@ test('Excel: a feed of a few seconds and a running feed survive the round trip u
   s.events.push({ id: 'tiny', type: 'feed', kind: 'breast', side: 'R', start: iso(NOW - H), end: iso(NOW - H + 2000), lsec: 1, rsec: 1, u: 5 }, { id: 'run', type: 'feed', kind: 'breast', side: 'L', start: iso(NOW - M), segStart: iso(NOW - M), end: null, lsec: 0, rsec: 0, u: 6 });
   const r = C.fromSheets(await C.xlsxRead(C.xlsxWrite(C.toSheets(s))), s, NOW);
   assert.deepEqual([...r.errors], []); assert.deepEqual(plain(r.next), plain(s)); assert.equal(C.stamp(clone(s), r.next, 9).length, 0);
+});
+test('Excel: tummy time and journal rows import, including text dates and validation', async () => {
+  const s = phone(), d = n => ({ dt: C.toSerial(n) });
+  const ok = await C.xlsxRead(C.xlsxWrite([
+    { name: 'Tummy time', rows: [['Start', 'End', 'Duration (min)', 'ID'], [d(NOW - 2 * H), d(NOW - 2 * H + 4 * M), 4, null]] },
+    { name: 'Milestone journal', rows: [['Date', 'Milestone', 'Notes', 'ID'], ['2026-11-01', 'First laugh', 'At bath time', null], [{ day: Math.floor(C.toSerial(NOW)) }, 'Rolled over', null, null]] }]));
+  const r = C.fromSheets(ok, s, NOW); assert.deepEqual([...r.errors], []); assert.equal(r.counts.tummy, 1); assert.equal(r.counts.moments, 2);
+  const m = r.next.events.find(e => e.title === 'First laugh'), at = new Date(m.start);
+  assert.deepEqual([at.getFullYear(), at.getMonth(), at.getDate(), at.getHours()], [2026, 10, 1, 12], 'a typed date is that local day'); assert.equal(m.note, 'At bath time');
+  const bad = await C.xlsxRead(C.xlsxWrite([{ name: 'Milestone journal', rows: [['Date', 'Milestone', 'Notes', 'ID'], ['soon', 'x', null, null], ['2026-11-01', null, 'n', null], ['2027-05-01', 'Walks', null, null]] },
+    { name: 'Tummy time', rows: [['Start', 'End', 'ID'], [d(NOW - H), d(NOW - 3.5 * H), null]] }]));
+  const e = C.fromSheets(bad, s, NOW).errors;
+  assert.match(e[0], /Tummy time, row 2: the end time must be after/); assert.match(e[1], /Milestone journal, row 2: the date is missing/); assert.match(e[2], /row 3: enter the milestone/); assert.match(e[3], /row 4: the date is in the future/);
+});
+test('daily stats count tummy time sessions and minutes', () => {
+  const st = C.dailyStats([{ id: 't1', type: 'tummy', start: iso(NOW - 2 * H), end: iso(NOW - 2 * H + 5 * M) }, { id: 't2', type: 'tummy', start: iso(NOW - 10 * M), end: null }, { id: 'm', type: 'moment', start: iso(NOW - H), title: 'x' }], NOW, 1)[0];
+  assert.equal(st.tummyN, 2); assert.equal(st.tummyMs, 15 * M); assert.equal(st.feeds + st.diapers + st.cries, 0, 'journal entries are not counted as care');
 });
 test('Excel: date serials convert to local time and back', () => {
   const t = new Date(2026, 2, 29, 2, 30, 15).getTime();
@@ -112,7 +130,7 @@ import openpyxl, sys, json, datetime
 wb = openpyxl.load_workbook(sys.argv[1]); ws = wb['Feeds']
 print(json.dumps({'sheets': wb.sheetnames, 'rows': ws.max_row, 'isdate': isinstance(ws['A2'].value, datetime.datetime), 'a2': ws['A2'].value.strftime('%Y-%m-%d %H:%M'), 'dob': wb['Baby']['B2'].value.strftime('%Y-%m-%d'), 'bold': ws['A1'].font.b}))`, f]).toString();
   const r = JSON.parse(out), feeds = C.sorted(s.events.filter(e => e.type === 'feed')), d = new Date(feeds[0].start), p = n => String(n).padStart(2, '0');
-  assert.equal(r.sheets.length, 8); assert.equal(r.rows, feeds.length + 1); assert.equal(r.isdate, true); assert.equal(r.bold, true); assert.equal(r.dob, s.baby.dob);
+  assert.equal(r.sheets.length, 10); assert.equal(r.rows, feeds.length + 1); assert.equal(r.isdate, true); assert.equal(r.bold, true); assert.equal(r.dob, s.baby.dob);
   assert.equal(r.a2, `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`);
 });
 test('Excel: edits made in a spreadsheet tool (compressed file, typed cells, text dates) import correctly', { skip: !has('python3 -c "import openpyxl"') }, async () => {
@@ -137,7 +155,7 @@ wb.save(sys.argv[2])`, f, g]);
   assert.equal(by('b1').ml, 150); assert.equal(by('b2'), undefined); assert.equal(by('n1').kind, 'dirty'); assert.ok(by('z1'), 'sleep kept');
   const br = ev.find(e => e.kind === 'breast'); assert.equal(new Date(br.start).getTime(), new Date(2026, 10, 12, 9, 15).getTime()); assert.equal(br.lsec, 420); assert.equal(br.rsec, 570); assert.equal(br.side, 'R');
   const so = ev.find(e => e.kind === 'solids'); assert.equal(so.note, 'Pear'); assert.equal(new Date(so.start).getTime(), new Date(2026, 10, 12, 10, 5).getTime());
-  assert.equal(r.next.milestones.m0a, '2026-11-01'); assert.deepEqual({ ...r.counts }, { feeds: 3, sleeps: 1, nappies: 1, cries: 0, burps: 0, milestones: 1 });
+  assert.equal(r.next.milestones.m0a, '2026-11-01'); assert.deepEqual({ ...r.counts }, { feeds: 3, sleeps: 1, nappies: 1, cries: 0, burps: 0, tummy: 0, moments: 0, milestones: 1 });
   const dirty = C.stamp(clone(s), r.next, 99); assert.ok(dirty.includes('e_b2') && r.next.tombs.b2 === 99, 'deleted row becomes a tombstone for sync');
 });
 test('Excel: survives being opened and re-saved by LibreOffice', { skip: !has('soffice --version') }, async () => {

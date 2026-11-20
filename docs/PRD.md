@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.5.2 · 14 November 2026 · Status: shipped as v1.5.2
+Version 1.6 · 20 November 2026 · Status: shipped as v1.6.0
 
 ## 1. Problem
 
@@ -58,6 +58,13 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Resuming or switching a feed, starting another feed, or starting sleep by hand ends a running burp timer.
 - Stored as its own entry type with start and end; included in timeline, daily summary, Day timeline, Excel (Burps sheet), backup and sync.
 
+### 5.2b Tummy time (v1.6)
+- Card on Home below the status tiles: Start (play icon) / Stop (stop icon), live timer while running.
+- Shows today's total (seconds for short sessions, e.g. "3m 05s"), sessions today, last session, personal record (longest completed session ever, with date) and a bar towards 30 minutes a day.
+- A session that beats the previous record is announced in the confirmation ("new record!").
+- Guidance shown: short, frequent sessions while awake and supervised, building to 15–30 minutes a day by about 7 weeks (AAP).
+- Timeline filter "Tummy" with per-day total, count and longest; Trends chart with the 15–30 minute band; Day timeline lane; Excel sheet "Tummy time"; sync and backup.
+
 ### 5.3 Sleep
 - One tap starts, one tap ends. A running sleep survives closing the app.
 - Prediction: last wake time plus the typical awake window for the age (for example 60–90 minutes at 1–3 months).
@@ -93,6 +100,13 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - Bands 0–3, 4–6, 7–9, 10–12 months; areas Motor, Sensory, Communication, Feeding.
 - Opens on the band for the baby's age. Tap to mark reached (dated today), tap again to clear.
 - Wording is original; content follows CDC and Pathways.org checklists.
+
+### 5.6a Milestone journal (v1.6)
+- Section at the top of the Milestones tab, above the development checklist.
+- Add: title (one of 30 suggestions, or free text up to 80 characters), date (between birth and today) and optional notes (up to 1,000 characters).
+- Suggestions, grouped by typical age: newborn to 1 month (first bath, first trip outside, lifts head briefly on tummy, follows a face, first real smile); 2–3 months (first coo, first laugh, holds head steady, grasps a rattle, pushes up on forearms); 4–6 months (rolls tummy to back, rolls back to tummy, reaches for a toy, first babble, sits with support, first taste of solid food, turns to their name); 7–9 months (sits without support, first tooth, passes a toy hand to hand, starts crawling, plays peekaboo, pulls up to stand, waves bye-bye); 10–12 months (claps hands, picks up food with finger and thumb, cruises along furniture, first word, stands alone, first steps). Already-recorded suggestions are ticked; the group for the baby's current age is marked.
+- List: newest first, with date, the baby's age on that date, and notes. Tap to edit or delete (with Undo).
+- Stored as its own entry type; included in Excel ("Milestone journal" sheet: Date, Milestone, Notes, ID), backup and sync; excluded from the care timeline, daily counts and charts.
 
 ### 5.7 More
 - Baby profile, bottle units, appearance (match phone, light, dark).

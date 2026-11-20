@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.6.0 · 20 November 2026
+
+### New
+- **Tummy time** card on Home. Tap **▶ Start** when you lay your baby down and **■ Stop** when you finish. The card shows today's total, how many sessions today, the last session, and your baby's **record** (longest session). Beat it and the app tells you. "History ›" lists every session by day.
+- **Milestone journal** on the Milestones tab. Tap **+ Add milestone**, pick a suggestion (30 of them, from first bath to first steps) or type your own, set the date and add notes. Your entries are listed newest first with your baby's age at the time.
+
+### Tested
+| Suite | Result |
+|-------|--------|
+| Unit | 32 of 32 pass |
+| End-to-end, one phone | 32 of 32 pass |
+| End-to-end, two phones | 23 of 23 pass |
+
+The two-phone suite does not exercise these two features directly; both sync through the same path as every other entry.
+
+
 ## 1.5.2 · 14 November 2026
 
 - **Burp timer you can always reach.** A "Burp timer ▶ Start" row now sits at the top of Home whenever the green Burp time strip is not showing, so you can start it by hand at any time, including after a feed has been saved.

@@ -2,6 +2,20 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.6.0] - 2026-11-20
+
+### Added
+- **Tummy time widget** on Home: ▶ Start / ■ Stop timer, today's total, sessions today, last session, personal record (longest session ever, with its date), and a progress bar towards 30 minutes a day. Stopping a session that beats the record says "new record!".
+  - New "Tummy" filter in the Timeline (daily total, session count and longest session per day), a "Tummy time per day" chart on Trends with the 15–30 minute guide band, and a lane on the Day timeline.
+  - Sessions can be edited, deleted or added afterwards, and are included in Excel (Tummy time sheet), backup and partner sync.
+- **Milestone journal** at the top of the Milestones tab: record a milestone with its date and notes, by picking one of 30 suggestions grouped by age (newborn to 12 months) or typing your own. Entries are listed newest first with your baby's age on that date. Tap one to edit or delete it (with Undo).
+  - Included in Excel (Milestone journal sheet), backup and partner sync. Journal entries stay out of the care timeline and daily counts.
+- Sample data includes a few tummy sessions and three journal entries.
+
+### Changed
+- The existing tick-list is now headed "Development checklist".
+- Excel import reads a date typed as text (for example 2026-11-01) as that day in your own time zone.
+
 ## [1.5.2] - 2026-11-14
 
 ### Added

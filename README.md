@@ -26,6 +26,8 @@ The microphone only works on HTTPS pages (or `localhost`), which is why A or B i
 - Every change shows **Undo** for a few seconds. Tap any timeline row to edit or delete it.
 - Under **Timeline**, tap Feeds, Sleep or Nappies to see one activity grouped by day. The Last feed, Sleep and Nappy tiles do the same.
 - **More → Baby → Edit** to add a photo.
+- **Tummy time** card on Home: ▶ Start / ■ Stop; shows today's total, sessions and your baby's record.
+- **Milestones → + Add milestone** to record a first (pick a suggestion or type your own), with the date and notes.
 - **Cry** (centre button): hold the phone 20–30 cm from your baby and tap *Record 5 seconds*.
 - **More → Backup**: save a backup file now and then.
 - **More → Excel**: export the log as a workbook, edit it, and import it back.
