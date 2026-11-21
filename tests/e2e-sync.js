@@ -1,5 +1,8 @@
 // End-to-end test of partner sync and Excel import/export, with two "phones" (separate browser contexts).
 // Run: node tests/e2e-sync.js
+// Run as if it were early afternoon local time, so entries a few hours old still fall on "today" in the Timeline.
+const TZ = (() => { const off = ((13 - new Date().getUTCHours()) % 24 + 24 + 11) % 24 - 11; return off === 0 ? 'UTC' : 'Etc/GMT' + (off > 0 ? '-' + off : '+' + (-off)); })();
+process.env.TZ = TZ;
 const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path'); const os = require('os'); const cp = require('child_process');
 const { start, fakeClaude } = require('./mock-backends');
 const ROOT = path.join(__dirname, '..'), TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'bcs-')), SHOTS = process.env.SHOTS || '';
@@ -15,7 +18,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await new Promise(r => mock.server.listen(0, r)); const URL = 'http://localhost:' + mock.server.address().port + '/';
   const browser = await chromium.launch(); const errors = [];
   async function phone(init, arg) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'], acceptDownloads: true, serviceWorkers: 'block' });
+    const ctx = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'], acceptDownloads: true, serviceWorkers: 'block' });
     if (init) await ctx.addInitScript(init, arg);
     const page = await ctx.newPage();
     page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errors.push(m.text()); }); page.on('pageerror', e => errors.push(String(e)));
@@ -183,7 +186,7 @@ wb.save(sys.argv[2])`, xlsx, edited]);
   });
   await step('hosted page: someone with their own log is asked before it is combined', async () => {
     const P = await phone(); await P.setup('Own'); await P.act('diaper-open'); await P.act('diaper:wet'); const seed = await P.page.evaluate(() => localStorage.getItem('babycentre.v1')); await P.ctx.close();
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' }); await ctx.addInitScript(fakeClaude, { level: 'interact', uid: 'u_d' });
+    const ctx = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' }); await ctx.addInitScript(fakeClaude, { level: 'interact', uid: 'u_d' });
     await ctx.addInitScript(s => { if (!localStorage.getItem('babycentre.v1')) localStorage.setItem('babycentre.v1', s); }, seed);
     const pg = await ctx.newPage(); await pg.goto(URL); await pg.waitForSelector('#join-banner'); eq(await pg.locator('#top h1').innerText(), 'Own', 'not combined without asking');
     await pg.click('#join-banner [data-action="share-claude"]'); await pg.waitForFunction(() => document.querySelector('#top h1').textContent === 'Noah', null, { timeout: 6000 });

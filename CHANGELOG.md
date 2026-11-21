@@ -2,6 +2,19 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.7.1] - 2026-11-21
+
+### Changed (from artifact comments)
+- Burp timer moved into the status tiles: half tile beside Last feed when idle (Start; highlighted when due), full-width tile under Last feed while running (timer, Stop, Asleep). The burp banners above the tiles are gone.
+- Timeline shows one day at a time, today by default, with ‹ / › day navigation, the day and date, and a daily summary; filters apply within the day. "Show earlier days" removed.
+- Trends tab and page renamed Insights (`#insights` also works as a link).
+- Day timeline: Cry lane removed, Tummy time has its own lane. Last 24 hours bar shows tummy time instead of cry checks.
+- Nappy type "Wet + dirty" / "Both" renamed Mixed everywhere (Excel import still accepts the old wording).
+- Colours: nappies sky blue, tummy time magenta, in light and dark themes.
+
+### Tests
+- The browser tests now run at early-afternoon local time (fixed time zone per run), so entries made a few hours earlier always fall on "today".
+
 ## [1.7.0] - 2026-11-20
 
 ### Added

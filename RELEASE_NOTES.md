@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.7.1 · 21 November 2026
+
+Changes from your comments on the app.
+
+- **Burp widget beside Last feed.** The burp timer is now a half-size tile next to Last feed, the same size as Nappy, with a **Start** button. It turns green when a burp is due after a feed. While it runs, it widens to a full-width tile under Last feed with the timer, **Stop** and **Asleep**.
+- **Timeline shows today.** The Timeline now lists today's entries only, headed with the day and date and a summary. **‹** steps back a day at a time and **›** forward; the Feeds, Sleep, Nappies and Tummy filters work within the day shown. A sleep that ran over midnight shows on both days.
+- **Trends is now Insights**, in the tab bar and the page title.
+- **Day timeline:** the Cry lane is gone and Tummy time has its own lane. Mixed nappies now read **Mixed** instead of "Both" (also in the timeline, the nappy buttons and Excel).
+- **Clearer colours.** Nappies are now sky blue (easier to tell from the green burp) and tummy time is magenta (easier to tell from the indigo sleep). The Last 24 hours bar shows tummy time instead of cry checks.
+
+
 ## 1.7.0 · 20 November 2026
 
 ### New

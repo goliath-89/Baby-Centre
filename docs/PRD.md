@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.7 · 20 November 2026 · Status: shipped as v1.7.0
+Version 1.7.1 · 21 November 2026 · Status: shipped as v1.7.1
 
 ## 1. Problem
 
@@ -36,7 +36,9 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Today so far: breast count and time, bottle count and total, sleep total, longest stretch.
 - Last 24 hours ribbon: sleep blocks, feed marks, nappy and cry dots. Interactive (v1.4): hovering, or pressing and sliding a finger, shows a marker and a readout of the time, asleep/awake state and entries within 30 minutes. A slide never navigates; a plain tap opens the Day timeline on Trends. Vertical page scrolling still works when the finger starts on the bar.
 - Status tiles are buttons: each opens the Timeline filtered to its activity (v1.2).
-- Timeline: entries by day, tap to edit or delete; add past entry. A filter (All, Feeds, Sleep, Nappies) shows one activity for the last 7 days, grouped by day with a daily total (v1.2).
+- Timeline (v1.7.1): one day at a time, today by default, headed with the day, date and a daily summary; ‹ / › step through days; filters apply within the day; tap an entry to edit or delete; add past entry.
+- Burp tile (v1.7.1): half width beside Last feed with Start when idle (highlighted when due); full width under Last feed while running, with Stop and Asleep.
+- Previously: entries by day. A filter (All, Feeds, Sleep, Nappies) shows one activity for the last 7 days, grouped by day with a daily total (v1.2).
 - Baby photo next to the name; an initial is shown when there is no photo (v1.2).
 - Action tray floating above the tab bar: **L**, **R**, **Bottle**, **Sleep**, **Nappy**. The side to offer next is tagged. The tray is a raised panel and each button has its own depth, so actions read as buttons and the flat bar beneath reads as navigation (v1.3).
 
@@ -73,7 +75,7 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - One tap starts, one tap ends. A running sleep survives closing the app.
 - Prediction: last wake time plus the typical awake window for the age (for example 60–90 minutes at 1–3 months).
 
-### 5.4 Trends
+### 5.4 Insights (was Trends)
 - Plan ahead card: next feed, next sleep, reference ranges for the age.
 - Day timeline (v1.4): the last 24 hours at full size, time running downward at 46 px per hour, lanes for sleep, feeds, nappies and cry checks, with labels, a Now line and a date marker at midnight. Arrows step to Today, Yesterday and earlier calendar days. Every block and marker opens its entry.
 - Week view with previous/next: average sleep per day, longest stretch, feeds per day, nappies per day.

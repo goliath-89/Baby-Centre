@@ -1,5 +1,8 @@
 // End-to-end test on a phone-sized screen. Run: node tests/e2e.js
 // Starts its own static server, feeds a synthetic cry into a fake microphone, and walks every feature.
+// Run as if it were early afternoon local time, so entries a few hours old still fall on "today" in the Timeline.
+const TZ = (() => { const off = ((13 - new Date().getUTCHours()) % 24 + 24 + 11) % 24 - 11; return off === 0 ? 'UTC' : 'Etc/GMT' + (off > 0 ? '-' + off : '+' + (-off)); })();
+process.env.TZ = TZ;
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path'); const os = require('os');
 const { makeCry, writeWav } = require('./synth');
 const ROOT = path.join(__dirname, '..'), SHOTS = process.env.SHOTS || '';
@@ -16,7 +19,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
 (async () => {
   await new Promise(r => server.listen(0, r)); const URL = 'http://localhost:' + server.address().port + '/';
   const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-audio-capture=' + CRY] });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, permissions: ['microphone', 'clipboard-read', 'clipboard-write'], acceptDownloads: true });
+  const ctx = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, permissions: ['microphone', 'clipboard-read', 'clipboard-write'], acceptDownloads: true });
   const page = await ctx.newPage(); const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); page.on('pageerror', e => errors.push(String(e)));
   const act = a => page.click(`[data-action="${a}"]`);
@@ -31,6 +34,14 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   await step('first open shows a sample week, clearly marked', async () => {
     ok((await text('.banner')).includes('sample data')); ok(await rows() > 5); eq(await text('#top h1'), 'Sample baby');
     eq(await page.evaluate(() => localStorage.getItem('babycentre.v1')), null, 'sample data is not saved'); await noOverflow('home'); await shot('01-home-sample');
+  });
+  await step('timeline shows today only; the back arrow walks through earlier days with the day, date and that day’s entries', async () => {
+    ok(/^Today · \w{3}/.test(await text('#tl-when')), await text('#tl-when')); ok(await page.locator('[data-action="tl-day:-1"]').isDisabled(), 'cannot go past today');
+    const today = await page.$$eval('#view .row .tm', r => r.length); ok(today > 0);
+    await act('tl-day:1'); ok(/^Yesterday · /.test(await text('#tl-when')), await text('#tl-when')); ok(/\d+ feeds · sleep \d+h/.test(await text('#tl-sum')), await text('#tl-sum')); ok(await rows() > 5, 'a full day of sample entries');
+    await act('tl-day:1'); ok(!/Today|Yesterday/.test(await text('#tl-when')), 'earlier days show just the date'); eq(await page.locator('[data-action="tl-today"]').count(), 1);
+    await act('filter:sleep'); ok(/sleeps?$/.test(await text('#tl-sum')), 'filter applies within the day'); await shot('03g-tl-back');
+    await act('tl-today'); ok(/^Today/.test(await text('#tl-when'))); await act('filter:all'); await page.evaluate(() => scrollTo(0, 0)); await noOverflow('timeline nav');
   });
   await step('every tab renders without sideways scroll', async () => {
     for (const v of ['trends', 'cry', 'milestones', 'more', 'home']) { await act('nav:' + v); await noOverflow(v); if (v !== 'home') await shot('02-' + v + '-sample'); }
@@ -100,12 +111,12 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await noOverflow('home with data'); await shot('03-home-own');
   });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
-    eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/Today\s+1 change/.test(await text('#tl .day')), await text('#tl .day'));
-    await act('filter:feed'); eq(await rows(), 4); ok(/\d feeds? · /.test(await text('#tl .day')) && /150 ml/.test(await text('#tl')) && /1 solids/.test(await text('#tl')), await text('#tl .day'));
-    await act('filter:sleep'); eq(await rows(), 2); ok(/\d sleeps?/.test(await text('#tl .day')), await text('#tl .day'));
+    eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));
+    await act('filter:feed'); eq(await rows(), 4); ok(/\d feeds? · /.test(await text('#tl-sum')) && /150 ml/.test(await text('#tl')) && /1 solids/.test(await text('#tl')), await text('#tl-sum'));
+    await act('filter:sleep'); eq(await rows(), 2); ok(/\d sleeps?/.test(await text('#tl-sum')), await text('#tl-sum'));
     await act('filter:all'); eq(await rows(), 7); await page.evaluate(() => scrollTo(0, 0));
     await act('show:diaper'); eq(await rows(), 1); eq(await page.getAttribute('[data-action="filter:diaper"]', 'aria-pressed'), 'true'); ok(await page.evaluate(() => scrollY > 50), 'scrolled to the timeline');
-    await shot('03b-nappies'); await page.locator('#view .row').first().click(); await act('delete'); ok((await text('#tl .empty')).includes('No nappies logged in the last 7 days')); await act('undo');
+    await shot('03b-nappies'); await page.locator('#view .row').first().click(); await act('delete'); ok((await text('#tl .empty')).includes('No nappies logged on this day')); await act('undo');
     await act('show:feed'); eq(await rows(), 4); await act('show:sleep'); eq(await rows(), 2); await act('filter:all'); await noOverflow('filtered timeline');
   });
   await step('profile photo: pick, crop to a small square, show on home, keep after reload, remove', async () => {
@@ -133,15 +144,15 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     // press and hold without moving also reads out
     await touch('pointerdown', xAt(20)); await page.waitForTimeout(400); ok(/Awake/.test(await text('#rib-read'))); await touch('pointerup', xAt(20)); await page.evaluate(() => document.querySelector('#rib-svg').dispatchEvent(new MouseEvent('click', { bubbles: true }))); eq(await text('#top h1'), 'Mia <b>');
     await shot('03e-ribbon'); await page.mouse.move(5, 5);
-    await page.click('#rib-svg'); eq(await text('#top h1'), 'Trends'); eq(await text('#day-label'), 'Last 24 hours');
+    await page.click('#rib-svg'); eq(await text('#top h1'), 'Insights'); eq(await text('#day-label'), 'Last 24 hours');
     ok(await page.evaluate(() => { const r = document.querySelector('#day').getBoundingClientRect(); return r.top >= 0 && r.top < 120; }), 'scrolled to the day timeline');
     ok(/Sleep 1h 00m · 3 feeds · 1 nappy/.test(await text('#day-sum')), await text('#day-sum')); await shot('03f-dayline'); await noOverflow('day timeline');
     const svg = await page.locator('#day-svg').innerHTML(); ok(svg.includes('Bottle 150 ml') && svg.includes('>1h 00m<') && svg.includes('>Now<') && svg.includes('>Wet<'), 'labels drawn');
     await page.locator('#day-svg g[data-action^="edit:"]', { hasText: 'Bottle' }).click(); ok((await text('.sheet h3')).toLowerCase().includes('bottle')); await act('sheet-close');
     await act('day:-1'); eq(await text('#day-label'), 'Today'); await act('day:-1'); eq(await text('#day-label'), 'Yesterday'); ok(/0 feeds/.test(await text('#day-sum')));
     await act('day:1'); await act('day:1'); eq(await text('#day-label'), 'Last 24 hours'); ok(await page.locator('[data-action="day:1"]').isDisabled());
-    await act('nav:home'); await act('day-open'); eq(await text('#top h1'), 'Trends'); await act('nav:home');
-    await page.focus('#rib'); await page.keyboard.press('Enter'); eq(await text('#top h1'), 'Trends'); await act('nav:home');
+    await act('nav:home'); await act('day-open'); eq(await text('#top h1'), 'Insights'); await act('nav:home');
+    await page.focus('#rib'); await page.keyboard.press('Enter'); eq(await text('#top h1'), 'Insights'); await act('nav:home');
   });
   await step('trends reflect the log', async () => {
     await act('nav:trends'); const t = await text('#view'); ok(t.includes('Next feed') && t.includes('Next sleep')); eq(await page.locator('#view svg.chart').count(), 7);
@@ -199,29 +210,31 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:home'); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('babycentre.v1')); d.data.events.forEach(e => { if (e.type === 'feed') { e.start = e.end = new Date(Date.parse(e.start) - 2 * 36e5).toISOString(); } }); localStorage.setItem('babycentre.v1', JSON.stringify(d)); }); await page.reload();
     eq(await page.locator('#burp-offer').count(), 0, 'not highlighted when the last feed was hours ago'); eq(await page.locator('#burp-quiet [data-action="burp-start"] svg').count(), 1, 'but always startable from the quiet row');
     const n0 = (await stored()).events.length;
-    await act('bottle-open'); await act('save-bottle'); await page.waitForSelector('#burp-offer'); eq(await page.locator('#burp-quiet').count(), 0, 'one burp entry at a time'); ok((await text('#burp-offer')).includes('Feed finished')); ok(await page.locator('[data-action="burp-start"] svg').count() === 1, 'play icon');
-    await shot('12-burp-offer'); await act('burp-start'); eq(await page.locator('#burp-offer').count(), 0); ok((await text('.live.burp')).includes('Burping')); ok(await page.locator('[data-action="burp-stop"] svg rect').count() === 1, 'stop icon');
-    await page.waitForTimeout(2200); ok(/0:0[1-9]/.test(await text('.live.burp .t')), 'timer runs'); await shot('13-burping'); await noOverflow('burp banner');
-    eq(await page.locator('.live.burp [data-action="burp-stop"] svg rect').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"] svg').count(), 1, 'sleep icon button beside Stop');
-    await act('burp-stop'); ok(/Burp saved · .*(next nap in about|nap window is open|nap is due)/.test(await text('#snack')), await text('#snack')); eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 0, 'Stop does not start sleep');
+    await act('bottle-open'); await act('save-bottle'); await page.waitForSelector('#burp-offer'); eq(await page.locator('#burp-quiet').count(), 0, 'one burp entry at a time');
+    ok(await page.evaluate(() => { const b = document.querySelector('#burp-offer').getBoundingClientRect(), f = document.querySelector('.stat.feed').getBoundingClientRect(), n = document.querySelector('.stat.diaper').getBoundingClientRect(); return Math.abs(b.top - f.top) < 2 && Math.abs(b.width - n.width) < 2 && Math.abs(b.height - f.height) < 2; }), 'idle: half width, same row and height as Last feed'); ok((await text('#burp-offer')).includes('Feed finished')); ok(await page.locator('[data-action="burp-start"] svg').count() === 1, 'play icon');
+    await shot('12-burp-offer'); await act('burp-start'); eq(await page.locator('#burp-offer').count(), 0); ok((await text('#burp-run')).includes('BURPING') || (await text('#burp-run')).includes('Burping'));
+    ok(await page.evaluate(() => { const r = document.querySelector('#burp-run').getBoundingClientRect(), s = document.querySelector('.stat.feed').getBoundingClientRect(); return Math.abs(r.width - s.width) < 2 && r.top > s.top; }), 'running: full width, right under Last feed'); ok(await page.locator('[data-action="burp-stop"] svg rect').count() === 1, 'stop icon');
+    await page.waitForTimeout(2200); ok(/0:0[1-9]/.test(await text('#burp-run .t')), 'timer runs'); await shot('13-burping'); await noOverflow('burp banner');
+    eq(await page.locator('#burp-run [data-action="burp-stop"] svg rect').count(), 1); eq(await page.locator('#burp-run [data-action="burp-sleep"] svg').count(), 1, 'sleep icon button beside Stop');
+    await act('burp-stop'); ok(/Burp saved · .*(next nap in about|nap window is open|nap is due)/.test(await text('#snack')), await text('#snack')); eq(await page.locator('#burp-run').count(), 0); eq(await page.locator('.live.sleep').count(), 0, 'Stop does not start sleep');
     let ev = (await stored()).events; eq(ev.length, n0 + 2); const bp = ev.find(e => e.type === 'burp'); ok(bp.end && new Date(bp.end) - new Date(bp.start) >= 2000);
     ok((await text('#view')).includes('Upright'), 'burp shows in the timeline'); ok(/upright/.test(await page.locator('#view .sec', { hasText: 'Today so far' }).innerText()), 'today summary'); ok(/Next nap in|Nap window open|Past the usual/.test(await text('.stat.sleep')), await text('.stat.sleep'));
     eq(await page.locator('#burp-offer').count(), 0, 'not highlighted twice for the same feed');
     // manual start any time: after the feed was already burped, and while the sleep timer is running
-    await page.click('#burp-quiet [data-action="burp-start"]'); eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('#burp-quiet').count(), 0); await act('burp-stop'); await page.locator('#view .row', { hasText: 'Burp' }).first().click(); await act('delete');
+    await page.click('#burp-quiet [data-action="burp-start"]'); eq(await page.locator('#burp-run').count(), 1); eq(await page.locator('#burp-quiet').count(), 0); await act('burp-stop'); await page.locator('#view .row', { hasText: 'Burp' }).first().click(); await act('delete');
     await act('sleep-toggle'); await act('breast:L'); await page.waitForTimeout(1100); await act('feed-stop'); eq(await page.locator('#burp-offer').count(), 1, 'offered after a feed even while asleep'); await page.click('#burp-offer [data-action="burp-start"]');
-    eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"]').count(), 0, 'no Asleep button when sleep is already running'); await shot('15-burp-quiet');
+    eq(await page.locator('#burp-run').count(), 1); eq(await page.locator('#burp-run [data-action="burp-sleep"]').count(), 0, 'no Asleep button when sleep is already running'); await shot('15-burp-quiet');
     await act('burp-stop'); eq(await page.locator('.live.sleep').count(), 1, 'running sleep untouched');
     for (const name of ['Burp', 'Breast']) { await page.locator('#view .row', { hasText: name }).first().click(); await act('delete'); } await act('sleep-toggle'); await page.locator('#view .row', { hasText: 'Sleep' }).first().click(); await act('delete');
     // Asleep button: starts the sleep timer and leaves the burp timer running; one undo reverses it
     await act('bottle-open'); await act('save-bottle'); await act('burp-start'); await page.waitForTimeout(1100); await act('burp-sleep'); ok((await text('#snack')).includes('Sleep started · burp timer still running'), await text('#snack'));
-    eq(await page.locator('.live.burp').count(), 1, 'burp keeps running'); eq(await page.locator('.live.sleep').count(), 1); eq(await page.locator('.live.burp [data-action="burp-sleep"]').count(), 0, 'Asleep hidden once asleep');
-    await act('undo'); eq(await page.locator('.live.burp').count(), 1); eq(await page.locator('.live.sleep').count(), 0); await act('burp-sleep'); await shot('14-asleep');
+    eq(await page.locator('#burp-run').count(), 1, 'burp keeps running'); eq(await page.locator('.live.sleep').count(), 1); eq(await page.locator('#burp-run [data-action="burp-sleep"]').count(), 0, 'Asleep hidden once asleep');
+    await act('undo'); eq(await page.locator('#burp-run').count(), 1); eq(await page.locator('.live.sleep').count(), 0); await act('burp-sleep'); await shot('14-asleep');
     await act('burp-stop'); eq(await page.locator('.live.sleep').count(), 1, 'stopping the burp leaves sleep running'); await act('sleep-toggle');
   });
   await step('burp timer during a paused feed: resuming the feed ends the burp and does not start sleep', async () => {
     await act('breast:L'); eq(await page.locator('#burp-offer').count(), 0); await act('feed-pause'); ok((await text('#burp-offer')).includes('Feed is paused'));
-    await act('burp-start'); await page.waitForTimeout(1100); await act('feed-resume'); eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 0);
+    await act('burp-start'); await page.waitForTimeout(1100); await act('feed-resume'); eq(await page.locator('#burp-run').count(), 0); eq(await page.locator('.live.sleep').count(), 0);
     await act('feed-pause'); await act('burp-start'); await act('burp-stop'); eq(await page.locator('.live.sleep').count(), 0, 'feed still paused, so no sleep'); eq(await page.locator('.live.feed').count(), 1);
     await act('feed-stop'); eq((await stored()).events.filter(e => e.type === 'burp').length, 4);
     await act('nav:trends'); ok((await page.locator('#day-svg').innerHTML()).includes('var(--mile)'), 'burps drawn on the day timeline'); await act('nav:home');
@@ -232,10 +245,10 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:home'); await act('sleep-toggle'); await act('breast:R'); ok(!(await text('#snack')).includes('Check'), 'feeding while asleep is normal');
     eq(await page.locator('.live.sleep').count(), 1); eq(await page.locator('.live.feed').count(), 1);
     await act('burp-start'); ok((await text('#snack')).includes('Check: the feed is still running'), await text('#snack')); eq(await page.locator('.live.feed').count(), 1, 'feed not cancelled');
-    await act('feed-resume').catch(() => {}); await act('feed-pause'); eq(await page.locator('.live.burp').count(), 1);
-    await act('feed-resume'); ok((await text('#snack')).includes('burp timer stopped'), 'resuming a feed says it stopped the burp'); eq(await page.locator('.live.burp').count(), 0); eq(await page.locator('.live.sleep').count(), 1, 'sleep untouched by feed changes');
-    await act('feed-stop'); await act('burp-start'); await act('sleep-toggle'); eq(await page.locator('.live.burp').count(), 1, 'waking keeps the burp running'); await act('sleep-toggle');
-    ok((await text('#snack')).includes('burp timer still running'), 'falling asleep while burping'); eq(await page.locator('.live.burp').count(), 1);
+    await act('feed-resume').catch(() => {}); await act('feed-pause'); eq(await page.locator('#burp-run').count(), 1);
+    await act('feed-resume'); ok((await text('#snack')).includes('burp timer stopped'), 'resuming a feed says it stopped the burp'); eq(await page.locator('#burp-run').count(), 0); eq(await page.locator('.live.sleep').count(), 1, 'sleep untouched by feed changes');
+    await act('feed-stop'); await act('burp-start'); await act('sleep-toggle'); eq(await page.locator('#burp-run').count(), 1, 'waking keeps the burp running'); await act('sleep-toggle');
+    ok((await text('#snack')).includes('burp timer still running'), 'falling asleep while burping'); eq(await page.locator('#burp-run').count(), 1);
     await act('tummy-start'); ok((await text('#snack')).includes('Check: the sleep timer is running'), await text('#snack')); eq(await page.locator('#tummy.on').count(), 1, 'tummy not blocked'); eq(await page.locator('.live.sleep').count(), 1);
     await act('tummy-stop'); await act('burp-stop'); await shot('21-overlap');
     // a sleep timer left running for hours is pointed out when logging something else
@@ -253,7 +266,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('tummy-start'); await page.waitForTimeout(300); await act('tummy-stop'); ok(!(await text('#snack')).includes('record'), 'shorter session is not a record'); eq(await text('#tummy-rec'), rec1);
     await act('tummy-start'); await page.waitForTimeout(3300); await act('tummy-stop'); ok((await text('#snack')).includes('new record!'), 'check 2'); ok(await text('#tummy-rec') !== rec1, 'record updated');
     eq(await text('#tummy-n'), '3'); ok(/^\ds$/.test(await text('#tummy-today')) || /^\d+s$/.test(await text('#tummy-today')), await text('#tummy-today'), 'check 3'); await shot('17-tummy'); await noOverflow('tummy card');
-    await page.click('#tummy [data-action="show:tummy"]'); eq(await page.getAttribute('[data-action="filter:tummy"]', 'aria-pressed'), 'true'); eq(await rows(), 3); ok(/\ds · 3 sessions · longest \ds/.test(await text('#tl .day')), await text('#tl .day'), 'check 4');
+    await page.click('#tummy [data-action="show:tummy"]'); eq(await page.getAttribute('[data-action="filter:tummy"]', 'aria-pressed'), 'true'); eq(await rows(), 3); ok(/\ds · 3 sessions · longest \ds/.test(await text('#tl-sum')), await text('#tl-sum'), 'check 4');
     await page.locator('#view .row').first().click(); ok((await text('.sheet h3')).toLowerCase().includes('tummy'), 'check 5'); await act('save-edit');
     await act('add-open'); await act('add-kind:tummy'); await act('save-edit'); eq(await rows(), 4); await page.reload(); eq(await text('#tummy-n'), '4'); await act('filter:all');
     await act('nav:trends'); ok(/tummy time per day/i.test(await text('#view')), 'check 6'); ok((await page.locator('#day-svg').innerHTML()).includes('var(--tummy)'), 'on the day timeline'); await act('nav:home');
@@ -290,7 +303,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('no console errors during the whole run', async () => { eq(errors.filter(e => !/Failed to load resource/.test(e)).join(' | '), ''); });
   // Microphone refused
-  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } }); const p2 = await ctx2.newPage(); await p2.goto(URL + '#cry');
+  const ctx2 = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 } }); const p2 = await ctx2.newPage(); await p2.goto(URL + '#cry');
   await step('deep link opens the cry tab; a blocked microphone gives a clear way forward', async () => {
     eq(await p2.locator('#top h1').innerText(), 'Cry check');
     await p2.evaluate(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })); });
