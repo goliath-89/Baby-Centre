@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.2 · 21 November 2026
+
+- **Running burp timer goes to the top.** While the burp timer runs, its widget moves to the top of Home, above the feed and sleep tiles, so it is the first thing you see. When stopped, it goes back to its half-size place beside Last feed.
+
+
 ## 1.7.1 · 21 November 2026
 
 Changes from your comments on the app.

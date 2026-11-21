@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.7.2] - 2026-11-21
+
+### Changed (from an artifact comment)
+- The running burp widget is shown at the top of Home, above any running feed or sleep banner and the tiles; idle, it stays beside Last feed.
+
 ## [1.7.1] - 2026-11-21
 
 ### Changed (from artifact comments)
