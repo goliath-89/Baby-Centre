@@ -89,7 +89,11 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     eq(await rows(), 2); ok((await text('#view .row')).includes('130 ml')); ok((await text('#snack')).includes('130 ml'));
   });
   await step('sleep timer survives a reload, then saves', async () => {
-    await act('sleep-toggle'); eq(await page.locator('.live.sleep').count(), 1); await page.reload();
+    await act('sleep-toggle'); eq(await page.locator('.live.sleep').count(), 1);
+    const outline = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).boxShadow, sel);
+    ok(/inset/.test(await outline('.live.sleep')), 'running sleep card has an outline');
+    await act('breast:L'); ok(/inset/.test(await outline('.live.feed')), 'running feed card has an outline'); await act('undo'); eq(await page.locator('.live.feed').count(), 0);
+    await page.reload();
     eq(await page.locator('.live.sleep').count(), 1); eq(await text('#top h1'), 'Mia <b>'); ok((await text('#stat-sleep')).startsWith('Asleep'));
     await act('sleep-toggle'); eq(await page.locator('.live.sleep').count(), 0); eq(await rows(), 3); ok((await text('#stat-sleep')).startsWith('Awake'));
   });

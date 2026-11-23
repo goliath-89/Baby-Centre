@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.5] - 2026-11-23
+
+### Changed (from an artifact comment)
+- Active timer cards (feed, sleep, tummy time, burp) all show a 2px outline in their own colour.
+
 ## [1.8.4] - 2026-11-23
 
 ### Fixed (from an artifact comment)

@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.8.5 · 23 November 2026
+
+- **Outlines on every running timer.** Like the burp card, each active timer card now has an outline in its own colour: amber for a feed (running or paused), indigo for sleep, magenta for tummy time and green for burping.
+
+
 ## 1.8.4 · 23 November 2026
 
 - **Editing the start of a running feed moves its clock.** If a breast feed is still running (or paused) and you set its start 10 minutes earlier, the feed clock now shows the extra 10 minutes straight away, added to the side being fed. A later start shortens it. Sleep, burp and tummy time timers already followed their start time.
