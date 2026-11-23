@@ -28,6 +28,14 @@ test('next feed uses the baby\'s own median gap once there is enough data', () =
   const p = C.predictFeed(ev, DOB, NOW);
   assert.equal(p.basis, 'yours'); assert.equal(p.gapMs, 3 * H); assert.equal(p.at, NOW - H + 3 * H);
 });
+test('age is the same in every time zone (a date of birth is a local day)', () => {
+  const cp = require('child_process'), file = path.join(__dirname, '..', 'index.html');
+  const code = "const vm=require('vm'),fs=require('fs');const h=fs.readFileSync(process.argv[1],'utf8');const sb={module:{exports:{}}};vm.runInNewContext(h.match(/<script id=\"core\">([\\s\\S]*?)<\\/script>/)[1],sb);const C=sb.module.exports;const now=new Date(2026,10,12,9,0).getTime();process.stdout.write(C.ageDays('2026-09-03',now)+'|'+C.ageLabel('2026-11-02',now))";
+  for (const tz of ['America/New_York', 'Pacific/Auckland', 'Asia/Kuala_Lumpur', 'UTC']) {
+    const out = cp.execFileSync(process.execPath, ['-e', code, file], { env: { ...process.env, TZ: tz } }).toString();
+    assert.equal(out, '70|10 days old', tz);
+  }
+});
 test('next feed falls back to the age default with little data, and ignores solids', () => {
   const ev = [feed(NOW - 2 * H), feed(NOW - 30 * M, { kind: 'solids' })];
   const p = C.predictFeed(ev, DOB, NOW);

@@ -68,7 +68,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('breast:R'); ok((await text('.live.feed')).includes('right')); await page.waitForTimeout(1200);
     await act('feed-stop'); eq(await page.locator('.live.feed').count(), 0); eq(await rows(), 1);
     const e = (await stored()).events[0]; ok(e.end && e.lsec >= 1 && e.rsec >= 1 && e.side === 'R' && !e.segStart, JSON.stringify(e));
-    eq(await page.locator('[data-action="breast:L"] .tag').count(), 1, 'left is tagged next'); eq((await text('#last-side')).toUpperCase(), 'RIGHT', 'last side shown'); ok(/^\s*LAST FEED\s*RIGHT/i.test(await text('.stat.feed .k')), await text('.stat.feed .k'));
+    eq(await page.locator('[data-action="breast:L"] .tag').count(), 1, 'left is tagged next'); eq((await text('#last-side')).toUpperCase(), 'RIGHT', 'last side shown'); eq((await text('#next-side .pill')).toUpperCase(), 'LEFT', 'next side is the other one'); ok(/^\s*LAST FEED\s*RIGHT/i.test(await text('.stat.feed .k')), await text('.stat.feed .k'));
   });
   await step('undo brings back the running feed, then finish it again', async () => {
     await act('undo'); eq(await page.locator('.live.feed').count(), 1); await act('feed-stop'); eq(await rows(), 1);
@@ -85,7 +85,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.locator('#view .row').first().click(); await act('delete'); eq(await rows(), 1);
   });
   await step('bottle: stepper and save in two taps', async () => {
-    await act('bottle-open'); eq(await page.inputValue('#f-amount'), '120'); await act('amt:1'); await act('save-bottle'); eq((await text('#last-side')).toUpperCase(), 'BOTTLE', 'last feed was a bottle');
+    await act('bottle-open'); eq(await page.inputValue('#f-amount'), '120'); await act('amt:1'); await act('save-bottle'); eq((await text('#last-side')).toUpperCase(), 'BOTTLE', 'last feed was a bottle'); eq((await text('#next-side .pill')).toUpperCase(), 'LEFT', 'next breast side still shown after a bottle');
     eq(await rows(), 2); ok((await text('#view .row')).includes('130 ml')); ok((await text('#snack')).includes('130 ml'));
   });
   await step('sleep timer survives a reload, then saves', async () => {

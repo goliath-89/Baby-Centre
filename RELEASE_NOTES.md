@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.8.3 · 23 November 2026
+
+- **Next breast side on the Last feed tile.** The tile now always shows **Next breast side LEFT** or **RIGHT**, the opposite of the side the last breast feed ended on, even when the most recent feed was a bottle.
+- **Fixed: baby's age a day out in some time zones.** In time zones behind UTC (the Americas, for example) a date of birth was read as the evening before, so the age and milestone ages could be one day out. Plain dates are now always read as that local day. This did not affect UTC+8.
+
+
 ## 1.8.2 · 23 November 2026
 
 - **Last feed badge shows Bottle.** When the last milk feed was a bottle, the Last feed tile now says **BOTTLE** instead of the side of the last breast feed. After a breast feed it still shows LEFT or RIGHT. The **next** tag on the L/R buttons still follows the last breast feed.

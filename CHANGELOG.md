@@ -2,6 +2,14 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.3] - 2026-11-23
+
+### Added (from an artifact comment)
+- Last feed tile always shows the next breast side (opposite of the side the last breast feed ended on).
+
+### Fixed
+- Plain dates (date of birth) were parsed as UTC midnight, putting ages a day out west of UTC. Found by the browser tests running in a different time zone; covered by a new four-time-zone unit test.
+
 ## [1.8.2] - 2026-11-23
 
 ### Changed (from an artifact comment)
