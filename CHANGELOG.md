@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.1] - 2026-11-23
+
+### Fixed (from an artifact comment)
+- iOS: the recorder input no longer requests capture (iOS maps audio capture to the video camera); it offers the system menu (Take Video, Choose File). Video files are accepted and their sound track decoded. The clip picker accepts audio, video and common audio file extensions.
+
 ## [1.8.0] - 2026-11-23
 
 ### Added (from artifact comments)

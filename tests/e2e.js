@@ -9,6 +9,8 @@ const ROOT = path.join(__dirname, '..'), SHOTS = process.env.SHOTS || '';
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-')), CRY = path.join(TMP, 'cry.wav'), QUIET = path.join(TMP, 'quiet.wav');
 writeWav(CRY, makeCry({ f0: 600, burst: 2.6, pause: 0.2, harsh: 0.35, dur: 5.6 }), 48000);
 writeWav(QUIET, new Float32Array(48000 * 6), 48000);
+// A short video with the cry as its sound track, as an iPhone 'Take Video' would give (WebM here: the test browser has no AAC/H.264).
+const VIDEO = (() => { try { const v = path.join(TMP, 'cry.webm'); require('child_process').execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=gray:s=160x120:d=5.6', '-i', CRY, '-c:v', 'libvpx', '-c:a', 'libopus', '-shortest', '-y', v]); return v; } catch (e) { return ''; } })();
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split(/[?#]/)[0] === '/' ? 'index.html' : q.url.split(/[?#]/)[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); });
 let passed = 0; const fails = [];
@@ -185,7 +187,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('cry check: uploaded clip works; silent or non-audio files explain what to do', async () => {
     await page.setInputFiles('#cry-file', QUIET); await page.waitForSelector('#cry-error'); ok((await text('#cry-error')).includes('quiet'));
-    await page.setInputFiles('#cry-file', path.join(ROOT, 'icon-192.png')); await page.waitForFunction(() => /not audio/.test(document.querySelector('#cry-error')?.textContent || ''));
+    await page.setInputFiles('#cry-file', path.join(ROOT, 'icon-192.png')); await page.waitForFunction(() => /has no sound this browser can open/.test(document.querySelector('#cry-error')?.textContent || ''));
     await page.setInputFiles('#cry-file', CRY); await page.waitForSelector('#cry-top'); eq((await stored()).events.filter(x => x.type === 'cry').length, 2);
   });
   let backup = '';
@@ -321,6 +323,14 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   const ctx3 = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 } }); await ctx3.addInitScript(() => { window.claude = { use: () => Promise.resolve(null) }; });
   const p3 = await ctx3.newPage(); await p3.goto(URL + '#cry');
+  const ctx4 = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1' });
+  await ctx4.addInitScript(() => { window.claude = { use: () => Promise.resolve(null) }; });
+  const p4 = await ctx4.newPage(); await p4.goto(URL + '#cry');
+  await step('on iPhone, Record offers Take Video or Choose File and analyses the sound from a video', async () => {
+    eq(await p4.locator('#cry-cap').getAttribute('capture'), null, 'no capture: iOS would open the video camera with no choice'); ok((await p4.locator('#cry-cap').getAttribute('accept')).includes('video/*'));
+    ok((await p4.locator('#cry-how').innerText()).includes('Take Video')); if (SHOTS) await p4.screenshot({ path: path.join(SHOTS, '24-cry-ios.png') });
+    if (VIDEO) { const [fc] = await Promise.all([p4.waitForEvent('filechooser'), p4.click('[data-action="cry-native"]')]); await fc.setFiles(VIDEO); await p4.waitForSelector('#cry-top', { timeout: 20000 }); eq(await p4.locator('#cry-top').innerText(), 'Pain or distress', 'sound taken from the video'); }
+  });
   await step('inside the shared Claude page, Record opens the phone recorder straight away and the clip is analysed', async () => {
     ok((await p3.locator('#cry-how').innerText()).includes('phone’s recorder')); eq(await p3.locator('[data-action="cry-record"]').count(), 0);
     if (SHOTS) await p3.screenshot({ path: path.join(SHOTS, '23-cry-native.png') });

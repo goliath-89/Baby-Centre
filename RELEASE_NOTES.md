@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.8.1 · 23 November 2026
+
+- **Cry check on iPhone.** iPhones do not let a web page open the voice recorder; a request for audio opens the video camera instead. **Record a clip** on iPhone now opens the system menu, so you can choose **Take Video** (only the sound is used, so point the phone anywhere near your baby) or **Choose File** to pick a Voice Memo. The app takes the sound out of the video and analyses it.
+- **Choose a saved clip** also accepts videos and Voice Memo files on every phone.
+- Android is unchanged: Record opens the sound recorder.
+
+
 ## 1.8.0 · 23 November 2026
 
 ### New
