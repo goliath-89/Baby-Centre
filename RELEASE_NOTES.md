@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.8.4 · 23 November 2026
+
+- **Editing the start of a running feed moves its clock.** If a breast feed is still running (or paused) and you set its start 10 minutes earlier, the feed clock now shows the extra 10 minutes straight away, added to the side being fed. A later start shortens it. Sleep, burp and tummy time timers already followed their start time.
+
+
 ## 1.8.3 · 23 November 2026
 
 - **Next breast side on the Last feed tile.** The tile now always shows **Next breast side LEFT** or **RIGHT**, the opposite of the side the last breast feed ended on, even when the most recent feed was a bottle.

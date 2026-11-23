@@ -298,6 +298,20 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     eq((await stored()).events.filter(e => e.type === 'moment').length, 2); await act('nav:home'); eq(await page.locator('#view .row', { hasText: 'First real laugh' }).count(), 0, 'journal entries stay out of the care timeline');
     await act('nav:trends'); ok(!(await page.locator('#day-svg').innerHTML()).includes('First real laugh'), 'check 14'); await act('nav:home');
   });
+  await step('moving the start of a running timer moves its clock: breast feed (running and paused) and sleep', async () => {
+    await act('nav:home'); const inp = t => { const d = new Date(t), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+    const mins = s => { const m = /^(\d+):(\d\d)$/.exec(s.trim()); return m ? +m[1] + (+m[2]) / 60 : NaN; };
+    await act('breast:L'); await page.waitForTimeout(1100); await page.locator('#view .row', { hasText: 'feeding now' }).first().click();
+    await page.fill('#f-start', inp(Date.now() - 10 * 60000)); await act('save-edit'); let m = mins(await text('.live.feed .t')); ok(m >= 9.9 && m < 11, 'feed clock follows the earlier start: ' + await text('.live.feed .t'));
+    await act('feed-pause'); await page.locator('#view .row', { hasText: '(paused)' }).first().click(); await page.fill('#f-start', inp(Date.now() - 15 * 60000)); await act('save-edit');
+    m = mins(await text('.live.feed .t')); ok(m >= 14.9 && m < 16, 'paused feed clock follows too: ' + await text('.live.feed .t'));
+    await act('feed-resume'); await page.locator('#view .row', { hasText: 'feeding now' }).first().click(); await page.fill('#f-start', inp(Date.now() - 5 * 60000)); await act('save-edit');
+    m = mins(await text('.live.feed .t')); ok(m >= 4.9 && m < 6, 'a later start shortens the clock: ' + await text('.live.feed .t'));
+    const runId = (await stored()).events.find(x => x.kind === 'breast' && !x.end).id; await act('feed-stop'); const f = (await stored()).events.find(x => x.id === runId); ok(Math.abs(f.lsec + f.rsec - 300) < 70, 'saved feed length matches: ' + (f.lsec + f.rsec));
+    await act('sleep-toggle'); await page.locator('#view .row', { hasText: 'Asleep now' }).first().click(); await page.fill('#f-start', inp(Date.now() - 10 * 60000)); await act('save-edit');
+    m = mins(await text('.live.sleep .t')); ok(m >= 9.9 && m < 11, 'sleep clock follows: ' + await text('.live.sleep .t')); await act('sleep-toggle');
+    await page.locator('#view .row', { hasText: 'Sleep' }).first().click(); await act('delete'); await page.locator(`[data-action="edit:${runId}"]`).click(); await act('delete');
+  });
   await step('unreadable saved data is kept aside, not destroyed', async () => {
     await page.evaluate(() => localStorage.setItem('babycentre.v1', '{broken')); await page.goto(URL + '#home'); await page.reload();
     eq(await text('#top h1'), 'Sample baby'); eq(await page.evaluate(() => localStorage.getItem('babycentre.v1.unreadable')), '{broken');

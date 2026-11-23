@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.4] - 2026-11-23
+
+### Fixed (from an artifact comment)
+- Changing the start time of a running or paused breast feed now adjusts its per-side clock (current side), so the live timer reflects the new start.
+
 ## [1.8.3] - 2026-11-23
 
 ### Added (from an artifact comment)
