@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.7.3] - 2026-11-23
+
+### Changed (from an artifact comment)
+- Cry check: on the hosted page (no microphone access for embedded pages), Record opens the phone's recorder through a capture file input and analyses the clip on return. Live recording remains on the installed app; a refused microphone switches to the recorder and is remembered.
+
 ## [1.7.2] - 2026-11-21
 
 ### Changed (from an artifact comment)

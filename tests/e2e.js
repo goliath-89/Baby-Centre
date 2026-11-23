@@ -307,7 +307,18 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   await step('deep link opens the cry tab; a blocked microphone gives a clear way forward', async () => {
     eq(await p2.locator('#top h1').innerText(), 'Cry check');
     await p2.evaluate(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })); });
-    await p2.click('[data-action="cry-record"]'); await p2.waitForSelector('#cry-error'); ok((await p2.locator('#cry-error').innerText()).includes('blocked'));
+    await p2.click('[data-action="cry-record"]'); await p2.waitForSelector('#cry-error'); ok((await p2.locator('#cry-error').innerText()).includes('opens your phone’s recorder'));
+    eq(await p2.locator('[data-action="cry-record"]').count(), 0, 'live recording no longer offered'); ok(await p2.locator('#cry-cap').getAttribute('capture') !== null, 'recorder input asks for capture');
+    const [fc] = await Promise.all([p2.waitForEvent('filechooser'), p2.click('[data-action="cry-native"]')]); await fc.setFiles(CRY); await p2.waitForSelector('#cry-top', { timeout: 15000 });
+    await p2.reload(); eq(await p2.locator('[data-action="cry-native"]').count(), 1, 'remembered after reopening');
+  });
+  const ctx3 = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 } }); await ctx3.addInitScript(() => { window.claude = { use: () => Promise.resolve(null) }; });
+  const p3 = await ctx3.newPage(); await p3.goto(URL + '#cry');
+  await step('inside the shared Claude page, Record opens the phone recorder straight away and the clip is analysed', async () => {
+    ok((await p3.locator('#cry-how').innerText()).includes('phone’s recorder')); eq(await p3.locator('[data-action="cry-record"]').count(), 0);
+    if (SHOTS) await p3.screenshot({ path: path.join(SHOTS, '23-cry-native.png') });
+    const [fc] = await Promise.all([p3.waitForEvent('filechooser'), p3.click('[data-action="cry-native"]')]); ok(!fc.isMultiple());
+    await fc.setFiles(CRY); await p3.waitForSelector('#cry-top', { timeout: 15000 }); eq(await p3.locator('#cry-top').innerText(), 'Pain or distress');
   });
   await browser.close(); server.close(); fs.rmSync(TMP, { recursive: true, force: true });
   console.log(`\n${passed} passed, ${fails.length} failed`); process.exit(fails.length ? 1 : 0);

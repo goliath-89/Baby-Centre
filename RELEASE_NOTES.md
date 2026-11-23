@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.7.3 · 23 November 2026
+
+- **Record opens your phone's recorder on the shared link.** Pages shown inside the Claude site are not allowed to use the microphone, whatever your browser's own permission says, which is why the permission prompt kept coming back. On the shared Claude link, **Record a clip** now opens your phone's recorder in one tap. Record 5–10 seconds, tap done or save, and the result appears straight away.
+- On the installed app the 5-second live recording still works. If the microphone is ever refused there, the app switches to your phone's recorder and remembers that choice.
+- "Upload a clip instead" is now **Choose a saved clip**.
+
+
 ## 1.7.2 · 21 November 2026
 
 - **Running burp timer goes to the top.** While the burp timer runs, its widget moves to the top of Home, above the feed and sleep tiles, so it is the first thing you see. When stopped, it goes back to its half-size place beside Last feed.
