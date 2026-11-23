@@ -101,6 +101,13 @@ test('Excel: tummy time and journal rows import, including text dates and valida
   const e = C.fromSheets(bad, s, NOW).errors;
   assert.match(e[0], /Tummy time, row 2: the end time must be after/); assert.match(e[1], /Milestone journal, row 2: the date is missing/); assert.match(e[2], /row 3: enter the milestone/); assert.match(e[3], /row 4: the date is in the future/);
 });
+test('Excel: confirmed cry reasons can be presets or your own words', async () => {
+  const s = phone(); s.events.push({ id: 'cr', type: 'cry', start: iso(NOW - H), actual: null, res: { top: 'hungry', probs: [['hungry', 1]], distress: 10, f0: 420, bursts: 3 } });
+  const set = async v => { const sh = C.toSheets(s); sh.find(x => x.name === 'Cry checks').rows[1][2] = v; return C.fromSheets(await C.xlsxRead(C.xlsxWrite(sh)), s, NOW); };
+  let r = await set('Overtired'); assert.deepEqual([...r.errors], []); assert.equal(r.next.events[0].actual, 'overtired');
+  r = await set('Wanted Mum'); assert.equal(r.next.events[0].actual, 'x:wanted-mum'); assert.equal(r.next.events[0].actualText, 'Wanted Mum');
+  const back = C.toSheets(r.next).find(x => x.name === 'Cry checks').rows[1][2]; assert.equal(back, 'Wanted Mum');
+});
 test('daily stats count tummy time sessions and minutes', () => {
   const st = C.dailyStats([{ id: 't1', type: 'tummy', start: iso(NOW - 2 * H), end: iso(NOW - 2 * H + 5 * M) }, { id: 't2', type: 'tummy', start: iso(NOW - 10 * M), end: null }, { id: 'm', type: 'moment', start: iso(NOW - H), title: 'x' }], NOW, 1)[0];
   assert.equal(st.tummyN, 2); assert.equal(st.tummyMs, 15 * M); assert.equal(st.feeds + st.diapers + st.cries, 0, 'journal entries are not counted as care');

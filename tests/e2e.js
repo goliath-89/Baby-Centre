@@ -170,6 +170,13 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     const e = (await stored()).events.find(x => x.type === 'cry'); ok(e && Math.abs(e.res.f0 - 600) < 60, 'pitch from mic ' + (e && e.res.f0)); eq(e.res.top, 'pain'); ok(e.res.distress >= 60, 'distress ' + e.res.distress);
     await shot('07-cry-result'); await noOverflow('cry result');
     await act(`cry-actual:${e.id}:gas`); eq((await stored()).events.find(x => x.id === e.id).actual, 'gas');
+    ok((await text('#view')).includes('No confirmed checks yet'), 'explains that answers will personalise'); eq(await page.locator('#cry-why .chip').count(), 15, '6 causes + 8 more reasons + Other');
+    await act(`cry-actual:${e.id}:overtired`); eq((await stored()).events.find(x => x.id === e.id).actual, 'overtired');
+    await act(`cry-other:${e.id}`); await act(`cry-other-save:${e.id}`); ok((await text('#reason-err')).includes('Type a reason'));
+    await page.fill('#f-reason', 'Wanted Mum'); await act(`cry-other-save:${e.id}`); let saved = (await stored()).events.find(x => x.id === e.id); eq(saved.actual, 'x:wanted-mum'); eq(saved.actualText, 'Wanted Mum');
+    ok(await page.locator('#cry-why .chip[aria-pressed="true"]', { hasText: 'Wanted Mum' }).count() === 1, 'own reason becomes a chip'); ok(saved.fv && saved.fv.f0 > 0 && 'fed' in saved.fv, 'sound and situation saved with the check');
+    await shot('07b-cry-reasons'); await act('cry-history'); ok(await page.evaluate(() => { const r = document.querySelector('#cry-hist').getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight - 100; }), 'All checks brings the history into view');
+    ok((await text('#cry-hist')).includes('was wanted mum')); await page.locator('#cry-hist .row').first().click(); await act(`cry-actual:${e.id}:gas`);
     await act('cry-again'); eq(await page.locator('#view .row').count(), 1);
   });
   await step('cry check: cancel mid-recording saves nothing', async () => {

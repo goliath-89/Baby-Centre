@@ -1,6 +1,6 @@
 # Baby Centre: Product Requirements
 
-Version 1.7.1 · 21 November 2026 · Status: shipped as v1.7.1
+Version 1.8 · 23 November 2026 · Status: shipped as v1.8.0
 
 ## 1. Problem
 
@@ -86,7 +86,9 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - The clip is analysed on the phone. Audio is never stored or sent anywhere.
 - Output: most likely cause, top three causes with percentages, pitch, burst count, distress level, steps to try, what the result is based on, and safety guidance.
 - Causes: hungry, tired, pain or distress, uncomfortable, wind or tummy, wants comfort.
-- The parent can confirm what it really was. Confirmed answers adjust future results.
+- The parent can confirm what it really was: one of the six causes, eight more specific reasons (overtired, too hot or cold, wet or dirty nappy, needs burping, teething, overstimulated, bored, unwell) or their own words (v1.8).
+- Personal model (v1.8): each check stores its sound features and the log context at that moment (feed gap ratio, awake ratio, minutes since nappy, minutes since feed end, time of day). New results blend the general estimate with a similarity-weighted vote of the baby's confirmed past checks; weight grows with the number of close matches (one match nudges, about five can decide). Custom reasons become predictable once confirmed on similar cries.
+- Result card has "Record again" and "All checks" at the top (v1.8).
 - A clip with no cry (silence, speech, noise) is rejected with advice, not guessed at.
 
 #### How the estimate is made

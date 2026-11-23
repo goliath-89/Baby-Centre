@@ -2,6 +2,16 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.0] - 2026-11-23
+
+### Added (from artifact comments)
+- Cry result: "‹ Record again" and "All checks" at the top.
+- Eight more confirmable reasons (each mapped to a sound-based cause for the overall tally) and free-text reasons (`x:<slug>` keys with the original text), shown as chips once used. Excel import and export handle both.
+- Personal model: each check stores a normalised vector of acoustic features plus log context (feed gap ratio, awake ratio, minutes since nappy, minutes since feed end, time of day). New results blend the sound-and-context score with a similarity-weighted vote of confirmed past checks (`Core.cryVector`, `Core.personalize`).
+
+### Changed
+- "Tired" relabelled "Tired / sleepy".
+
 ## [1.7.3] - 2026-11-23
 
 ### Changed (from an artifact comment)

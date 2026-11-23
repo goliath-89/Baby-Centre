@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.8.0 · 23 November 2026
+
+### New
+- **Back and history on a cry result.** The result now starts with **‹ Record again** and **All checks** (jumps to your earlier checks).
+- **More reasons, and your own.** "What was it really?" now offers Overtired, Too hot or cold, Wet or dirty nappy, Needs burping, Teething, Overstimulated, Bored and Unwell, alongside the six sound-based causes ("Tired" is now "Tired / sleepy"). **Other…** lets you type your own reason; it then appears as a button next time.
+- **Results that learn your baby.** Each cry check now saves its sound measurements together with the situation from your log: time since the last feed against the usual gap, time awake against the awake window, time since the last nappy, minutes since a feed ended, and the time of day. When a new cry comes in, the app compares it with your past checks whose reason you confirmed and leans toward what similar cries turned out to be. One confirmation nudges the answer; several similar ones can decide it, including reasons you typed yourself. "What this is based on" says how many of your checks it compared with and what the closest ones were.
+
+### Good to know
+- Only checks made from this version on carry the saved measurements, so learning starts with your next confirmed checks.
+- This is a personal comparison on your own data, not a large trained model. It gets better the more often you confirm the reason, and it is still an estimate.
+
+
 ## 1.7.3 · 23 November 2026
 
 - **Record opens your phone's recorder on the shared link.** Pages shown inside the Claude site are not allowed to use the microphone, whatever your browser's own permission says, which is why the permission prompt kept coming back. On the shared Claude link, **Record a clip** now opens your phone's recorder in one tap. Record 5–10 seconds, tap done or save, and the result appears straight away.

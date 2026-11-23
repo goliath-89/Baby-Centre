@@ -121,6 +121,33 @@ test('confirmed past answers nudge future results', () => {
   assert.ok(p(b, 'tired') > p(a, 'tired'));
 });
 
+test('reasons: presets, sound-based parents, free text', () => {
+  assert.equal(C.reasonKey('Overtired'), 'overtired'); assert.equal(C.baseOf('overtired'), 'tired'); assert.equal(C.reasonKey('tired'), 'tired'); assert.equal(C.reasonKey('Tired / sleepy'), 'tired');
+  assert.equal(C.reasonKey('Wanted Mum!'), 'x:wanted-mum'); assert.equal(C.reasonLabel('x:wanted-mum', 'Wanted Mum!'), 'Wanted Mum!'); assert.equal(C.reasonKey('  '), null);
+  assert.ok(Object.keys(C.EXTRA).length >= 8);
+});
+test('personal model: similar confirmed cries pull the answer toward what they really were, including free-text reasons', () => {
+  const ctx = { ageDays: 70, sinceFeedMs: 2 * H, gapMs: 3 * H, awakeMs: 80 * M, wake: [60, 90], sinceDiaperMin: 40, sinceFeedEndMin: 100, counts: {} };
+  const ft = C.analyzeCry(makeCry({ f0: 430, burst: 0.9, pause: 0.35 }), 48000).features, fv = C.cryVector(ft, ctx, NOW), base = C.classifyCry(ft, ctx);
+  assert.equal(C.personalize(base, fv, []).top, base.top, 'no history: unchanged');
+  const near = k => ({ fv: Object.fromEntries(Object.entries(fv).map(([x, v]) => [x, v == null ? null : v + 0.1])), key: k });
+  const one = C.personalize(base, fv, [near('overtired')]);
+  assert.ok(one.probs.find(p => p[0] === 'overtired')[1] > 0.15 && one.top === base.top, 'one example nudges, does not take over');
+  const many = C.personalize(base, fv, [near('overtired'), near('overtired'), near('overtired'), near('overtired'), near('overtired')]);
+  assert.equal(many.top, 'overtired'); assert.equal(many.personal.near, 'overtired'); assert.ok(many.personal.weight > 0.5);
+  const far = { fv: Object.fromEntries(Object.entries(fv).map(([x, v]) => [x, v == null ? null : v + 6])), key: 'x:wanted-mum' };
+  const f = C.personalize(base, fv, [far, far, far, far, far]); assert.equal(f.top, base.top, 'very different past cries barely count');
+  const custom = C.personalize(base, fv, [near('x:wanted-mum'), near('x:wanted-mum'), near('x:wanted-mum'), near('x:wanted-mum')]); assert.equal(custom.top, 'x:wanted-mum');
+  const s = custom.probs.reduce((a, p) => a + p[1], 0); assert.ok(Math.abs(s - 1) < 1e-9);
+  // the situation matters, not only the sound: same sound, very different feed timing, counts less
+  const ctx2 = { ...ctx, sinceFeedMs: 10 * M, sinceFeedEndMin: 2, awakeMs: 5 * M }, fv2 = C.cryVector(ft, ctx2, NOW);
+  const same = C.personalize(base, fv, [{ fv, key: 'hungry' }]).probs.find(p => p[0] === 'hungry')[1], diff = C.personalize(base, fv2, [{ fv, key: 'hungry' }]).probs.find(p => p[0] === 'hungry')[1];
+  assert.ok(same > diff, 'feeds and sleep context are part of the comparison');
+});
+test('confirmed reasons count toward their sound-based cause in the overall tally', () => {
+  const ev = [{ id: 'c1', type: 'cry', start: iso(NOW - H), actual: 'overtired' }, { id: 'c2', type: 'cry', start: iso(NOW - H), actual: 'x:wanted-mum', actualText: 'Wanted Mum' }];
+  const c = C.cryContext(ev, DOB, NOW); assert.equal(c.counts.tired, 1); assert.equal(Object.keys(c.counts).length, 1);
+});
 test('backup round trip keeps everything; bad or newer backups are refused', () => {
   const d = C.demoData(NOW), back = C.migrate(JSON.parse(JSON.stringify({ schemaVersion: C.SCHEMA, data: d })));
   assert.equal(back.events.length, d.events.length); assert.equal(back.baby.name, 'Sample baby'); assert.equal(Object.keys(back.milestones).length, 6);
