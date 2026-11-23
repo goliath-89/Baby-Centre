@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.8.2 · 23 November 2026
+
+- **Last feed badge shows Bottle.** When the last milk feed was a bottle, the Last feed tile now says **BOTTLE** instead of the side of the last breast feed. After a breast feed it still shows LEFT or RIGHT. The **next** tag on the L/R buttons still follows the last breast feed.
+
+
 ## 1.8.1 · 23 November 2026
 
 - **Cry check on iPhone.** iPhones do not let a web page open the voice recorder; a request for audio opens the video camera instead. **Record a clip** on iPhone now opens the system menu, so you can choose **Take Video** (only the sound is used, so point the phone anywhere near your baby) or **Choose File** to pick a Voice Memo. The app takes the sound out of the video and analyses it.

@@ -2,6 +2,11 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.8.2] - 2026-11-23
+
+### Changed (from an artifact comment)
+- Last feed tile badge follows the last milk feed: BOTTLE after a bottle, LEFT/RIGHT after a breast feed.
+
 ## [1.8.1] - 2026-11-23
 
 ### Fixed (from an artifact comment)

@@ -85,7 +85,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.locator('#view .row').first().click(); await act('delete'); eq(await rows(), 1);
   });
   await step('bottle: stepper and save in two taps', async () => {
-    await act('bottle-open'); eq(await page.inputValue('#f-amount'), '120'); await act('amt:1'); await act('save-bottle');
+    await act('bottle-open'); eq(await page.inputValue('#f-amount'), '120'); await act('amt:1'); await act('save-bottle'); eq((await text('#last-side')).toUpperCase(), 'BOTTLE', 'last feed was a bottle');
     eq(await rows(), 2); ok((await text('#view .row')).includes('130 ml')); ok((await text('#snack')).includes('130 ml'));
   });
   await step('sleep timer survives a reload, then saves', async () => {
