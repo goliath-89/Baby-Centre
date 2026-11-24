@@ -23,8 +23,8 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     const page = await ctx.newPage();
     page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errors.push(m.text()); }); page.on('pageerror', e => errors.push(String(e)));
     const p = {
-      page, ctx, act: a => page.click(`[data-action="${a}"]`), text: s => page.locator(s).first().innerText(),
-      rows: () => page.locator('#view .row').count(), go: v => page.click(`[data-action="nav:${v}"]`),
+      page, ctx, act: async a => { await page.click(`[data-action="${a}"]`); if (a === 'nav:more') await page.click('[data-action="sub:settings"]'); else if (/^(delete|save-edit|save-profile|import-paste|share-stop)$/.test(a) && await page.locator('#confirm-yes').count()) await page.click('#confirm-yes'); }, text: s => page.locator(s).first().innerText(),
+      rows: () => page.locator('#view .row').count(), go: async v => { await page.click(`[data-action="nav:${v}"]`); if (v === 'more') await page.click('[data-action="sub:settings"]'); },
       stored: () => page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data),
       until: (fn, arg, ms) => page.waitForFunction(fn, arg, { timeout: ms || 6000 }),
       untilRows: (n, ms) => page.waitForFunction(n => document.querySelectorAll('#view .row').length === n, n, { timeout: ms || 6000 }),
@@ -145,7 +145,7 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     await B.page.fill('#f-invite', link); await B.act('share-join-go'); await B.untilRows(10, 6000);
     const D = await phone(); await D.go('more'); await D.act('share-join'); const empty = 'BC1.' + Buffer.from(JSON.stringify({ u: URL.slice(0, -1), r: 'emptyroomemptyroom22' })).toString('base64url');
     await D.page.fill('#f-invite', empty); await D.act('share-join-go'); await D.until(() => /Nothing has been shared/.test(document.querySelector('#sheet-err')?.textContent || ''));
-    eq(await D.text('#top h1'), 'More'); await D.act('sheet-close'); eq(await D.text('#sync-status'), 'Not shared'); await D.go('home'); eq(await D.text('#top h1'), 'Sample baby'); await D.ctx.close();
+    eq(await D.text('#top h1'), 'Settings'); await D.act('sheet-close'); eq(await D.text('#sync-status'), 'Not shared'); await D.go('home'); eq(await D.text('#top h1'), 'Sample baby'); await D.ctx.close();
   });
 
   // Hosted (Claude page) mode with the fake shared store

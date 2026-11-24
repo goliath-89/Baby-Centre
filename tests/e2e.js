@@ -24,7 +24,9 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   const ctx = await browser.newContext({ timezoneId: TZ, viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, permissions: ['microphone', 'clipboard-read', 'clipboard-write'], acceptDownloads: true });
   const page = await ctx.newPage(); const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); page.on('pageerror', e => errors.push(String(e)));
-  const act = a => page.click(`[data-action="${a}"]`);
+  // Existing steps go straight to Settings and accept confirmations; the menu and the confirm panels have their own steps.
+  const CONFIRMS = /^(delete|save-edit|moment-save|moment-delete|save-profile|import-paste|share-stop)$/;
+  const act = async a => { await page.click(`[data-action="${a}"]`); if (a === 'nav:more') await page.click('[data-action="sub:settings"]'); else if (CONFIRMS.test(a) && await page.locator('#confirm-yes').count()) await page.click('#confirm-yes'); };
   const text = s => page.locator(s).first().innerText();
   const rows = () => page.locator('#view .row').count();
   const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data);
@@ -54,6 +56,12 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     ok((await text('#view')).includes('Baby Centre ' + v), 'version'); ok(/^Built \d{1,2} \w{3} \d{4}, \d{1,2}:\d{2}/.test(await text('#build')) || /^Built \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2}/.test(await text('#build')), await text('#build'));
     await act('notes-open'); ok((await text('#notes h3')).startsWith(v), 'newest notes first: ' + await text('#notes h3')); ok(await page.locator('#notes table').count() > 0, 'tables rendered'); await shot('22-notes'); await noOverflow('release notes');
     await act('sheet-close'); await act('nav:home');
+  });
+  await step('More is a menu; Settings holds sharing, baby, preferences, Excel, backup and About, with a back arrow', async () => {
+    await page.click('[data-action="nav:more"]'); eq(await text('#top h1'), 'More'); eq(await page.locator('#view .hub').count(), 3); ok((await text('#view')).includes('Development tracker') && (await text('#view')).includes('Vaccinations'));
+    await shot('25-more-menu'); await page.click('[data-action="sub:settings"]'); eq(await text('#top h1'), 'Settings'); ok(await page.evaluate(() => document.querySelector('#view section').id === 'share'));
+    for (const s of ['Baby', 'Bottle units', 'Appearance', 'Excel', 'Backup', 'About']) ok(/* headings are upper-cased on screen */ (await text('#view')).toUpperCase().includes(s.toUpperCase()), s);
+    await page.click('[data-action="sub:"]'); eq(await text('#top h1'), 'More'); await act('nav:home');
   });
   await step('profile form validates, then replaces sample data', async () => {
     await act('profile-open'); await act('save-profile'); ok((await text('#sheet-err')).includes('name'));
@@ -115,6 +123,16 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('add-open'); await act('add-kind:breast'); await page.fill('#f-l', '12'); await page.fill('#f-r', '0'); await act('save-edit'); eq(await rows(), 6);
     await act('add-open'); await act('add-kind:solids'); await page.fill('#f-note', 'Banana'); await act('save-edit'); ok((await text('#view')).includes('Banana'));
     await noOverflow('home with data'); await shot('03-home-own');
+  });
+  await step('edits and deletes ask first: the changes are listed, Back keeps what was typed, Keep cancels; no-change saves just close', async () => {
+    await page.locator('#view .row', { hasText: 'Bottle' }).first().click(); await page.click('[data-action="save-edit"]'); ok((await text('#snack')).includes('No changes'), 'nothing changed: no question');
+    await page.locator('#view .row', { hasText: 'Bottle' }).first().click(); await page.fill('#f-amount', '170'); await page.click('[data-action="save-edit"]');
+    ok(/Amount: 150 ml → 170 ml/.test(await text('#confirm-lines')), await text('#confirm-lines')); await shot('26-confirm-edit');
+    await page.click('#confirm-no'); eq(await page.inputValue('#f-amount'), '170', 'Back keeps the typed value'); await page.click('[data-action="save-edit"]'); await page.click('#confirm-yes');
+    ok((await text('#view')).includes('170 ml')); await act('undo'); ok((await text('#view')).includes('150 ml'), 'undo after a confirmed edit');
+    await page.locator('#view .row', { hasText: 'Bottle' }).first().click(); await page.click('[data-action="delete"]'); ok((await text('#confirm-lines')).includes('Bottle'));
+    await page.click('#confirm-no'); await act('sheet-close'); ok((await text('#view')).includes('150 ml'), 'Back: not deleted');
+    await act('nav:more'); await act('units:oz'); ok((await text('#snack')).includes('Bottle units: ounces')); await act('undo'); eq(await page.getAttribute('[data-action="units:ml"]', 'aria-pressed'), 'true', 'units undo'); await act('nav:home');
   });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
     eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));
@@ -217,7 +235,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.fill('#f-paste', '{"schemaVersion":1,"data":{}}'); await act('import-paste'); ok((await text('#sheet-err')).length > 5);
     await page.fill('#f-paste', backup); await act('import-paste'); await act('nav:home');
     eq(await text('#top h1'), 'Mia <b>'); eq((await stored()).events.length, 9); eq(Object.keys((await stored()).milestones).length, 1);
-    const f = path.join(TMP, 'b.json'); fs.writeFileSync(f, backup); await act('nav:more'); await act('import-open'); await page.setInputFiles('#import-file', f); await page.waitForFunction(() => !document.querySelector('.sheet')); eq((await stored()).events.length, 9);
+    const f = path.join(TMP, 'b.json'); fs.writeFileSync(f, backup); await act('nav:more'); await act('import-open'); await page.setInputFiles('#import-file', f); await page.waitForSelector('#confirm-yes'); ok((await text('#confirm-lines')).includes('replaced by the backup')); await page.click('#confirm-yes'); await page.waitForFunction(() => !document.querySelector('.sheet')); eq((await stored()).events.length, 9);
   });
   await step('burp timer: offered after a feed, play to start, stop saves it and starts sleep; undo reverses both', async () => {
     await act('nav:home'); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('babycentre.v1')); d.data.events.forEach(e => { if (e.type === 'feed') { e.start = e.end = new Date(Date.parse(e.start) - 2 * 36e5).toISOString(); } }); localStorage.setItem('babycentre.v1', JSON.stringify(d)); }); await page.reload();

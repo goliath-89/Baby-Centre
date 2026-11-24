@@ -2,6 +2,15 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.9.0] - 2026-11-24
+
+### Added
+- More menu (`ui.sub`) with Settings as a sub-page; Development tracker and Vaccinations listed as coming next.
+- In-sheet confirmation panel (`askConfirm`) for edits (with a list of changes), deletes, journal edits, profile edits, backup restore and Stop sharing. Units and appearance changes show Undo.
+
+### Fixed
+- Saving an unchanged finished breast feed recomputed its end from the minutes; it now keeps the original end and exact seconds.
+
 ## [1.8.5] - 2026-11-23
 
 ### Changed (from an artifact comment)

@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.9.0 · 24 November 2026
+
+Stage 1 of the new More section.
+
+- **More is now a menu.** It lists **Development tracker** and **Vaccinations** (both coming next) and **Settings**. Settings holds everything that was under More before: sharing, the baby's details, units, appearance, Excel, backup, About and Erase. A back arrow returns to the menu.
+- **Changes are confirmed before they are saved.**
+  - Editing an entry, a journal milestone or the baby's details lists exactly what will change (for example "Amount: 150 ml → 170 ml") with **Save changes** or **Back**. Back keeps what you typed. If nothing changed, the sheet just closes.
+  - Deleting an entry or a milestone, restoring a backup and stopping sharing each ask first.
+  - Bottle units and appearance switch straight away with an **Undo**.
+- Fixed: re-saving a finished breast feed without changes could slightly alter its end time.
+
+
 ## 1.8.5 · 23 November 2026
 
 - **Outlines on every running timer.** Like the burp card, each active timer card now has an outline in its own colour: amber for a feed (running or paused), indigo for sleep, magenta for tummy time and green for burping.
