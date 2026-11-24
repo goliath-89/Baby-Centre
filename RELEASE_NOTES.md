@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.10.0 · 24 November 2026
+
+Stage 2 of the new More section: **Growth**.
+
+- **More → Development tracker → Growth.** Record weight, length and head circumference. Fill in only what was measured. Weight can be typed in grams (5820 becomes 5.82 kg).
+- **WHO percentile charts** for 0–24 months. Each tab (Weight, Length, Head) shows the first and current value, the change, the latest percentile, a chart with the shaded WHO bands and the median, and every measurement with its percentile. **Summary** shows the latest of all three.
+- The charts differ for boys and girls, so the app asks once. You can change it in Settings → Baby.
+- Two measurements on the same day are merged after you confirm. Edits and deletes list what will change first.
+- A short note appears if a measurement crosses two percentile lines since the last one, as something to mention at the next check-up.
+- Your partner can add, edit and delete measurements too. They are included in Excel (new **Growth** sheet) and backups.
+- Appointments and Vaccinations are coming next.
+
 ## 1.9.0 · 24 November 2026
 
 Stage 1 of the new More section.

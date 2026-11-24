@@ -134,6 +134,23 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.click('#confirm-no'); await act('sheet-close'); ok((await text('#view')).includes('150 ml'), 'Back: not deleted');
     await act('nav:more'); await act('units:oz'); ok((await text('#snack')).includes('Bottle units: ounces')); await act('undo'); eq(await page.getAttribute('[data-action="units:ml"]', 'aria-pressed'), 'true', 'units undo'); await act('nav:home');
   });
+  await step('growth: More → Development tracker → Growth; ask boy/girl, check entries, percentile, same-day update, edit and delete ask first; not in the care timeline', async () => {
+    const go = async a => page.click(`[data-action="${a}"]`);
+    await go('nav:more'); await go('sub:dev'); eq(await text('#top h1'), 'Development tracker'); await go('sub:growth'); eq(await text('#top h1'), 'Growth');
+    ok((await text('#g-sex')).includes('Boy or girl'), 'asks for sex'); await go('gsex:f'); eq(await page.locator('#g-sex').count(), 0);
+    await go('growth-new'); await page.fill('#f-gwt', '50'); await go('growth-save'); ok((await text('.sheet')).includes('Weight looks wrong'), 'out of range');
+    await page.fill('#f-gwt', ''); await go('growth-save'); ok((await text('.sheet')).includes('at least one'), 'empty');
+    await page.fill('#f-gwt', '4100'); await page.fill('#f-ghc', '37'); await go('growth-save'); ok((await text('#snack')).includes('Measurement saved'));
+    ok(/weight percentile: \w+/.test(await text('#g-pct')), await text('#g-pct')); ok((await text('#view')).includes('4.1 kg')); eq(await page.locator('#g-chart circle').count(), 1); await shot('27-growth');
+    await go('growth-new'); await page.fill('#f-glen', '55'); await go('growth-save'); ok(/Length: none → 55 cm/.test(await text('#confirm-lines')), await text('#confirm-lines')); await page.click('#confirm-yes');
+    eq(await page.locator('[data-action^="growth-edit:"]').count(), 1, 'same day merged'); await go('gtab:len'); ok((await text('#view')).includes('55 cm'));
+    await go('gtab:sum'); ok(/Weight[\s\S]*4\.1 kg[\s\S]*Head[\s\S]*37 cm/.test(await text('#view')), await text('#view')); ok((await text('#view')).includes('girls'));
+    await go('gtab:wt'); await page.locator('[data-action^="growth-edit:"]').first().click(); await page.fill('#f-gwt', '4.2'); await go('growth-save');
+    ok(/Weight: 4\.1 kg → 4\.2 kg/.test(await text('#confirm-lines'))); await page.click('#confirm-no'); eq(await page.inputValue('#f-gwt'), '4.2'); await go('growth-save'); await page.click('#confirm-yes'); ok((await text('#view')).includes('4.2 kg'));
+    await page.locator('[data-action^="growth-edit:"]').first().click(); await go('growth-delete'); await page.click('#confirm-yes'); ok((await text('#snack')).includes('deleted')); await act('undo'); ok((await text('#view')).includes('4.2 kg'), 'undo delete');
+    await go('sub:dev'); ok(/Latest 4\.2 kg/.test(await text('#dev-growth')), await text('#dev-growth')); await go('sub:'); eq(await text('#top h1'), 'More');
+    await go('nav:home'); ok(!(await text('#view')).includes('Growth'), 'not in the care timeline'); await noOverflow('growth');
+  });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
     eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));
     await act('filter:feed'); eq(await rows(), 4); ok(/\d feeds? · /.test(await text('#tl-sum')) && /150 ml/.test(await text('#tl')) && /1 solids/.test(await text('#tl')), await text('#tl-sum'));
@@ -222,7 +239,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:more'); await act('theme:system'); eq(await page.evaluate(() => document.documentElement.dataset.theme), undefined); await act('units:ml');
   });
   await step('backup: download and copy', async () => {
-    await act('export'); backup = await page.inputValue('#f-backup'); ok(JSON.parse(backup).data.events.length === 9, 'events in backup');
+    await act('export'); backup = await page.inputValue('#f-backup'); ok(JSON.parse(backup).data.events.length === 10, 'events in backup (includes one growth entry)');
     const [dl] = await Promise.all([page.waitForEvent('download'), act('export-file')]); ok(/baby-centre-backup-.*\.json/.test(dl.suggestedFilename()));
     await act('export-copy'); eq(await page.evaluate(() => navigator.clipboard.readText()), backup); await act('sheet-close');
   });
@@ -234,8 +251,8 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:more'); await act('import-open'); await page.fill('#f-paste', '{"oops":'); await act('import-paste'); ok((await text('#sheet-err')).includes('not a complete backup'));
     await page.fill('#f-paste', '{"schemaVersion":1,"data":{}}'); await act('import-paste'); ok((await text('#sheet-err')).length > 5);
     await page.fill('#f-paste', backup); await act('import-paste'); await act('nav:home');
-    eq(await text('#top h1'), 'Mia <b>'); eq((await stored()).events.length, 9); eq(Object.keys((await stored()).milestones).length, 1);
-    const f = path.join(TMP, 'b.json'); fs.writeFileSync(f, backup); await act('nav:more'); await act('import-open'); await page.setInputFiles('#import-file', f); await page.waitForSelector('#confirm-yes'); ok((await text('#confirm-lines')).includes('replaced by the backup')); await page.click('#confirm-yes'); await page.waitForFunction(() => !document.querySelector('.sheet')); eq((await stored()).events.length, 9);
+    eq(await text('#top h1'), 'Mia <b>'); eq((await stored()).events.length, 10); eq(Object.keys((await stored()).milestones).length, 1);
+    const f = path.join(TMP, 'b.json'); fs.writeFileSync(f, backup); await act('nav:more'); await act('import-open'); await page.setInputFiles('#import-file', f); await page.waitForSelector('#confirm-yes'); ok((await text('#confirm-lines')).includes('replaced by the backup')); await page.click('#confirm-yes'); await page.waitForFunction(() => !document.querySelector('.sheet')); eq((await stored()).events.length, 10);
   });
   await step('burp timer: offered after a feed, play to start, stop saves it and starts sleep; undo reverses both', async () => {
     await act('nav:home'); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('babycentre.v1')); d.data.events.forEach(e => { if (e.type === 'feed') { e.start = e.end = new Date(Date.parse(e.start) - 2 * 36e5).toISOString(); } }); localStorage.setItem('babycentre.v1', JSON.stringify(d)); }); await page.reload();

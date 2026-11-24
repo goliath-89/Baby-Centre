@@ -2,6 +2,16 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.10.0] - 2026-11-24
+
+### Added
+- Growth tracker (`type: 'growth'` events with `wt`, `len`, `hc`, `note`) under More → Development tracker → Growth, with WHO Child Growth Standards percentiles (monthly LMS 0–24 months; `Core.growthPct`, `whoLms`, `lmsValue`) and SVG percentile-band charts.
+- `baby.sex` ('m'/'f'), synced and in the Excel Baby sheet; a Sex choice in the baby sheet.
+- Excel sheet Growth (Date, Weight, Length, Head, Notes, ID).
+
+### Changed
+- Growth and journal records are left out of the care timeline and the 24-hour bar.
+
 ## [1.9.0] - 2026-11-24
 
 ### Added

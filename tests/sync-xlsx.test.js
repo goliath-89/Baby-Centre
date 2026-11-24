@@ -74,12 +74,12 @@ const writeBook = s => Buffer.from(C.xlsxWrite(C.toSheets(s)));
 test('Excel: export then import gives back exactly the same log', async () => {
   const s = C.demoData(NOW); s.events.push({ id: 'cry1', type: 'cry', start: iso(NOW - H), actual: 'tired', why: ['x'], res: { top: 'hungry', probs: [['hungry', 0.6]], distress: 20, f0: 430, bursts: 4 } }, { id: 'bp1', type: 'burp', start: iso(NOW - 3 * H), end: iso(NOW - 3 * H + 7.5 * M) }, { id: 'sol', type: 'feed', kind: 'solids', start: iso(NOW - 2 * H), end: iso(NOW - 2 * H), note: 'Banana & "oats" <1>' });
   const book = await C.xlsxRead(new Uint8Array(writeBook(s)));
-  assert.deepEqual(Object.keys(book), ['Feeds', 'Sleep', 'Nappies', 'Burps', 'Tummy time', 'Cry checks', 'Milestones', 'Milestone journal', 'Baby', 'How to edit']);
+  assert.deepEqual(Object.keys(book), ['Feeds', 'Sleep', 'Nappies', 'Burps', 'Tummy time', 'Cry checks', 'Milestones', 'Milestone journal', 'Growth', 'Baby', 'How to edit']); assert.equal(book.Growth.length, 5, 'four sample measurements');
   assert.ok(book['Tummy time'].length > 2, 'sample tummy sessions exported'); assert.deepEqual([...book['Milestone journal'][0]], ['Date', 'Milestone', 'Notes', 'ID']); assert.equal(book['Milestone journal'].length, 4); assert.equal(book.Burps[1][2], 7.5);
   assert.equal(book.Feeds[0][0], 'Start'); assert.equal(typeof book.Feeds[1][0], 'number');
   const r = C.fromSheets(book, s, NOW);
   assert.deepEqual([...r.errors], []); assert.deepEqual(plain(r.next), plain(s)); assert.deepEqual({ ...r.next.milestones }, { ...s.milestones });
-  assert.equal(r.next.baby.name, 'Sample baby'); assert.equal(r.next.baby.dob, s.baby.dob);
+  assert.equal(r.next.baby.name, 'Sample baby'); assert.equal(r.next.baby.dob, s.baby.dob); assert.equal(r.next.baby.sex, 'm');
   assert.equal(C.stamp(clone(s), r.next, 5).filter(k => k !== 'baby').length, 0, 'an untouched file changes nothing');
 });
 test('Excel: a feed of a few seconds and a running feed survive the round trip untouched', async () => {
@@ -137,7 +137,7 @@ import openpyxl, sys, json, datetime
 wb = openpyxl.load_workbook(sys.argv[1]); ws = wb['Feeds']
 print(json.dumps({'sheets': wb.sheetnames, 'rows': ws.max_row, 'isdate': isinstance(ws['A2'].value, datetime.datetime), 'a2': ws['A2'].value.strftime('%Y-%m-%d %H:%M'), 'dob': wb['Baby']['B2'].value.strftime('%Y-%m-%d'), 'bold': ws['A1'].font.b}))`, f]).toString();
   const r = JSON.parse(out), feeds = C.sorted(s.events.filter(e => e.type === 'feed')), d = new Date(feeds[0].start), p = n => String(n).padStart(2, '0');
-  assert.equal(r.sheets.length, 10); assert.equal(r.rows, feeds.length + 1); assert.equal(r.isdate, true); assert.equal(r.bold, true); assert.equal(r.dob, s.baby.dob);
+  assert.equal(r.sheets.length, 11); assert.equal(r.rows, feeds.length + 1); assert.equal(r.isdate, true); assert.equal(r.bold, true); assert.equal(r.dob, s.baby.dob);
   assert.equal(r.a2, `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`);
 });
 test('Excel: edits made in a spreadsheet tool (compressed file, typed cells, text dates) import correctly', { skip: !has('python3 -c "import openpyxl"') }, async () => {
@@ -162,7 +162,7 @@ wb.save(sys.argv[2])`, f, g]);
   assert.equal(by('b1').ml, 150); assert.equal(by('b2'), undefined); assert.equal(by('n1').kind, 'dirty'); assert.ok(by('z1'), 'sleep kept');
   const br = ev.find(e => e.kind === 'breast'); assert.equal(new Date(br.start).getTime(), new Date(2026, 10, 12, 9, 15).getTime()); assert.equal(br.lsec, 420); assert.equal(br.rsec, 570); assert.equal(br.side, 'R');
   const so = ev.find(e => e.kind === 'solids'); assert.equal(so.note, 'Pear'); assert.equal(new Date(so.start).getTime(), new Date(2026, 10, 12, 10, 5).getTime());
-  assert.equal(r.next.milestones.m0a, '2026-11-01'); assert.deepEqual({ ...r.counts }, { feeds: 3, sleeps: 1, nappies: 1, cries: 0, burps: 0, tummy: 0, moments: 0, milestones: 1 });
+  assert.equal(r.next.milestones.m0a, '2026-11-01'); assert.deepEqual({ ...r.counts }, { feeds: 3, sleeps: 1, nappies: 1, cries: 0, burps: 0, tummy: 0, moments: 0, growth: 0, milestones: 1 });
   const dirty = C.stamp(clone(s), r.next, 99); assert.ok(dirty.includes('e_b2') && r.next.tombs.b2 === 99, 'deleted row becomes a tombstone for sync');
 });
 test('Excel: survives being opened and re-saved by LibreOffice', { skip: !has('soffice --version') }, async () => {

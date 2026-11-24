@@ -122,6 +122,16 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - Share with partner (5.8), Excel (5.9).
 - Backup: download a file or copy text; restore from file or pasted text.
 - Erase all data (two taps).
+- v1.9: More is a menu (Development tracker, Vaccinations, Settings). Settings holds the items above. Edits, deletes, restore and Stop sharing are confirmed with a list of what will change; simple toggles use Undo.
+
+### 5.7a Growth (v1.10)
+- More → Development tracker → Growth. Weight (kg), length (cm) and head circumference (cm), any combination, one entry per day; a second entry on the same day updates the first after a confirmation.
+- Tabs Weight, Length, Head and Summary. Each shows first, current and change, the latest percentile, a chart with the WHO 3rd–97th and 15th–85th bands and the median, and the list of measurements with their percentiles.
+- Percentiles use the WHO Child Growth Standards (LMS method, monthly values 0–24 months, boys and girls). Outside 0–24 months no percentile is shown.
+- The baby's sex is asked once (owner) and can be changed in Settings → Baby.
+- Validation: dates from birth to today; weight 0.8–25 kg (a number above 100 is read as grams), length 30–110 cm, head 20–56 cm.
+- A note appears when the latest point has crossed two percentile lines since the previous one.
+- Partners can add, edit and delete measurements. Measurements sync and appear in Excel (sheet Growth) and backups; they are not shown in the care timeline.
 
 ### 5.8 Share with partner (v1.1)
 **What the user gets.** Both phones hold the same log: entries, running timers, milestones and the baby profile. A feed started on one phone shows as a live timer on the other and can be switched or stopped from either. Units and appearance stay per phone.
@@ -167,7 +177,7 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 
 ## 6. Design principles
 - **Thumb first**: every logging action sits in the bottom third; targets are at least 44 px.
-- **Fewest taps**: no confirmation dialogs. Every change shows a 6 second Undo instead.
+- **Fewest taps**: logging never asks for confirmation; every change shows a 6 second Undo. Edits, deletes and restores of saved records are confirmed (v1.9).
 - **Glanceable**: durations are large; predictions are written as clock times.
 - **Night friendly**: dark theme follows the phone; colour is used for meaning (amber feed, indigo sleep, teal nappy, rose cry).
 - **Honest**: sample data is labelled; predictions say whether they come from the baby's own pattern or from age norms.
@@ -183,6 +193,6 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 ## 8. Roadmap
 1. Train and ship an on-device cry classifier (for example on the Donate-a-Cry corpus), validated against held-out recordings.
 2. Feed and sleep reminders.
-3. Growth log with WHO percentile curves.
+3. Doctor's appointments (v1.11) and KKM vaccinations (v1.12).
 4. Multiple babies; sign-in and encryption for the shared log; sharing without the user creating a database.
 5. Pumping and medication logs.

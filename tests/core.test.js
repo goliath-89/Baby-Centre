@@ -156,6 +156,16 @@ test('confirmed reasons count toward their sound-based cause in the overall tall
   const ev = [{ id: 'c1', type: 'cry', start: iso(NOW - H), actual: 'overtired' }, { id: 'c2', type: 'cry', start: iso(NOW - H), actual: 'x:wanted-mum', actualText: 'Wanted Mum' }];
   const c = C.cryContext(ev, DOB, NOW); assert.equal(c.counts.tired, 1); assert.equal(Object.keys(c.counts).length, 1);
 });
+test('WHO growth percentiles match the published standards', () => {
+  const d = m => m * 30.4375, near = (a, b, tol) => Math.abs(a - b) <= tol;
+  assert.ok(near(C.growthPct('wfa', 'm', d(12), 9.6479).p, 50, 0.5), 'median boy at 12 months');
+  assert.ok(near(C.growthPct('wfa', 'm', d(12), 7.85).p, 3, 0.5) && near(C.growthPct('wfa', 'm', d(12), 11.83).p, 97, 0.5), 'P3 and P97 at 12 months (WHO chart: 7.8 / 11.8 kg)');
+  assert.ok(near(C.growthPct('lhfa', 'm', 0, 49.8842).p, 50, 0.5) && near(C.growthPct('hcfa', 'm', 0, 34.4618).p, 50, 0.5));
+  assert.ok(near(C.growthPct('wfa', 'f', 0, 3.2322).p, 50, 0.5), 'girls use their own table'); assert.ok(C.growthPct('wfa', 'f', 0, 3.3464).p > 55);
+  const p15 = C.lmsValue(C.PCT_Z[1][1], C.whoLms('wfa', 'm', d(6))); assert.ok(near(C.growthPct('wfa', 'm', d(6), p15).p, 15, 0.1), 'lmsValue and growthPct agree');
+  assert.equal(C.growthPct('wfa', 'm', d(25), 12), null, 'beyond 24 months: no percentile'); assert.equal(C.growthPct('wfa', 'm', d(6), 0), null);
+  assert.ok(C.growthPct('wfa', 'm', d(6), 3).p < 0.1 && C.growthPct('wfa', 'm', d(6), 13).p > 99.9, 'extremes stay in range');
+});
 test('backup round trip keeps everything; bad or newer backups are refused', () => {
   const d = C.demoData(NOW), back = C.migrate(JSON.parse(JSON.stringify({ schemaVersion: C.SCHEMA, data: d })));
   assert.equal(back.events.length, d.events.length); assert.equal(back.baby.name, 'Sample baby'); assert.equal(Object.keys(back.milestones).length, 6);

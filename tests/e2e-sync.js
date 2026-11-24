@@ -84,6 +84,16 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     await B.go('milestones'); await B.act('ms:m0a'); await A.go('milestones'); await A.until(() => document.querySelector('#ms-count')?.textContent === '1 of 12', null, 3000);
     await A.go('more'); await A.act('profile-open'); await A.page.fill('#f-name', 'Mia Rose'); await A.act('save-profile'); await B.go('home'); await B.until(() => document.querySelector('#top h1').textContent === 'Mia Rose', null, 3000);
   });
+  await step('growth: the partner adds and edits measurements; the owner sets boy or girl; both phones see the same', async () => {
+    const sub = async (P, v) => { await P.page.click('[data-action="nav:more"]'); await P.page.click('[data-action="sub:dev"]'); if (v) await P.page.click('[data-action="sub:growth"]'); };
+    await sub(B, 1); ok((await B.text('#g-sex')).includes('Ask the owner'), 'partner cannot set sex'); eq(await B.page.locator('[data-action^="gsex:"]').count(), 0);
+    await B.page.click('[data-action="growth-new"]'); await B.page.fill('#f-gwt', '4.5'); await B.page.click('[data-action="growth-save"]');
+    await sub(A, 1); await A.until(() => /4\.5 kg/.test(document.querySelector('#view').textContent), null, 3000); await A.page.click('[data-action="gsex:m"]');
+    await B.until(() => !document.querySelector('#g-sex') && /percentile: /.test(document.querySelector('#g-pct').textContent), null, 3000);
+    await B.page.locator('[data-action^="growth-edit:"]').first().click(); await B.page.fill('#f-gwt', '4.6'); await B.page.click('[data-action="growth-save"]'); await B.page.click('#confirm-yes');
+    await A.until(() => /4\.6 kg/.test(document.querySelector('#view').textContent), null, 3000);
+    await A.go('more'); await B.go('home');
+  });
   await step('units and appearance stay per phone', async () => {
     await A.act('units:oz'); await B.page.waitForTimeout(700); eq((await B.stored()).settings.units, 'ml'); await A.act('units:ml');
   });
@@ -105,7 +115,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await step('Excel export downloads a workbook with every sheet', async () => {
     await A.go('more'); const [dl] = await Promise.all([A.page.waitForEvent('download'), A.act('xl-export')]); ok(/^baby-centre-\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     await dl.saveAs(xlsx); ok(fs.statSync(xlsx).size > 2000); ok((await A.text('#snack')).includes('Excel file saved'));
-    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Baby,How to edit 4 5'); }
+    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Baby,How to edit 4 5'); }
   });
   await step('Excel import: edited file updates this phone and the partner; undo restores both', async () => {
     if (!hasPy) return;
