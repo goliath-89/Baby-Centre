@@ -133,6 +133,17 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - **Add measurements** from a past appointment opens the growth form dated on the visit.
 - Edits list what changed and ask first; deletes ask first with Undo. Partners can add, edit and delete. Synced, in backups and in the Excel sheet Appointments.
 
+### 5.7c Vaccinations (v1.12)
+- More → Vaccinations. Four tabs: Schedule, Given, Card and KKM chart.
+- **Schedule** follows the KKM National Immunisation Programme for Peninsular Malaysia: BCG and Hepatitis B at birth; DTaP-IPV-Hep B-Hib at 2, 3 and 5 months with a booster at 18 months; Pneumococcal (PCV) at 4 and 6 months with a booster at 15 months; MMR at 9 and 12 months; DT at 7 years; TT at 15 years; HPV at 13 years for girls. Measles at 6 months (Sabah only) and JE (Sarawak only) are left out. Due dates are counted in calendar months from birth.
+- Each dose shows Given (with date and place), Due now (from 2 weeks before to 4 weeks after the due date), Due soon (2–4 weeks ahead), Overdue (more than 4 weeks late) or its due date. A summary shows doses given, a progress bar, the next dose and any overdue doses.
+- Recording a dose: date given (birth to today), where, batch number and notes. Each KKM dose can be recorded once; tapping it again opens the record. Edits list what changed and ask first; deletes ask first and can be undone.
+- **Optional vaccines** (Rotavirus, Influenza, Chickenpox, Hepatitis A, Meningococcal, or any other by name) are marked "Optional · not in the national programme", with a short note on when each is usually given.
+- **Card**: up to 6 photos of the vaccination card, shrunk to JPEG under 200,000 characters, with an optional label. On the hosted page each photo is stored in its own document to stay under the store's 256 KiB document limit. Kept in backups, shared with the partner, not in Excel.
+- **KKM chart**: the official schedule image (source: Ministry of Health Malaysia), a link to the official page, what each vaccine protects against and the optional vaccines.
+- **From an appointment**: Record vaccines on a past visit opens the schedule with the visit's date and place filled in. The visit summary lists the vaccines given that day, or for an upcoming visit the KKM doses due around it.
+- Partners can add, edit and delete. Excel sheet Vaccinations: Date given, Vaccine, Dose, Programme, Where, Batch, Notes, ID. A KKM vaccine and dose that match the schedule import as that dose; any other name imports as optional.
+
 ### 5.7a Growth (v1.10)
 - More → Development tracker → Growth. Weight (kg), length (cm) and head circumference (cm), any combination, one entry per day; a second entry on the same day updates the first after a confirmation.
 - Tabs Weight, Length, Head and Summary. Each shows first, current and change, the latest percentile, a chart with the WHO 3rd–97th and 15th–85th bands and the median, and the list of measurements with their percentiles.
@@ -202,6 +213,6 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 ## 8. Roadmap
 1. Train and ship an on-device cry classifier (for example on the Donate-a-Cry corpus), validated against held-out recordings.
 2. Feed and sleep reminders.
-3. KKM vaccinations (v1.12).
+3. Temperature and medication logs.
 4. Multiple babies; sign-in and encryption for the shared log; sharing without the user creating a database.
 5. Pumping and medication logs.

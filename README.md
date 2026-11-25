@@ -81,6 +81,7 @@ npm run test:sync    # two phones against mock sync backends
 ```
 - `index.html`: the whole app. `<script id="core">` is pure logic; `<script id="app-js">` is the UI.
 - `sw.js`, `manifest.webmanifest`, `icon-*.png`: install and offline support. Bump `CACHE` in `sw.js` on each release.
+- `kkm-immunisation-schedule.webp`: the official KKM schedule shown under Vaccinations. Publish it next to the page when hosting.
 - `docs/PRD.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`: requirements, change log, release notes.
 - Before each release run `node scripts/stamp-build.js`; it writes the build time and the release notes into `index.html` for More → About.
 

@@ -123,7 +123,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await step('Excel export downloads a workbook with every sheet', async () => {
     await A.go('more'); const [dl] = await Promise.all([A.page.waitForEvent('download'), A.act('xl-export')]); ok(/^baby-centre-\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     await dl.saveAs(xlsx); ok(fs.statSync(xlsx).size > 2000); ok((await A.text('#snack')).includes('Excel file saved'));
-    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Appointments,Baby,How to edit 4 5'); }
+    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Appointments,Vaccinations,Baby,How to edit 4 5'); }
   });
   await step('Excel import: edited file updates this phone and the partner; undo restores both', async () => {
     if (!hasPy) return;
@@ -216,6 +216,18 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     await CB.act('sleep-toggle'); await CA.go('home'); await CA.page.waitForSelector('.live.sleep', { timeout: 3000 }); await CA.act('diaper-open'); await CA.act('diaper:wet'); await CB.untilRows(3, 3000);
     await CA.page.locator('#view .row', { hasText: 'Nappy' }).click(); await CA.act('delete'); await CB.untilRows(2, 3000);
     await CB.page.reload(); await CB.untilRows(2); await CA.act('sleep-toggle'); await CB.until(() => !document.querySelector('.live.sleep'), null, 4000);
+  });
+  await step('hosted page: vaccine doses and card photos sync; each photo is stored in its own document, under the size limit', async () => {
+    const vax = async P => { await P.page.click('[data-action="nav:more"]'); await P.page.click('[data-action="sub:vax"]'); };
+    await vax(CB); await CB.page.click('[data-action="vax-open:bcg"]'); await CB.page.fill('#f-vwhere', 'Hospital'); await CB.page.click('[data-action="vax-save"]');
+    await vax(CA); await CA.until(() => document.querySelectorAll('.vst.given').length === 1, null, 4000);
+    const big = require('path').join(__dirname, '..', 'kkm-immunisation-schedule.webp');
+    for (let i = 0; i < 3; i++) { await CA.page.click('[data-action="vtab:card"]'); await CA.page.setInputFiles('#card-file', big); await CA.page.waitForFunction(n => document.querySelectorAll('#vax-cards img').length === n, i + 1); }
+    await CB.page.click('[data-action="vtab:card"]'); await CB.until(() => document.querySelectorAll('#vax-cards img').length === 3, null, 6000);
+    const pd = Object.keys(mock.docs).filter(k => /^p_vcard_/.test(k)); eq(pd.length, 3, Object.keys(mock.docs).join()); ok(pd.every(k => JSON.stringify(mock.docs[k]).length < 262144));
+    await CB.page.click('#vax-cards .vcard'); await CB.page.click('[data-action="card-delete"]'); await CB.page.click('#confirm-yes'); await CA.until(() => document.querySelectorAll('#vax-cards img').length === 2, null, 4000);
+    eq(await CA.page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data.events.filter(e => e.type === 'vcard').length), 2);
+    await CA.go('home'); await CB.go('home');
   });
   await step('hosted page: a view-only visitor sees the log but is told they cannot save', async () => {
     await CV.page.reload(); await CV.until(() => document.querySelector('#top h1').textContent === 'Noah'); await CV.untilRows(2);

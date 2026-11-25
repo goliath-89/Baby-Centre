@@ -24,8 +24,8 @@ function start(staticHandler) {
         }
         if (m.op === 'get') out = { exists: !!docs[m.id], data: docs[m.id] || null };
         else if (m.level === 'view') out = { error: 'invalid_argument' };
-        else if (m.op === 'update') { if (!docs[m.id]) out = { error: 'invalid_argument' }; else Object.assign(docs[m.id], m.fields); }
-        else if (m.op === 'set') docs[m.id] = m.fields;
+        else if (m.op === 'update') { if (!docs[m.id]) out = { error: 'invalid_argument' }; else if (JSON.stringify(Object.assign({}, docs[m.id], m.fields)).length > 262144) out = { error: 'invalid_argument' }; else Object.assign(docs[m.id], m.fields); }
+        else if (m.op === 'set') { if (JSON.stringify(m.fields).length > 262144) out = { error: 'invalid_argument' }; else docs[m.id] = m.fields; } // the real store refuses documents over 256 KiB
         if (out.ok) { state.writes++; docStreams.forEach(s => send(s, 'docs', docs)); }
         res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(out));
       }

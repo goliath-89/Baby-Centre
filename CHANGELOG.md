@@ -2,6 +2,17 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.12.0] - 2026-11-25
+
+### Added
+- Vaccinations (`type: 'vax'` events with `key` (KKM dose, `o:` optional or `x:` custom), `name`, `dose`, `where`, `batch`, `note`) under More → Vaccinations: KKM Peninsular schedule (`Core.VAX`, `addMonths`, `vaxStatus`), Given list, optional vaccines (`VAX_OPT`), KKM chart tab with the official image (`kkm-immunisation-schedule.webp`, cached offline) and link.
+- Vaccination card photos (`type: 'vcard'`, ids `vcard_…`, JPEG under 200,000 characters via `readCard`/`okCard`); on the hosted store each goes to its own document `p_vcard_…`.
+- Record vaccines from a past appointment; visit summary lists vaccines given or due.
+- Excel sheet Vaccinations; `vaxKey` maps names to KKM doses on import. Card photos are kept on import.
+
+### Tests
+- The fake hosted store refuses documents over 256 KiB, like the real one.
+
 ## [1.11.0] - 2026-11-25
 
 ### Added

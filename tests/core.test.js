@@ -180,3 +180,16 @@ test('sample data is a realistic, finished week', () => {
   assert.equal(new Set(d.events.map(e => e.id)).size, d.events.length);
   assert.ok(d.events.some(e => e.type === 'appt' && new Date(e.start).getTime() > NOW), 'one upcoming sample appointment');
 });
+
+test('KKM vaccination schedule: due dates by calendar month, status windows, sex filter, names', () => {
+  const day = t => { const d = new Date(t); return [d.getFullYear(), d.getMonth() + 1, d.getDate()]; };
+  assert.deepEqual(day(C.addMonths('2026-01-31', 1)), [2026, 2, 28], 'end of month clamps'); assert.deepEqual(day(C.addMonths('2026-09-16', 3)), [2026, 12, 16]); assert.deepEqual(day(C.addMonths('2026-09-16', 84)), [2033, 9, 16]);
+  const now = new Date(2026, 10, 25, 13).getTime(), D = 864e5;
+  assert.equal(C.vaxStatus(now + 40 * D, null, now), 'later'); assert.equal(C.vaxStatus(now + 20 * D, null, now), 'soon'); assert.equal(C.vaxStatus(now + 10 * D, null, now), 'due');
+  assert.equal(C.vaxStatus(now - 28 * D, null, now), 'due'); assert.equal(C.vaxStatus(now - 29 * D, null, now), 'overdue'); assert.equal(C.vaxStatus(now - 99 * D, { id: 1 }, now), 'given');
+  assert.equal(C.vaxList('m').length, 13); assert.equal(C.vaxList('f').length, 14); assert.ok(C.vaxList('m').every(v => v[0] !== 'hpv'));
+  assert.ok(!C.VAX.some(v => /measles|je/i.test(v[1])), 'Sabah/Sarawak-only vaccines are not in the Peninsular list');
+  assert.deepEqual(C.vaxName({ key: 'pcvb' }), { name: 'Pneumococcal (PCV)', dose: 'Booster', opt: false }); assert.equal(C.vaxName({ key: 'o:flu', dose: 'Dose 2' }).name, 'Influenza (flu)'); assert.equal(C.vaxName({ key: 'x:dengue', name: 'Dengue' }).opt, true);
+  assert.equal(C.vaxKey('MMR', 'dose 2'), 'mmr2'); assert.equal(C.vaxKey('hepatitis a', ''), 'o:hepa'); assert.equal(C.vaxKey('BCG', 'Dose 9'), 'x:bcg');
+  assert.ok(C.okCard('data:image/jpeg;base64,AAAA')); assert.ok(!C.okCard('data:image/png;base64,AAAA')); assert.ok(!C.okCard('data:image/jpeg;base64,' + 'A'.repeat(200000)));
+});

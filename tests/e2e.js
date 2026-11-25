@@ -11,7 +11,7 @@ writeWav(CRY, makeCry({ f0: 600, burst: 2.6, pause: 0.2, harsh: 0.35, dur: 5.6 }
 writeWav(QUIET, new Float32Array(48000 * 6), 48000);
 // A short video with the cry as its sound track, as an iPhone 'Take Video' would give (WebM here: the test browser has no AAC/H.264).
 const VIDEO = (() => { try { const v = path.join(TMP, 'cry.webm'); require('child_process').execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=gray:s=160x120:d=5.6', '-i', CRY, '-c:v', 'libvpx', '-c:a', 'libopus', '-shortest', '-y', v]); return v; } catch (e) { return ''; } })();
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.webp': 'image/webp', '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split(/[?#]/)[0] === '/' ? 'index.html' : q.url.split(/[?#]/)[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); });
 let passed = 0; const fails = [];
 async function step(name, fn) { try { await fn(); passed++; console.log('  ok  ' + name); } catch (e) { fails.push(name); if (global.__page && process.env.FAILSHOT) await global.__page.screenshot({ path: process.env.FAILSHOT + '/fail-' + fails.length + '.png' }).catch(() => {}); console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 4).join(' / ')); } }
@@ -174,6 +174,32 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.locator('#appt-past .row').first().click(); await go('appt-delete'); await page.click('#confirm-yes'); ok((await text('#appt-past')).includes('No past')); await act('undo'); ok((await text('#appt-past')).includes('Dr Lim'), 'undo');
     for (const id of ['#appt-past', '#appt-up']) { await page.locator(id + ' .row').first().click(); await go('appt-delete'); await page.click('#confirm-yes'); }
     await noOverflow('appointments'); await go('aview:cal'); await go('nav:home'); eq(await page.locator('#appt-banner').count(), 0);
+  });
+  await step('vaccinations: KKM schedule with status, record and edit a dose, optional and custom vaccines, card photo, KKM chart and link, record from a visit', async () => {
+    const go = async a => page.click(`[data-action="${a}"]`), ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const yst = ymd(new Date(Date.now() - 864e5));
+    await go('nav:more'); ok(/0 of 14 KKM doses given/.test(await text('#view')), 'girl: 14 doses incl. HPV'); await go('sub:vax'); eq(await text('#top h1'), 'Vaccinations');
+    ok((await text('#view')).includes('HPV'), 'HPV listed for a girl'); ok(!(await page.locator('#view .row .ti').allInnerTexts()).some(t => /^(Measles|JE)\b/.test(t)), 'no Sabah/Sarawak-only vaccines');
+    await go('vax-open:bcg'); ok((await text('#vax-info')).includes('tuberculosis')); await page.fill('#f-vday', '2020-01-01'); await go('vax-save'); ok((await text('.sheet')).includes('before your baby was born'));
+    await page.fill('#f-vday', '2099-01-01'); await go('vax-save'); ok((await text('.sheet')).includes('in the future'));
+    await page.fill('#f-vday', yst); await page.fill('#f-vwhere', 'Hospital Ampang'); await go('vax-save'); ok((await text('#snack')).includes('Recorded: BCG single dose'));
+    ok((await text('#vax-sum')).includes('1 of 14')); ok(/BCG · Single dose\s*\n?.*Given/.test(await text('#view')) || (await page.locator('.vst.given').count()) === 1, 'shown as given');
+    await go('vax-open:bcg'); eq(await page.locator('[data-action="vax-delete"]').count(), 1, 'opens the record'); await page.fill('#f-vbatch', 'X1'); await go('vax-save'); ok((await text('#confirm-lines')).includes('Batch: none → X1')); await page.click('#confirm-yes');
+    await go('vax-opt'); await go('vax-save'); ok((await text('.sheet')).includes('Choose the vaccine')); await go('vopt:x'); await go('vax-save'); ok((await text('.sheet')).includes('name of the vaccine'));
+    await page.fill('#f-vname', 'Dengue'); await page.fill('#f-vdose', 'Dose 1'); await go('vax-save'); await go('vtab:given'); ok(/Dengue · Dose 1[\s\S]*Optional/.test(await text('#vax-given')), await text('#vax-given'));
+    await go('vtab:card'); await page.setInputFiles('#card-file', path.join(ROOT, 'icon-512.png')); await page.waitForSelector('#vax-cards img'); ok((await page.getAttribute('#vax-cards img', 'src')).startsWith('data:image/jpeg'));
+    await page.click('#vax-cards .vcard'); await page.fill('#f-cnote', 'Page 2'); await go('card-save'); ok((await text('#vax-cards')).includes('Page 2'));
+    await page.click('#vax-cards .vcard'); await go('card-delete'); await page.click('#confirm-yes'); eq(await page.locator('#vax-cards img').count(), 0); await act('undo'); eq(await page.locator('#vax-cards img').count(), 1, 'undo brings the photo back');
+    await go('vtab:kkm'); await page.waitForFunction(() => document.getElementById('kkm-img').naturalWidth > 1000); ok((await page.getAttribute('#kkm-link', 'href')).startsWith('https://www.malaysia.gov.my/')); await shot('29-kkm');
+    await go('sub:'); await go('sub:dev'); await go('sub:appts'); await go('aday:' + yst); await go('appt-new'); await page.fill('#f-aplace', 'KK Ampang'); await go('appt-save');
+    await page.locator('#appt-day .row').first().click(); await go('appt-vax'); ok((await text('#vax-visit')).includes('KK Ampang')); await go('vax-open:hepb0'); eq(await page.inputValue('#f-vday'), yst); eq(await page.inputValue('#f-vwhere'), 'KK Ampang'); await go('vax-save'); await go('vax-visit-done');
+    await go('sub:'); await go('sub:dev'); await go('sub:appts'); await go('aday:' + yst); await page.locator('#appt-day .row').first().click(); await go('appt-copy');
+    ok(/Vaccines given\n- BCG \(single dose\), batch X1\n- Hepatitis B \(birth dose\)/.test(await page.evaluate(() => navigator.clipboard.readText())), await page.evaluate(() => navigator.clipboard.readText()));
+    await go('appt-delete'); await page.click('#confirm-yes');
+    // tidy up so later steps see the same log as before
+    await go('sub:dev'); await go('sub:'); await go('sub:vax'); await go('vtab:card'); await page.click('#vax-cards .vcard'); await go('card-delete'); await page.click('#confirm-yes'); await go('vtab:given');
+    while (await page.locator('#vax-given .row').count()) { await page.locator('#vax-given .row').first().click(); await go('vax-delete'); await page.click('#confirm-yes'); }
+    await noOverflow('vaccinations'); await go('vtab:sched'); await go('nav:home');
   });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
     eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));

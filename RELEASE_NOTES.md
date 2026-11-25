@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.12.0 · 25 November 2026
+
+Stage 4 of the new More section: **Vaccinations**.
+
+- **More → Vaccinations** follows the KKM National Immunisation Schedule for Peninsular Malaysia. Every dose is listed by age, with its due date from your baby's birthday and a status: **Given**, **Due now**, **Due soon** or **Overdue**. The top shows how many doses are done and what is next.
+- **Record a dose** with one tap: date given, where, batch number and notes. Tap it again to change or delete it (both ask first).
+- **Optional vaccines** such as Rotavirus, Flu, Chickenpox, Hepatitis A and Meningococcal, or any other by name, are clearly marked "Optional · not in the national programme".
+- **Card photos**: keep up to 6 photos of the vaccination card (the pink or blue book). They are shared with your partner and kept in backups.
+- **KKM chart**: the official schedule from the Ministry of Health, a link to the official page, and what each vaccine protects against.
+- **From an appointment**: **Record vaccines** on a past visit fills in its date and clinic. The visit summary now lists the vaccines given at that visit, or the ones due around an upcoming visit.
+- Your partner can record, edit and delete vaccines too. They are in Excel (new **Vaccinations** sheet); card photos are not.
+
 ## 1.11.0 · 25 November 2026
 
 Stage 3 of the new More section: **Appointments**.
