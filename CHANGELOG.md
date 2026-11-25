@@ -2,6 +2,17 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.11.0] - 2026-11-25
+
+### Added
+- Appointments (`type: 'appt'` events with `place`, `doctor`, `reason`, `qs`, `note`) under More → Development tracker → Appointments: month calendar (Mon-first) and list views, next-appointment card, Questions shortcut, Home reminder for today/tomorrow, confirmed edits and deletes.
+- Copyable visit summary (`visitSummary`) with growth percentiles and 7-day averages from `dailyStats`; fallback sheet when the clipboard is blocked.
+- Excel sheet Appointments (Date and time, Place, Doctor, Reason, Questions, Notes, ID); future dates allowed up to two years (`APPT_AHEAD`).
+- Two sample appointments (one past, one upcoming).
+
+### Changed
+- Restore counts only care entries; appointments are left out of the care timeline and bar.
+
 ## [1.10.0] - 2026-11-24
 
 ### Added

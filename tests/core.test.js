@@ -175,7 +175,8 @@ test('backup round trip keeps everything; bad or newer backups are refused', () 
 });
 test('sample data is a realistic, finished week', () => {
   const d = C.demoData(NOW), st = C.dailyStats(d.events, NOW, 7);
-  assert.ok(d.events.every(e => new Date(e.start).getTime() <= NOW && (e.end === undefined || e.end)));
+  assert.ok(d.events.every(e => e.type === 'appt' || new Date(e.start).getTime() <= NOW && (e.end === undefined || e.end)));
   for (const s of st.slice(1, 6)) { assert.ok(s.feeds >= 5 && s.feeds <= 12, 'feeds ' + s.feeds); assert.ok(s.sleepMs > 11 * H && s.sleepMs < 18 * H, 'sleep ' + s.sleepMs / H); }
   assert.equal(new Set(d.events.map(e => e.id)).size, d.events.length);
+  assert.ok(d.events.some(e => e.type === 'appt' && new Date(e.start).getTime() > NOW), 'one upcoming sample appointment');
 });

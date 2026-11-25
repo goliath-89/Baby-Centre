@@ -124,6 +124,15 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - Erase all data (two taps).
 - v1.9: More is a menu (Development tracker, Vaccinations, Settings). Settings holds the items above. Edits, deletes, restore and Stop sharing are confirmed with a list of what will change; simple toggles use Undo.
 
+### 5.7b Doctor's appointments (v1.11)
+- More → Development tracker → Appointments. Each appointment has a date and time, reason, place, doctor, questions to ask (one per line) and notes on what was discussed. At least one of reason, place or doctor is needed. Dates run from birth to two years ahead.
+- **Calendar** (month grid, Monday first, dots on days with appointments, today ringed, tap a day to see its appointments and add one on that day) and **List** (upcoming soonest first, past newest first). A card shows the next appointment.
+- **Questions** opens the next appointment's questions; if there is none, a new appointment for tomorrow.
+- **Home reminder** for an appointment today or tomorrow; tapping it opens the appointment.
+- **Copy visit summary**: plain text with the baby's age, when and where, reason, questions, latest growth with percentiles (up to the visit), daily averages for feeds, sleep and nappies over the complete days before the visit (or before today for an upcoming one), and notes. If the clipboard is blocked, the text is shown to select.
+- **Add measurements** from a past appointment opens the growth form dated on the visit.
+- Edits list what changed and ask first; deletes ask first with Undo. Partners can add, edit and delete. Synced, in backups and in the Excel sheet Appointments.
+
 ### 5.7a Growth (v1.10)
 - More → Development tracker → Growth. Weight (kg), length (cm) and head circumference (cm), any combination, one entry per day; a second entry on the same day updates the first after a confirmation.
 - Tabs Weight, Length, Head and Summary. Each shows first, current and change, the latest percentile, a chart with the WHO 3rd–97th and 15th–85th bands and the median, and the list of measurements with their percentiles.
@@ -193,6 +202,6 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 ## 8. Roadmap
 1. Train and ship an on-device cry classifier (for example on the Donate-a-Cry corpus), validated against held-out recordings.
 2. Feed and sleep reminders.
-3. Doctor's appointments (v1.11) and KKM vaccinations (v1.12).
+3. KKM vaccinations (v1.12).
 4. Multiple babies; sign-in and encryption for the shared log; sharing without the user creating a database.
 5. Pumping and medication logs.

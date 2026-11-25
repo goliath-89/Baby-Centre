@@ -94,6 +94,14 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     await A.until(() => /4\.6 kg/.test(document.querySelector('#view').textContent), null, 3000);
     await A.go('more'); await B.go('home');
   });
+  await step('appointments: the partner adds one, the owner adds notes, both phones see the same', async () => {
+    const open = async P => { await P.page.click('[data-action="nav:more"]'); await P.page.click('[data-action="sub:dev"]'); await P.page.click('[data-action="sub:appts"]'); await P.page.click('[data-action="aview:list"]'); };
+    await B.page.click('[data-action="nav:home"]'); await open(B); await B.page.click('[data-action="appt-new"]'); await B.page.fill('#f-areason', 'Hearing test'); await B.page.click('[data-action="appt-save"]');
+    await A.page.click('[data-action="nav:home"]'); await open(A); await A.until(() => /Hearing test/.test(document.querySelector('#view').textContent), null, 3000);
+    await A.page.locator('#view .row', { hasText: 'Hearing test' }).click(); await A.page.fill('#f-anote', 'Passed both ears'); await A.page.click('[data-action="appt-save"]'); await A.page.click('#confirm-yes');
+    await B.until(() => /Passed both ears/.test(document.querySelector('#view').textContent), null, 3000);
+    await A.go('more'); await B.go('home');
+  });
   await step('units and appearance stay per phone', async () => {
     await A.act('units:oz'); await B.page.waitForTimeout(700); eq((await B.stored()).settings.units, 'ml'); await A.act('units:ml');
   });
@@ -115,7 +123,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await step('Excel export downloads a workbook with every sheet', async () => {
     await A.go('more'); const [dl] = await Promise.all([A.page.waitForEvent('download'), A.act('xl-export')]); ok(/^baby-centre-\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     await dl.saveAs(xlsx); ok(fs.statSync(xlsx).size > 2000); ok((await A.text('#snack')).includes('Excel file saved'));
-    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Baby,How to edit 4 5'); }
+    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Appointments,Baby,How to edit 4 5'); }
   });
   await step('Excel import: edited file updates this phone and the partner; undo restores both', async () => {
     if (!hasPy) return;

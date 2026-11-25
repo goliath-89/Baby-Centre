@@ -14,7 +14,7 @@ const VIDEO = (() => { try { const v = path.join(TMP, 'cry.webm'); require('chil
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split(/[?#]/)[0] === '/' ? 'index.html' : q.url.split(/[?#]/)[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); r.end(d); } }); });
 let passed = 0; const fails = [];
-async function step(name, fn) { try { await fn(); passed++; console.log('  ok  ' + name); } catch (e) { fails.push(name); console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 4).join(' / ')); } }
+async function step(name, fn) { try { await fn(); passed++; console.log('  ok  ' + name); } catch (e) { fails.push(name); if (global.__page && process.env.FAILSHOT) await global.__page.screenshot({ path: process.env.FAILSHOT + '/fail-' + fails.length + '.png' }).catch(() => {}); console.log('  FAIL ' + name + '\n       ' + String(e.message).split('\n').slice(0, 4).join(' / ')); } }
 function eq(a, b, m) { if (a !== b) throw new Error((m || 'expected') + ': ' + JSON.stringify(b) + ', got ' + JSON.stringify(a)); }
 function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
 
@@ -31,6 +31,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   const rows = () => page.locator('#view .row').count();
   const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data);
   const noOverflow = async n => { const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); ok(o <= 0, n + ' scrolls sideways by ' + o + 'px'); };
+  global.__page = page;
   const shot = async n => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, n + '.png'), fullPage: false }); };
   const dob = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
 
@@ -150,6 +151,29 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await page.locator('[data-action^="growth-edit:"]').first().click(); await go('growth-delete'); await page.click('#confirm-yes'); ok((await text('#snack')).includes('deleted')); await act('undo'); ok((await text('#view')).includes('4.2 kg'), 'undo delete');
     await go('sub:dev'); ok(/Latest 4\.2 kg/.test(await text('#dev-growth')), await text('#dev-growth')); await go('sub:'); eq(await text('#top h1'), 'More');
     await go('nav:home'); ok(!(await text('#view')).includes('Growth'), 'not in the care timeline'); await noOverflow('growth');
+  });
+  await step('appointments: calendar and list, questions, validation, Home reminder, confirmed edits, copyable visit summary, measurements from a visit, delete', async () => {
+    const go = async a => page.click(`[data-action="${a}"]`), ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const tom = new Date(Date.now() + 864e5), yst = new Date(Date.now() - 864e5);
+    await go('nav:more'); await go('sub:dev'); await go('sub:appts'); eq(await text('#top h1'), 'Appointments'); ok((await text('#appt-day')).includes('No appointments'));
+    const m0 = await text('#cal-month'); await go('amonth:1'); ok(await text('#cal-month') !== m0, 'next month'); await go('amonth:-1'); eq(await text('#cal-month'), m0);
+    await go('appt-qs'); ok((await text('#snack')).includes('Add it first')); eq(await page.inputValue('#f-aday'), ymd(tom)); eq(await page.evaluate(() => document.activeElement.id), 'f-aqs');
+    await page.fill('#f-aqs', 'Fever after vaccines?\nHow much milk?'); await go('appt-save'); ok((await text('.sheet')).includes('reason, place or doctor'), 'needs a reason, place or doctor');
+    await page.fill('#f-areason', '2-month vaccines'); await page.fill('#f-aplace', 'KK Bangsar'); await page.fill('#f-atime', '10:30'); await go('appt-save'); ok((await text('#snack')).includes('Appointment saved'));
+    ok((await text('#appt-next')).includes('tomorrow') && (await text('#appt-next')).includes('2-month vaccines'), await text('#appt-next')); ok((await text('#appt-day')).includes('2 questions to ask'), await text('#appt-day'));
+    eq(await page.locator('.cd i').count() >= 1, true, 'dot on the day'); await shot('28-appointments');
+    await go('nav:home'); ok(/Tomorrow, 10:30/.test(await text('#appt-banner')), await text('#appt-banner')); await page.click('#appt-banner');
+    await page.fill('#f-anote', 'Bring the pink book'); await go('appt-save'); ok((await text('#confirm-lines')).includes('Notes changed')); await page.click('#confirm-yes'); ok((await text('#snack')).includes('updated'));
+    await page.click('#appt-banner'); await go('appt-save'); ok((await text('#snack')).includes('No changes'));
+    await page.click('#appt-banner'); await go('appt-copy'); const sum = await page.evaluate(() => navigator.clipboard.readText());
+    ok(/^Visit summary: Mia/.test(sum) && sum.includes('KK Bangsar') && sum.includes('- Fever after vaccines?') && sum.includes('Notes\nBring the pink book') && !/Daily average/.test(sum), sum); await act('sheet-close'); // no complete day was logged before today, so no daily average
+    await go('nav:more'); await go('sub:dev'); ok(/^Next: Tomorrow/.test(await text('#dev-appt')), await text('#dev-appt')); await go('sub:appts');
+    await go('aday:' + ymd(yst)); await go('appt-new'); eq(await page.inputValue('#f-aday'), ymd(yst)); await page.fill('#f-adoc', 'Dr Lim'); await go('appt-save');
+    await go('aview:list'); ok((await text('#appt-past')).includes('Dr Lim') && (await text('#appt-up')).includes('2-month vaccines'));
+    await page.locator('#appt-past .row').first().click(); await go('appt-growth'); eq(await page.inputValue('#f-gday'), ymd(yst), 'measurement dated on the visit'); await act('sheet-close');
+    await page.locator('#appt-past .row').first().click(); await go('appt-delete'); await page.click('#confirm-yes'); ok((await text('#appt-past')).includes('No past')); await act('undo'); ok((await text('#appt-past')).includes('Dr Lim'), 'undo');
+    for (const id of ['#appt-past', '#appt-up']) { await page.locator(id + ' .row').first().click(); await go('appt-delete'); await page.click('#confirm-yes'); }
+    await noOverflow('appointments'); await go('aview:cal'); await go('nav:home'); eq(await page.locator('#appt-banner').count(), 0);
   });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
     eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));

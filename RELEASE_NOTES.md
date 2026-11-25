@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.11.0 · 25 November 2026
+
+Stage 3 of the new More section: **Appointments**.
+
+- **More → Development tracker → Appointments.** Add past or upcoming doctor's visits with the date and time, reason, place, doctor, questions to ask and notes on what was discussed.
+- **Calendar or list.** The calendar starts on Monday and marks days with appointments; tap a day to see or add its appointments. The list shows upcoming and past visits. The next appointment is shown at the top.
+- **Questions** jumps to the questions for your next appointment, so you can jot them down as they come up.
+- **Reminder on Home** when an appointment is today or tomorrow. Tap it to open the appointment.
+- **Copy visit summary**: one tap copies a short summary to paste into a message or read out at the clinic. It has the baby's age, the reason, your questions, the latest weight, length and head with percentiles, average feeds, sleep and nappies over the past week, and your notes.
+- **Add measurements** from a past appointment opens the growth form dated on that visit.
+- Changes and deletes are confirmed first. Your partner can add, edit and delete appointments too. They are in backups and in Excel (new **Appointments** sheet).
+- Vaccinations are coming next.
+
 ## 1.10.0 · 24 November 2026
 
 Stage 2 of the new More section: **Growth**.
