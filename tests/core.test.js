@@ -193,3 +193,50 @@ test('KKM vaccination schedule: due dates by calendar month, status windows, sex
   assert.equal(C.vaxKey('MMR', 'dose 2'), 'mmr2'); assert.equal(C.vaxKey('hepatitis a', ''), 'o:hepa'); assert.equal(C.vaxKey('BCG', 'Dose 9'), 'x:bcg');
   assert.ok(C.okCard('data:image/jpeg;base64,AAAA')); assert.ok(!C.okCard('data:image/png;base64,AAAA')); assert.ok(!C.okCard('data:image/jpeg;base64,' + 'A'.repeat(200000)));
 });
+
+test('tasks: due times on a schedule, several times a day, every N days, weekly, monthly, once, and endings', () => {
+  const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime(), L = {};
+  const drops = { id: 'd', start: iso(at(10, 15)), kind: 'daily', n: 1, times: ['15:00'], from: 'schedule' };
+  assert.deepEqual(C.taskOcc(drops, L, at(24, 0), at(26, 23)).map(x => new Date(x).getDate()), [24, 25, 26]);
+  const ster = { id: 's', start: iso(at(10, 9)), kind: 'daily', times: ['15:30', '09:00'], from: 'schedule' };
+  assert.deepEqual(C.taskOcc(ster, L, at(26, 0), at(26, 23)).map(x => new Date(x).getHours()), [9, 15], 'two times a day, sorted');
+  const every2 = { id: 'e', start: iso(at(10, 9)), kind: 'days', n: 2, times: ['09:00'], from: 'schedule' };
+  assert.deepEqual(C.taskOcc(every2, L, at(20, 0), at(26, 23)).map(x => new Date(x).getDate()), [20, 22, 24, 26]);
+  const weekly = { id: 'w', start: iso(at(14, 10)), kind: 'weekly', n: 1, times: ['10:00'], from: 'schedule' };
+  assert.deepEqual(C.taskOcc(weekly, L, at(1, 0), at(30, 23)).map(x => new Date(x).getDate()), [14, 21, 28], 'never before the first due');
+  const monthly = { id: 'm', start: iso(new Date(2026, 0, 31, 8).getTime()), kind: 'monthly', times: ['08:00'], from: 'schedule' };
+  assert.deepEqual(C.taskOcc(monthly, L, new Date(2026, 0, 1).getTime(), new Date(2026, 3, 30, 23).getTime()).map(x => new Date(x).getDate()), [31, 28, 31, 30], 'clamped to month end');
+  assert.equal(C.taskOcc({ id: 'o', start: iso(at(27, 9)), kind: 'once', times: ['09:00'] }, L, at(1, 0), at(30, 0)).length, 1);
+  assert.equal(C.taskOcc(Object.assign({}, drops, { ends: { k: 'count', count: 3 } }), L, at(1, 0), at(30, 23)).length, 3, 'ends after 3 times');
+  assert.equal(C.taskOcc(Object.assign({}, drops, { ends: { k: 'date', date: '2026-11-12' } }), L, at(1, 0), at(30, 23)).length, 3, 'ends on a date');
+});
+test('tasks: the Home card shows the latest open one, counts missed ones, hides postponed ones until near their new time', () => {
+  const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime(), now = at(26, 15, 20);
+  const t = { id: 'd', start: iso(at(10, 15)), kind: 'daily', times: ['15:00'], from: 'schedule' }, log = (d, a, x) => Object.assign({ id: C.tlogId('d', d), type: 'tlog', task: 'd', start: iso(d), a, at: iso(d + 6e5) }, x);
+  let ev = [20, 21, 22, 23, 24].map(d => log(at(d, 15), 'done')), L = C.taskLogs(ev, 'd');
+  let due = C.taskDue(t, L, now); assert.equal(due.due, at(26, 15)); assert.equal(due.miss, 1, 'yesterday was not ticked');
+  ev.push(log(at(26, 15), 'later', { until: iso(now + 60 * M) })); L = C.taskLogs(ev, 'd');
+  assert.equal(C.taskDue(t, L, now), null, 'postponed an hour: hidden'); assert.equal(C.taskDue(t, L, now + 31 * M).later, true, 'back 30 minutes before');
+  assert.equal(C.taskNext(t, L, now).eff, now + 60 * M);
+  ev.push(log(at(25, 15), 'missed'), log(at(26, 15), 'done')); L = C.taskLogs(ev, 'd');
+  assert.equal(C.taskDue(t, L, now), null); assert.equal(new Date(C.taskNext(t, L, now).due).getDate(), 27);
+  assert.equal(C.taskDue(Object.assign({}, t, { paused: true }), {}, now), null, 'paused tasks never show');
+  assert.equal(C.tlogId('d', at(26, 15)), C.tlogId('d', iso(at(26, 15))), 'the same due time gives the same record on every phone');
+});
+test('tasks: "counts from when done" moves the next one from the day it was ticked; skip keeps the gap from the last time done', () => {
+  const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime();
+  const bath = { id: 'b', start: iso(at(10, 9)), kind: 'days', n: 2, times: ['09:00'], from: 'done' };
+  assert.deepEqual(C.taskOcc(bath, {}, at(10, 0), at(13, 0)).map(x => new Date(x).getDate()), [10, 12], 'not done yet: from the first due');
+  const L = { [at(24, 9)]: { a: 'done', at: iso(at(25, 19)) } }; // done a day late, in the evening
+  const next = C.taskNext(bath, L, at(25, 20)); assert.deepEqual([new Date(next.due).getDate(), new Date(next.due).getHours()], [27, 9], 'two days after it was done, at 9');
+  L[at(27, 9)] = { a: 'skip', at: iso(at(27, 10)) }; assert.equal(new Date(C.taskNext(bath, L, at(27, 11)).due).getDate(), 29, 'after a skip, one more step');
+  assert.equal(C.taskOcc(Object.assign({}, bath, { ends: { k: 'count', count: 1 } }), L, at(1, 0), at(30, 0)).filter(d => !L[d]).length, 0, 'ends after being done once');
+});
+test('tasks: rule text and the calendar file', () => {
+  const t = { id: 'b1', name: 'Bath; time, warm', start: iso(new Date(2026, 10, 27, 9).getTime()), kind: 'days', n: 2, times: ['09:00'], from: 'done', note: 'Lotion after', ends: { k: 'count', count: 10 } };
+  assert.match(C.taskRule(t), /^Every 2 days at 9:00\s?AM, 10 times · counts from when done$/i);
+  const ics = C.taskIcs(t, NOW);
+  assert.match(ics, /BEGIN:VCALENDAR\r\n/); assert.ok(ics.includes('SUMMARY:Bath\\; time\\, warm\r\n'), 'text is escaped'); assert.match(ics, /RRULE:FREQ=DAILY;INTERVAL=2;COUNT=10\r\n/); assert.match(ics, /TRIGGER:PT0M/); assert.match(ics, /DTSTART:20261127T090000/);
+  const two = C.taskIcs({ id: 'm', name: 'Medicine', start: iso(new Date(2026, 10, 27, 8).getTime()), kind: 'daily', times: ['08:00', '20:00'], from: 'schedule' }, NOW);
+  assert.equal(two.match(/BEGIN:VEVENT/g).length, 2, 'one event per time of day'); assert.match(two, /RRULE:FREQ=DAILY\r\n/);
+});

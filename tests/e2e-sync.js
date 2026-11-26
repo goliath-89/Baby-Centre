@@ -102,6 +102,17 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     await B.until(() => /Passed both ears/.test(document.querySelector('#view').textContent), null, 3000);
     await A.go('more'); await B.go('home');
   });
+  await step('tasks: one phone adds a task, the partner ticks it on Home, and both see who did it', async () => {
+    const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, ymd = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    await A.page.click('[data-action="nav:more"]'); await A.page.click('[data-action="sub:tasks"]'); await A.page.click('[data-action="task-new"]'); await A.page.click('[data-action="tpick:1"]');
+    await A.page.fill('#f-tday', ymd(Date.now())); await A.page.fill('#f-tt0', hhmm(Date.now() - 10 * 6e4)); await A.page.click('[data-action="task-save"]');
+    await B.go('home'); await B.until(() => /Vitamin drops/.test((document.querySelector('#task-card') || {}).textContent || ''), null, 4000);
+    await B.page.locator('#task-card [data-action^="task-done:"]').first().click(); await B.page.fill('#f-me', 'Dad'); await B.page.click('[data-action="me-save"]');
+    await A.page.click('[data-action="ttab:today"]'); await A.until(() => /Done · Dad/.test(document.querySelector('#tasks-today').textContent), null, 4000);
+    await A.page.click('[data-action="ttab:all"]'); await A.page.locator('#tasks-all .row').first().click(); await A.page.click('[data-action="task-delete"]'); await A.page.click('#confirm-yes');
+    await B.until(() => !document.querySelector('#task-card'), null, 4000);
+    await A.go('more'); await B.go('home');
+  });
   await step('units and appearance stay per phone', async () => {
     await A.act('units:oz'); await B.page.waitForTimeout(700); eq((await B.stored()).settings.units, 'ml'); await A.act('units:ml');
   });
@@ -123,7 +134,7 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
   await step('Excel export downloads a workbook with every sheet', async () => {
     await A.go('more'); const [dl] = await Promise.all([A.page.waitForEvent('download'), A.act('xl-export')]); ok(/^baby-centre-\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), dl.suggestedFilename());
     await dl.saveAs(xlsx); ok(fs.statSync(xlsx).size > 2000); ok((await A.text('#snack')).includes('Excel file saved'));
-    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Appointments,Vaccinations,Baby,How to edit 4 5'); }
+    if (hasPy) { const names = cp.execFileSync('python3', ['-c', 'import openpyxl,sys;wb=openpyxl.load_workbook(sys.argv[1]);print(",".join(wb.sheetnames), wb["Feeds"].max_row, wb["Nappies"].max_row)', xlsx]).toString().trim(); eq(names, 'Feeds,Sleep,Nappies,Burps,Tummy time,Cry checks,Milestones,Milestone journal,Growth,Appointments,Vaccinations,Tasks,Task log,Baby,How to edit 4 5'); }
   });
   await step('Excel import: edited file updates this phone and the partner; undo restores both', async () => {
     if (!hasPy) return;

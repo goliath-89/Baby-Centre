@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.13.0 · 26 November 2026
+
+New: **Tasks**, for routines like bath time and vitamin drops.
+
+- **More → Tasks → + Add task.** Give it a name, when it is first due and how it repeats: once, daily (up to 4 times a day), every few days, weekly or monthly. Quick picks fill in Bath time, Vitamin drops, Nail trim, Sterilise bottles, Medicine and Laundry.
+- **Next one counts from the schedule or from when it is done.** Drops stay at 3 pm even if you are late. A bath every 2 days moves on from the day you actually did it.
+- **A card on Home**, under Last feed, shows tasks that are due or late with three buttons:
+  - **Done** ticks it off (with Undo).
+  - **Later** moves just this one: 15 minutes, 1 hour, 3 hours, tomorrow, or a time you choose.
+  - **Skip** means not doing it this time, and it is kept in the history.
+  - Missed ones don't pile up: the card says "Missed 1 earlier" and ticking today's closes it.
+- **Who did it.** The first time you tick something, the app asks for your name (for example Mum or Dad). Every tick shows who did it, on both phones. Change it in Settings → Your name.
+- **Tasks page**: Today, Upcoming (7 days), All tasks and History (a week of coloured blocks per task).
+- **Save to phone calendar** for real alerts when the app is closed.
+- Tasks are shared with your partner, kept in backups, and listed in Excel (Tasks and Task log sheets, for reading).
+
 ## 1.12.0 · 25 November 2026
 
 Stage 4 of the new More section: **Vaccinations**.

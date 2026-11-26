@@ -133,6 +133,16 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - **Add measurements** from a past appointment opens the growth form dated on the visit.
 - Edits list what changed and ask first; deletes ask first with Undo. Partners can add, edit and delete. Synced, in backups and in the Excel sheet Appointments.
 
+### 5.7d Tasks (v1.13)
+- More → Tasks: repeatable or one-off jobs for the baby (bath, vitamin drops, sterilising, medicine, nail trim) with reminders on Home.
+- **A task**: name, first due date and time, repeat (once, daily with up to 4 times a day, every 2–60 days, weekly on the first due's weekday, monthly on its date), "next one counts from" (the schedule, or when it is done: the gap restarts from the day it is ticked, keeping the time of day), an end (never, a date, or a number of times), a note shown on the card, and Active or Paused. Quick picks fill sensible settings: Bath and Nail trim count from when done; drops and medicine from the schedule.
+- **Home card**, below the Last feed tiles and above Tummy time, while a task is due within 30 minutes or late. Each due task shows its time, how late it is, its note, and **Done**, **Later** (15 min, 1 h, 3 h, tomorrow at the same time, or a chosen time within two weeks; only that occurrence moves) and **Skip** (not doing it this time; kept in History). Unticked earlier occurrences are not stacked: the card shows the latest with "Missed N earlier", and ticking or skipping it records those as missed. With nothing due, the card shows "All done for now" and the next task; with no tasks it is hidden.
+- **Who ticked it**: each person enters a short name once (asked on the first tick; changeable in Settings → Your name). It is kept per person (per phone, and per viewer on the hosted page) and saved on every tick and skip.
+- **Tasks page**: Today (each due time with its status and who did it, with a Done button for open ones), Upcoming (7 days), All tasks (rule in words; tap to edit) and History (7 days per task: done, skipped, missed, still to do today; with a rate).
+- **Phone calendar**: Save to phone calendar writes an .ics file with one repeating event per time of day and an alert at the due time, so the phone reminds you when the app is closed. A task that counts from when done is saved on a fixed schedule; the file says so. A calendar copy does not follow later edits.
+- **Data**: a task is a record; each due time that was ticked, skipped, postponed or missed is a log record whose id is the task plus the due time, so two phones ticking the same one write one record. Edits and deletes are confirmed; deleting a task deletes its history (pausing keeps it). Synced with the partner, in backups, and exported to Excel (Tasks and Task log, read-only).
+- **Limits**: the hosted page and a web app cannot notify while closed; the calendar file covers that.
+
 ### 5.7c Vaccinations (v1.12)
 - More → Vaccinations. Four tabs: Schedule, Given, Card and KKM chart.
 - **Schedule** follows the KKM National Immunisation Programme for Peninsular Malaysia: BCG and Hepatitis B at birth; DTaP-IPV-Hep B-Hib at 2, 3 and 5 months with a booster at 18 months; Pneumococcal (PCV) at 4 and 6 months with a booster at 15 months; MMR at 9 and 12 months; DT at 7 years; TT at 15 years; HPV at 13 years for girls. Measles at 6 months (Sabah only) and JE (Sarawak only) are left out. Due dates are counted in calendar months from birth.
@@ -213,6 +223,6 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 ## 8. Roadmap
 1. Train and ship an on-device cry classifier (for example on the Donate-a-Cry corpus), validated against held-out recordings.
 2. Feed and sleep reminders.
-3. Temperature and medication logs.
+3. Temperature and medication logs; task notifications through a push service when the app has its own address.
 4. Multiple babies; sign-in and encryption for the shared log; sharing without the user creating a database.
 5. Pumping and medication logs.

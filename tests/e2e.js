@@ -59,7 +59,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('sheet-close'); await act('nav:home');
   });
   await step('More is a menu; Settings holds sharing, baby, preferences, Excel, backup and About, with a back arrow', async () => {
-    await page.click('[data-action="nav:more"]'); eq(await text('#top h1'), 'More'); eq(await page.locator('#view .hub').count(), 3); ok((await text('#view')).includes('Development tracker') && (await text('#view')).includes('Vaccinations'));
+    await page.click('[data-action="nav:more"]'); eq(await text('#top h1'), 'More'); eq(await page.locator('#view .hub').count(), 4); ok((await text('#view')).includes('Tasks')); ok((await text('#view')).includes('Development tracker') && (await text('#view')).includes('Vaccinations'));
     await shot('25-more-menu'); await page.click('[data-action="sub:settings"]'); eq(await text('#top h1'), 'Settings'); ok(await page.evaluate(() => document.querySelector('#view section').id === 'share'));
     for (const s of ['Baby', 'Bottle units', 'Appearance', 'Excel', 'Backup', 'About']) ok(/* headings are upper-cased on screen */ (await text('#view')).toUpperCase().includes(s.toUpperCase()), s);
     await page.click('[data-action="sub:"]'); eq(await text('#top h1'), 'More'); await act('nav:home');
@@ -200,6 +200,39 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await go('sub:dev'); await go('sub:'); await go('sub:vax'); await go('vtab:card'); await page.click('#vax-cards .vcard'); await go('card-delete'); await page.click('#confirm-yes'); await go('vtab:given');
     while (await page.locator('#vax-given .row').count()) { await page.locator('#vax-given .row').first().click(); await go('vax-delete'); await page.click('#confirm-yes'); }
     await noOverflow('vaccinations'); await go('vtab:sched'); await go('nav:home');
+  });
+  await step('tasks: add from a quick pick, Home card with Done/Later/Skip, name asked once, missed ones closed, Today/Upcoming/History, edit, pause, calendar file, delete', async () => {
+    const go = async a => page.click(`[data-action="${a}"]`), hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, ymd = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    eq(await page.locator('#task-card').count(), 0, 'no tasks: no card');
+    await go('nav:more'); await go('sub:tasks'); eq(await text('#top h1'), 'Tasks'); ok((await text('#tasks-empty')).includes('No tasks yet'));
+    await go('task-new'); await go('task-save'); ok((await text('.sheet')).includes('Give the task a name'));
+    await go('tpick:1'); eq(await page.inputValue('#f-tname'), 'Vitamin drops'); eq(await page.getAttribute('[data-action="tfrom:schedule"]', 'aria-pressed'), 'true', 'drops count from the schedule');
+    await page.fill('#f-tday', ymd(Date.now())); await page.fill('#f-tt0', hhmm(Date.now() - 20 * 6e4)); await page.fill('#f-tnote', '1 ml'); await go('task-save'); ok((await text('#snack')).includes('Added: Vitamin drops'));
+    await go('task-new'); await go('tpick:0'); eq(await page.getAttribute('[data-action="tfrom:done"]', 'aria-pressed'), 'true', 'bath counts from when done'); ok((await text('#t-prev')).includes('Every 2 days'));
+    await page.fill('#f-tday', ymd(Date.now() - 2 * 864e5)); await go('task-save');
+    await go('ttab:all'); ok(/Bath time[\s\S]*Every 2 days[\s\S]*Vitamin drops[\s\S]*Daily at/.test(await text('#tasks-all')), await text('#tasks-all'));
+    await go('nav:home'); const card = () => text('#task-card'), item = n => page.locator('#task-card .titem', { hasText: n });
+    ok(/Tasks · 2 due/i.test(await card()), await card()); ok(/\d+m late · 1 ml/.test(await item('Vitamin drops').innerText()), await card()); ok((await item('Bath time').innerText()).includes('Missed 1 earlier'), 'the first bath was missed'); await shot('30-tasks-card');
+    await item('Vitamin drops').locator('[data-action^="task-done:"]').click(); await go('me-save'); ok((await text('.sheet')).includes('Enter a name'));
+    await page.fill('#f-me', 'Mum'); await go('me-save'); ok((await text('#snack')).includes('done · Mum'), await text('#snack'));
+    eq(await item('Vitamin drops').count(), 0, 'vitamin drops ticked'); await act('undo'); eq(await item('Vitamin drops').count(), 1, 'undo puts it back');
+    await item('Vitamin drops').locator('[data-action^="task-later:"]').click(); await go('tlater:60'); ok((await text('#snack')).includes('moved to Today'));
+    await item('Bath time').locator('[data-action^="task-done:"]').click(); ok((await text('#snack')).includes('Bath time done · Mum'), 'name asked only once');
+    ok((await text('#task-quiet')).includes('All done for now') && /Next: Vitamin drops · Today/.test(await card()), await card());
+    await go('tasks-open'); ok(/Vitamin drops[\s\S]*Later ·/.test(await text('#tasks-today')), await text('#tasks-today')); ok(/Bath time[\s\S]*Done · Mum/.test(await text('#tasks-today')));
+    await page.locator('#tasks-today [data-action^="task-done:"]').first().click(); ok(/Vitamin drops[\s\S]*Done · Mum/.test(await text('#tasks-today')), 'ticked from the Today list');
+    await go('ttab:up'); ok((await text('#view')).includes('Bath time'), 'next bath is upcoming');
+    await go('ttab:hist'); ok(/Bath time[\s\S]*Done on 1 day this week/.test(await text('#view')), await text('#view')); eq(await page.locator('.week i.x').count() >= 1, true, 'the missed bath shows red');
+    await go('ttab:all'); await page.locator('#tasks-all .row', { hasText: 'Vitamin drops' }).click(); await go('tkind:days'); await page.fill('#f-tn', '3'); await go('task-save');
+    ok((await text('#confirm-lines')).includes('Schedule: Daily') && (await text('#confirm-lines')).includes('Every 3 days')); await page.click('#confirm-yes');
+    await page.locator('#tasks-all .row', { hasText: 'Vitamin drops' }).click(); await go('tpause:1'); await go('task-save'); ok((await text('#confirm-lines')).includes('Paused')); await page.click('#confirm-yes'); ok((await text('#tasks-all')).includes('Paused'));
+    await page.locator('#tasks-all .row', { hasText: 'Bath time' }).click(); const [dl] = await Promise.all([page.waitForEvent('download'), go('task-cal')]); eq(dl.suggestedFilename(), 'Bath time.ics');
+    const ics = fs.readFileSync(await dl.path(), 'utf8'); ok(/BEGIN:VEVENT[\s\S]*RRULE:FREQ=DAILY;INTERVAL=2[\s\S]*BEGIN:VALARM/.test(ics), ics);
+    await go('task-delete'); ok((await text('#confirm-lines')).includes('history')); await page.click('#confirm-yes'); ok(!(await text('#tasks-all')).includes('Bath time'));
+    await go('sub:'); await go('sub:settings'); eq(await text('#me-name'), 'Mum');
+    await page.click('#top .back'); await go('sub:tasks'); await go('ttab:all'); await page.locator('#tasks-all .row').first().click(); await go('task-delete'); await page.click('#confirm-yes');
+    eq(await page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data.events.filter(e => e.type === 'task' || e.type === 'tlog').length), 0, 'tasks and their history removed');
+    await noOverflow('tasks'); await go('nav:home'); eq(await page.locator('#task-card').count(), 0);
   });
   await step('timeline filter groups one activity by day with daily totals; tiles jump to their records', async () => {
     eq(await rows(), 7); await act('filter:diaper'); eq(await rows(), 1); ok(/^Today · /.test(await text('#tl-when')) && /^1 change/.test(await text('#tl-sum')), await text('#tl-sum'));

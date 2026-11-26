@@ -2,6 +2,15 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.13.0] - 2026-11-26
+
+### Added
+- Tasks: `type: 'task'` records (name, icon, kind once|daily|days|weekly|monthly, n, times, from schedule|done, start, ends, note, paused) and `type: 'tlog'` records per due time (`a` done|skip|later|missed, `by`, `at`, `until`) with deterministic ids `tl_<task>_<due>` (`Core.tlogId`).
+- Core: `taskOcc`, `taskDue` (latest open occurrence within 30 minutes, missed count, postponed hidden until near), `taskNext`, `taskRule`, `taskIcs` (RRULE + VALARM per time of day).
+- Home Tasks card (Done / Later / Skip), Tasks page (Today, Upcoming, All tasks, History), add/edit sheet with quick picks, pause, delete (with history), calendar export.
+- "Your name" per person (`settings.me`, also in hosted per-viewer prefs), asked on the first tick.
+- Excel sheets Tasks and Task log (export only; import keeps tasks unchanged).
+
 ## [1.12.0] - 2026-11-25
 
 ### Added
