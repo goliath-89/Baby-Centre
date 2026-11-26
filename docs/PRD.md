@@ -164,6 +164,10 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - **What this means** (v1.14), on Summary: a one-line verdict (size: very small for age / smaller than average / around average / bigger than average / very big for age, from the weight and length percentiles; proportion from the WHO weight-for-length standard: thin, slim, well-proportioned, solidly built, heavy for their length), each percentile in plain words ("out of 100 boys the same age, about 16 weigh less"), a weight-for-length line, a steady-growth tick when every indicator has stayed within 0.67 z over at least 4 weeks, a note for one line crossed, and a separate "Worth raising with your doctor or clinic" list (below the 3rd or above the 97th percentile on any indicator or on weight-for-length; two lines crossed). It always says it is guidance, not a diagnosis.
 - Partners can add, edit and delete measurements. Measurements sync and appear in Excel (sheet Growth) and backups; they are not shown in the care timeline.
 
+### 5.7e Search (v1.15)
+- A search button in the header of every page opens Search. It covers appointments (reason, place, doctor, questions, notes), vaccines (name, dose, where, batch, notes), card photo labels, growth notes, milestone journal (title, notes), tasks (name, note) and notes on care entries.
+- Case- and accent-insensitive; every word must match; words match from their start, falling back to matching anywhere when that finds nothing. Results are grouped by section, newest first (up to 100), with the matching words highlighted; tapping one opens that entry. The last query is kept while the app is open.
+
 ### 5.8 Share with partner (v1.1)
 **What the user gets.** Both phones hold the same log: entries, running timers, milestones and the baby profile. A feed started on one phone shows as a live timer on the other and can be switched or stopped from either. Units and appearance stay per phone.
 

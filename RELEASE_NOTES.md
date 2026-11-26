@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.15.0 · 26 November 2026
+
+**Search.** Tap the magnifying glass at the top of any page.
+
+- Finds words in notes everywhere: appointments (reason, place, doctor, questions, notes), vaccines (name, where given, batch, notes), milestone journal, growth notes, tasks, card photo labels and notes on care entries.
+- Results appear as you type, grouped by section with the newest first and the matching words highlighted. Tap one to open it.
+- Words match from their start, so "tan" finds "Dr Tan" but not "Kesihatan". If that finds nothing, it looks inside words too.
+- The last search is remembered while the app is open.
+
 ## 1.14.0 · 26 November 2026
 
 **Growth → Summary now explains what the numbers mean.**

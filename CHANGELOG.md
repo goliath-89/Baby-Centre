@@ -2,6 +2,14 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.15.0] - 2026-11-26
+
+### Added
+- Search across the app (header button on every page): accent- and case-insensitive, all words must match, word-start matching with a fallback to matching anywhere, grouped results (newest first, up to 100) with highlighted snippets; opens the matching entry's sheet.
+
+### Changed
+- Header gap reduced so the age and search button fit beside the name on a normal phone width.
+
 ## [1.14.0] - 2026-11-26
 
 ### Added

@@ -152,6 +152,16 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await go('sub:dev'); ok(/Latest 4\.2 kg/.test(await text('#dev-growth')), await text('#dev-growth')); await go('sub:'); eq(await text('#top h1'), 'More');
     await go('nav:home'); ok(!(await text('#view')).includes('Growth'), 'not in the care timeline'); await noOverflow('growth');
   });
+  await step('search: one search icon on every page finds notes by words, highlights them, and opens the entry', async () => {
+    const go = async a => page.click(`[data-action="${a}"]`), ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    await go('nav:more'); await go('sub:dev'); await go('sub:growth'); await go('growth-new'); await page.fill('#f-gday', ymd(new Date(Date.now() - 864e5))); await page.fill('#f-gwt', '4.15'); await page.fill('#f-gnote', 'Weighed at KK Ampang by Dr Lim'); await go('growth-save');
+    await page.click('#search-btn'); eq(await page.evaluate(() => document.activeElement.id), 'f-search'); await page.fill('#f-search', 'd'); ok((await text('#search-out')).includes('at least 2 letters'));
+    await page.fill('#f-search', 'dr LIM'); ok(/1 result[\s\S]*Growth · 1[\s\S]*Measurement/i.test(await text('#search-out')), await text('#search-out')); eq(await page.locator('#search-out mark').count(), 2, 'both words highlighted');
+    await page.fill('#f-search', 'mpang'); ok((await text('#search-out')).includes('Ampang'), 'falls back to matches inside words'); await page.fill('#f-search', 'zzzz'); ok((await text('#search-out')).includes('Nothing found'));
+    await page.fill('#f-search', 'ampang'); await page.locator('.sres').first().click(); eq(await page.inputValue('#f-gnote'), 'Weighed at KK Ampang by Dr Lim', 'opens the entry');
+    await go('growth-delete'); await page.click('#confirm-yes'); await page.click('#search-btn'); eq(await page.inputValue('#f-search'), 'ampang', 'remembers the last search'); ok((await text('#search-out')).includes('Nothing found'), 'deleted entries disappear');
+    await act('sheet-close'); await go('sub:dev'); await go('sub:'); await noOverflow('search'); await go('nav:home');
+  });
   await step('appointments: calendar and list, questions, validation, Home reminder, confirmed edits, copyable visit summary, measurements from a visit, delete', async () => {
     const go = async a => page.click(`[data-action="${a}"]`), ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     const tom = new Date(Date.now() + 864e5), yst = new Date(Date.now() - 864e5);
