@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.13.1 · 26 November 2026
+
+Polish from your feedback.
+
+- **Tasks**
+  - The **Today** tab stands out with a coloured outline and shows how many are still to do ("Today · 2").
+  - **History** shows the date under each day, marks today, and shows the month when it changes ("1 Dec").
+  - **Each task has its own colour.** New tasks get the next of 10 colours; change it in the task form.
+- **Vaccinations**
+  - **Card photos:** **Take photo** opens the camera, or **Choose from gallery**.
+  - **KKM chart** is now **KKM info**. Tap the chart, or a card photo, to open it full screen. Pinch, double-tap or drag to zoom and move around.
+
 ## 1.13.0 · 26 November 2026
 
 New: **Tasks**, for routines like bath time and vitamin drops.

@@ -2,6 +2,15 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.13.1] - 2026-11-26
+
+### Changed
+- Tasks: Today tab outlined with an open count; History cells show the date (month on the 1st) and mark today; per-task colour `c` (0–9, 10-colour palette with light and dark values; new tasks take the least-used colour; existing tasks get a stable colour from their id).
+- Vaccinations: separate Take photo (`capture="environment"`) and Choose from gallery; KKM chart tab renamed KKM info.
+
+### Added
+- Full-screen picture viewer (pinch, double-tap, drag, mouse wheel) for the KKM chart and card photos.
+
 ## [1.13.0] - 2026-11-26
 
 ### Added
