@@ -161,6 +161,7 @@ Sources: Wasz-Höckert et al. 1968; Porter, Miller & Marshall 1986; Zeskind & Le
 - The baby's sex is asked once (owner) and can be changed in Settings → Baby.
 - Validation: dates from birth to today; weight 0.8–25 kg (a number above 100 is read as grams), length 30–110 cm, head 20–56 cm.
 - A note appears when the latest point has crossed two percentile lines since the previous one.
+- **What this means** (v1.14), on Summary: a one-line verdict (size: very small for age / smaller than average / around average / bigger than average / very big for age, from the weight and length percentiles; proportion from the WHO weight-for-length standard: thin, slim, well-proportioned, solidly built, heavy for their length), each percentile in plain words ("out of 100 boys the same age, about 16 weigh less"), a weight-for-length line, a steady-growth tick when every indicator has stayed within 0.67 z over at least 4 weeks, a note for one line crossed, and a separate "Worth raising with your doctor or clinic" list (below the 3rd or above the 97th percentile on any indicator or on weight-for-length; two lines crossed). It always says it is guidance, not a diagnosis.
 - Partners can add, edit and delete measurements. Measurements sync and appear in Excel (sheet Growth) and backups; they are not shown in the care timeline.
 
 ### 5.8 Share with partner (v1.1)

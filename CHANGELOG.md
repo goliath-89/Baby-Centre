@@ -2,6 +2,13 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.14.0] - 2026-11-26
+
+### Added
+- WHO weight-for-length standard (45–110 cm, boys and girls, L/M/S every 1 cm, interpolated; `Core.wflPct`).
+- `Core.growthReport`: headline (size from weight and length percentiles, proportion from weight-for-length), plain-language line per indicator, trend over at least 4 weeks (steady under 0.67 z; one line 0.67–1.33; flag at 1.33 or more), flags below the 3rd or above the 97th percentile.
+- Growth → Summary: "What this means", "Worth raising with your doctor or clinic" and a guidance note.
+
 ## [1.13.1] - 2026-11-26
 
 ### Changed

@@ -240,3 +240,21 @@ test('tasks: rule text and the calendar file', () => {
   const two = C.taskIcs({ id: 'm', name: 'Medicine', start: iso(new Date(2026, 10, 27, 8).getTime()), kind: 'daily', times: ['08:00', '20:00'], from: 'schedule' }, NOW);
   assert.equal(two.match(/BEGIN:VEVENT/g).length, 2, 'one event per time of day'); assert.match(two, /RRULE:FREQ=DAILY\r\n/);
 });
+
+test('growth: WHO weight-for-length matches published medians, and the plain-language report reads the numbers correctly', () => {
+  assert.ok(Math.abs(C.wflPct('m', 65, 7.2666).p - 50) < 0.1, 'boys 65 cm median 7.27 kg'); assert.ok(Math.abs(C.wflPct('f', 50, 3.3518).p - 50) < 0.1, 'girls 50 cm median');
+  assert.ok(Math.abs(C.wflPct('m', 65.5, (7.2666 + C.wflPct.length * 0 + 7.2666) / 2).p - 50) < 8, 'between rows is interpolated'); assert.equal(C.wflPct('m', 40, 3), null);
+  const dob = '2026-07-01', day = d => new Date(2026, 6, 1 + d, 12).getTime(), zOf = p => [[3, -1.880794], [8, -1.405072], [16, -0.994458], [50, 0]].find(x => x[0] === p)[1];
+  const at = (ind, d, p) => Math.round(C.lmsValue(zOf(p), C.whoLms(ind, 'm', d)) * 100) / 100, g = (d, wt, len, hc) => ({ id: 'g' + d, type: 'growth', start: new Date(day(d)).toISOString(), wt, len, hc });
+  // The example from the feedback: weight 16th, length 8th at 4 months, following the same curve since 2 months.
+  const ev = [g(61, at('wfa', 61, 16), at('lhfa', 61, 8), at('hcfa', 61, 50)), g(122, at('wfa', 122, 16), at('lhfa', 122, 8), at('hcfa', 122, 50))];
+  const r = C.growthReport(ev, { dob, sex: 'm' }, day(125));
+  assert.match(r.headline, /^Overall: smaller than average and (well-proportioned|solidly built)\.$/, r.headline);
+  assert.match(r.lines[0].text, /^Weight 16th percentile\. Out of 100 boys the same age, about 16 weigh less and 84 weigh more\. Within the usual range/);
+  assert.match(r.lines[1].text, /^Length 8th percentile/); assert.ok(r.wfl && r.wfl.p > 15 && r.wfl.p < 97, 'proportion ' + (r.wfl && r.wfl.p)); assert.equal(r.flags.length, 0); assert.ok(r.steady, 'on the same curve');
+  // Below the 3rd percentile, and a drop across two lines, are flagged.
+  const low = C.growthReport([g(61, at('wfa', 61, 50), at('lhfa', 61, 50)), g(122, at('wfa', 122, 3) - 0.3, at('lhfa', 122, 50))], { dob, sex: 'm' }, day(125));
+  assert.ok(low.flags.some(f => /Weight is below the 3rd/.test(f)), low.flags.join(' | ')); assert.ok(low.flags.some(f => /Weight has dropped across two percentile lines/.test(f))); assert.ok(low.flags.some(f => /Weight for length is below the 3rd/.test(f)));
+  assert.match(low.headline, /very small for age and thin for their length/);
+  assert.deepEqual(C.growthReport(ev, { dob }, day(125)), { needSex: true }); assert.equal(C.growthReport([], { dob, sex: 'm' }, day(125)), null);
+});

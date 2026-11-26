@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.14.0 · 26 November 2026
+
+**Growth → Summary now explains what the numbers mean.**
+
+- **A one-line verdict**, for example "Overall: smaller than average and well-proportioned."
+- **Each percentile in plain words**: "Weight 16th percentile. Out of 100 boys the same age, about 16 weigh less and 84 weigh more. Within the usual range (3rd to 97th)."
+- **Weight for length** (new, from the WHO standards): compares weight with length rather than age, so you can see whether your baby is well-proportioned for their size.
+- **Growth over time**: a tick when your baby is growing steadily along their own curve, and a note when a measurement moves across a percentile line.
+- **Worth raising with your doctor**: listed separately when something is outside the usual range or has dropped or risen across two percentile lines.
+- Guidance from the WHO Child Growth Standards, not a diagnosis.
+
 ## 1.13.1 · 26 November 2026
 
 Polish from your feedback.
