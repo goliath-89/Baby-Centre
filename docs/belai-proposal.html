@@ -1,0 +1,211 @@
+<title>Belai App Proposal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a product proposal for the owner to decide on and share
+   IDEA the proposal is written in the proposed brand itself: night indigo, apricot, sage, cream
+   PICTURE the new app icon and the rebranded Home screen, then a live revenue calculator
+   COLOUR cream ground, night indigo ink and fields, apricot accent, sage for good news
+   TYPE Plus Jakarta Sans throughout (the proposed brand face)
+   LAYOUT verdict + phone on the first screen; calculator band; then brand, product, plan as sections */
+:root{color-scheme:light dark;
+--bg:light-dark(#FFF8F0,#12152B);--surface:light-dark(#FFFFFF,#1C2142);--soft:light-dark(#F6EADB,#262C55);--ink:light-dark(#1B1F3B,#F3EEE6);--ink2:light-dark(#5A5F7D,#B9BBD3);--line:light-dark(#EADCCB,#323A6A);
+--night:#232A5C;--night2:#2F3876;--apricot:light-dark(#D9772E,#F4A261);--apricotbg:light-dark(#FCE6D3,#4A3220);--sage:light-dark(#3F8A68,#8CC9A8);--sagebg:light-dark(#DDF0E5,#1E3A2D);--rose:light-dark(#B6405A,#F08AA0)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Plus Jakarta Sans",ui-rounded,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{line-height:1.12;letter-spacing:-.02em;margin:0}
+h2{font-size:clamp(26px,3.4vw,36px);margin-bottom:10px}h3{font-size:19px;margin-bottom:6px}
+p{margin:0 0 12px}
+.band{padding-block:clamp(32px,5vw,64px);padding-left:max(5vw,16px,env(safe-area-inset-left,0px));padding-right:max(5vw,16px,env(safe-area-inset-right,0px))}
+.in{max-width:1180px;margin:0 auto}
+.hero{background:var(--night);color:#F3EEE6;margin-top:calc(-1*env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + clamp(28px,4vw,56px))}
+.hero .in{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(24px,4vw,56px);align-items:center}
+.brandrow{display:flex;align-items:center;gap:14px;margin-bottom:18px}.brandrow b{font-size:22px;letter-spacing:-.01em}.brandrow span{opacity:.75;font-size:14px}
+.hero h1{font-size:clamp(34px,4.6vw,52px);margin-bottom:14px}
+.hero .lede{font-size:18px;color:#D9D6E8;max-width:56ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(6.5em,1fr));gap:10px;margin-top:22px}
+.kpi{background:rgba(255,255,255,.07);border-radius:16px;padding:12px 14px}.kpi b{display:block;font-size:26px;color:#F4A261;white-space:nowrap}.kpi span{font-size:13px;color:#C9C6DC}
+.phone{justify-self:center;width:min(300px,100%);aspect-ratio:9/18.5;background:#FFF8F0;border-radius:38px;border:9px solid #0E1129;box-shadow:0 30px 60px rgba(0,0,0,.35);overflow:hidden;color:#1B1F3B;display:flex;flex-direction:column;font-size:12px}
+.ps{display:flex;justify-content:space-between;padding:8px 16px 2px;font-weight:700;font-size:11px}
+.ph{display:flex;align-items:center;gap:8px;padding:6px 14px 8px}.ph .av{width:30px;height:30px;border-radius:50%;background:#F6EADB;display:grid;place-items:center;font-weight:800;color:#232A5C}.ph b{font-size:17px;flex:1}.ph small{color:#5A5F7D}
+.pnow{margin:0 10px;background:#232A5C;color:#F3EEE6;border-radius:18px;padding:10px 12px}.pnow small{color:#F4A261;font-weight:800;letter-spacing:.06em;font-size:9px}.pnow b{display:block;font-size:22px}.pnow .bar{height:5px;border-radius:5px;background:rgba(255,255,255,.15);margin-top:6px}.pnow .bar i{display:block;width:62%;height:100%;border-radius:5px;background:#F4A261}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 10px}.pt{background:#fff;border-radius:14px;padding:8px 10px;box-shadow:0 1px 3px rgba(27,31,59,.08)}.pt small{font-size:9px;font-weight:800;letter-spacing:.06em}.pt b{display:block;font-size:14px}.pt span{color:#5A5F7D;font-size:10px}
+.ptask{margin:0 10px;background:#fff;border-radius:14px;padding:8px 10px;border:2px solid #3F8A68;display:flex;align-items:center;gap:8px}.ptask i{width:22px;height:22px;border-radius:7px;background:#DDF0E5;flex:none}.ptask b{flex:1;font-size:12px}.ptask em{font-style:normal;background:#3F8A68;color:#fff;border-radius:9px;padding:4px 9px;font-weight:700;font-size:11px}
+.pday{margin:8px 10px 0;background:#fff;border-radius:14px;padding:8px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;box-shadow:0 1px 3px rgba(27,31,59,.08)}.pday small{grid-column:1/-1;font-size:9px;font-weight:800;letter-spacing:.06em;color:#5A5F7D}.pday b{display:block;font-size:14px}.pday span{font-size:10px;color:#5A5F7D}
+.pdock{margin:auto 10px 8px;display:flex;justify-content:space-between;background:#fff;border-radius:18px;padding:6px;box-shadow:0 4px 14px rgba(27,31,59,.12)}.pdock span{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:12px}
+.calc{background:var(--surface);border-radius:24px;padding:clamp(18px,3vw,28px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;border:1px solid var(--line)}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:10px 14px;align-items:center}
+.ctl label{font-weight:600;font-size:15px}.ctl input{width:100%;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);text-align:right}
+.ctl .hint{grid-column:1/-1;font-size:13px;color:var(--ink2);margin-top:-6px}
+.res{display:flex;flex-direction:column;gap:14px}
+.big{font-size:clamp(40px,6vw,64px);font-weight:800;line-height:1;color:var(--apricot);letter-spacing:-.03em}
+.flow{display:grid;gap:6px}.fr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line)}.fr b{white-space:nowrap;font-variant-numeric:tabular-nums}.fr.tot{border:0;font-weight:800;font-size:17px}
+.meter{height:14px;border-radius:9px;background:var(--soft);overflow:hidden}.meter i{display:block;height:100%;background:var(--sage);transition:width .3s}
+.note{font-size:13px;color:var(--ink2)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{background:var(--surface);border-radius:20px;padding:18px 20px;border:1px solid var(--line)}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--ink2);font-weight:700}td.n{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.names{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.name{background:var(--surface);border-radius:20px;padding:18px;border:1px solid var(--line)}.name.pick{border:2px solid var(--apricot)}.name b{font-size:28px;letter-spacing:-.02em;display:block}.tag{display:inline-block;font-size:12px;font-weight:800;border-radius:99px;padding:3px 10px;background:var(--apricotbg);color:var(--apricot);margin-bottom:8px}.tag.warn{background:var(--soft);color:var(--ink2)}
+.logos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.logo{background:var(--surface);border-radius:20px;border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}.logo svg{width:120px;height:120px}
+.sw{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.sw div{border-radius:16px;height:110px;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;font-size:13px;font-weight:700}.sw small{font-weight:500;opacity:.85}
+ul.ticks{list-style:none;padding:0;margin:0;display:grid;gap:10px}ul.ticks li{padding-left:28px;position:relative}ul.ticks li::before{content:"";position:absolute;left:0;top:.45em;width:16px;height:16px;border-radius:5px;background:var(--sagebg);box-shadow:inset 0 0 0 2px var(--sage)}
+ul.cross li::before{background:var(--soft);box-shadow:inset 0 0 0 2px var(--ink2)}
+.tier{border-radius:20px;padding:18px 20px}.tier.free{background:var(--soft)}.tier.pro{background:var(--night);color:#F3EEE6}.tier h3 small{font-weight:600;font-size:14px;opacity:.8}.tier.pro .note{color:#C9C6DC}
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;position:relative}.stage{padding:0 14px 0 0}.stage .dot{width:16px;height:16px;border-radius:50%;background:var(--apricot);box-shadow:0 0 0 5px var(--apricotbg);margin:6px 0 14px}.stage .rail{position:absolute;left:8px;right:8px;top:13px;height:3px;background:var(--line);z-index:-1}
+.stage b{display:block;font-size:13px;color:var(--apricot);letter-spacing:.02em}.stage ul{margin:6px 0 0;padding-left:18px;font-size:14.5px;display:grid;gap:4px}
+.src{font-size:13px;color:var(--ink2)}.src a{color:inherit}
+@media(max-width:900px){.hero .in,.calc,.grid2{grid-template-columns:minmax(0,1fr)}.grid3,.names,.logos{grid-template-columns:minmax(0,1fr)}.sw{grid-template-columns:repeat(3,minmax(0,1fr))}.road{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}}
+@media(max-width:600px){.sw{grid-template-columns:repeat(2,minmax(0,1fr))}.road{grid-template-columns:minmax(0,1fr)}.ctl{grid-template-columns:minmax(0,1fr) 84px}table{font-size:13px}th,td{padding:6px 4px}}
+@media(prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<header class="band hero"><div class="in">
+ <div>
+  <div class="brandrow"><svg width="44" height="44" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="30" fill="#2F3876"/><path d="M78 30a34 34 0 1 0 14 50A28 28 0 1 1 78 30z" fill="#F4A261"/><circle cx="56" cy="62" r="9" fill="#FFF8F0"/></svg><span><b>Belai</b> · proposal for Baby Centre</span></div>
+  <h1>Charge RM 69.90 a year, keep the basics free, and about 200 paying families clear RM 10,000.</h1>
+  <p class="lede">A plan to take Baby Centre to the App Store and Google Play under a new name, with the pricing maths, the costs, a brand, and the product changes that earn five stars. Figures marked "about" are estimates to check before launch.</p>
+  <div class="kpis"><div class="kpi"><b id="k-pay">195</b><span>paying families a year</span></div><div class="kpi"><b id="k-dl">7,800</b><span>downloads a year at 2.5% paying</span></div><div class="kpi"><b id="k-share">2%</b><span>of babies born in Malaysia in 2025 (396,175)</span></div></div>
+ </div>
+ <div class="phone" role="img" aria-label="The Home screen redesigned in the Belai brand: a dark Now card with a running feed, four tiles, a task to tick and a one-tap dock">
+  <div class="ps"><span>9:41</span><span>●●● ▮</span></div>
+  <div class="ph"><span class="av">A</span><b>Aiden</b><small>10 wks</small></div>
+  <div class="pnow"><small>NOW · FEEDING LEFT</small><b>12:48</b><span style="font-size:11px;color:#C9C6DC">Right side next · usual feed 18 min</span><div class="bar"><i></i></div></div>
+  <div class="pgrid"><div class="pt"><small style="color:#D9772E">LAST FEED</small><b>2h 05m</b><span>Bottle 120 ml</span></div><div class="pt"><small style="color:#232A5C">SLEEP</small><b>Nap in 20m</b><span>Sweet spot 10:40</span></div><div class="pt"><small style="color:#2B7BA8">NAPPY</small><b>1h 10m</b><span>6 today</span></div><div class="pt"><small style="color:#3F8A68">GROWTH</small><b>51st</b><span>On his curve</span></div></div>
+  <div class="ptask"><i></i><b>Appeton drops · 3 pm</b><em>Done</em></div>
+  <div class="pday"><small>TODAY</small><div><b>7</b><span>feeds</span></div><div><b>11h 20m</b><span>sleep</span></div><div><b>6</b><span>nappies</span></div></div>
+  <div class="pdock"><span style="background:#FCE6D3;color:#D9772E">L</span><span style="background:#FCE6D3;color:#D9772E">R</span><span style="background:#FCE6D3;color:#D9772E">🍼</span><span style="background:#E3E5F5;color:#232A5C">☾</span><span style="background:#DDEFF8;color:#2B7BA8">◌</span></div>
+ </div>
+</div></header>
+
+<section class="band"><div class="in">
+ <h2>1. What to charge for RM 10,000 a year</h2>
+ <p style="max-width:70ch">Recommendation: <b>freemium with a subscription and a lifetime option</b>. Logging stays free forever, which is what earns good reviews; Premium sells the things that save time and worry. Change any number below and the totals update.</p>
+ <div class="calc">
+  <div class="ctl" id="ctl">
+   <label for="i-yr">Yearly plan (RM)</label><input id="i-yr" type="number" step="0.1" value="69.90">
+   <label for="i-mo">Monthly plan (RM)</label><input id="i-mo" type="number" step="0.1" value="12.90">
+   <label for="i-mom">Months a monthly payer stays</label><input id="i-mom" type="number" step="1" value="3">
+   <label for="i-life">Lifetime (RM, one payment)</label><input id="i-life" type="number" step="1" value="149">
+   <label for="i-mix-yr">% choosing yearly</label><input id="i-mix-yr" type="number" step="5" value="70">
+   <label for="i-mix-mo">% choosing monthly</label><input id="i-mix-mo" type="number" step="5" value="15">
+   <span class="hint" id="mix-life">15% choose lifetime</span>
+   <label for="i-conv">% of downloads that pay</label><input id="i-conv" type="number" step="0.5" value="2.5">
+   <span class="hint">Freemium apps convert about 2% of installs within 35 days (RevenueCat, 2026). Health apps do better than average.</span>
+   <label for="i-cost">Running costs a year (RM)</label><input id="i-cost" type="number" step="100" value="1800">
+   <label for="i-goal">Goal after costs (RM)</label><input id="i-goal" type="number" step="500" value="10000">
+  </div>
+  <div class="res" aria-live="polite">
+   <div><span class="note">Paying families needed in a year</span><div class="big" id="o-pay">195</div><span class="note" id="o-dl">About 7,800 downloads a year</span></div>
+   <div class="flow">
+    <div class="fr"><span>Yearly plan: you keep</span><b id="o-yr">RM 55.01</b></div>
+    <div class="fr"><span>Monthly payer over their stay: you keep</span><b id="o-mo">RM 30.46</b></div>
+    <div class="fr"><span>Lifetime: you keep</span><b id="o-life">RM 117.27</b></div>
+    <div class="fr tot"><span>Average kept per paying family</span><b id="o-avg">RM 60.67</b></div>
+   </div>
+   <div><div class="meter"><i id="o-meter" style="width:30%"></i></div><p class="note" id="o-share" style="margin-top:6px">That is 2.0% of the babies born in Malaysia in a year.</p></div>
+   <p class="note">"You keep" = price less 8% service tax (collected by the stores for Malaysian buyers) less the 15% store fee for small developers. Year two is easier: yearly subscribers who renew add income without new downloads.</p>
+  </div>
+ </div>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="in grid2">
+ <div><h3>Costs</h3><div class="tbl"><table><thead><tr><th>Item</th><th>When</th><th style="text-align:right">About</th></tr></thead><tbody>
+  <tr><td>Apple Developer Program (US$99)</td><td>yearly</td><td class="n">RM 450</td></tr>
+  <tr><td>Google Play developer account (US$25)</td><td>once</td><td class="n">RM 115</td></tr>
+  <tr><td>Backend for accounts and sync (Firebase, pay as you go)</td><td>yearly</td><td class="n">RM 0–600</td></tr>
+  <tr><td>Domain, email, privacy policy page</td><td>yearly</td><td class="n">RM 250</td></tr>
+  <tr><td>Business registration (SSM, sole proprietor)</td><td>yearly</td><td class="n">RM 60</td></tr>
+  <tr><td>Building the iPhone version: a Mac, or a cloud build service</td><td>once or monthly</td><td class="n">RM 0–200/mo</td></tr>
+  <tr><td>Logo and store artwork (designer, or do it yourself from this brief)</td><td>once</td><td class="n">RM 0–2,000</td></tr>
+  <tr><td>Trademark for the name (MyIPO, one class)</td><td>once</td><td class="n">about RM 1,000</td></tr>
+  <tr><td>Launch marketing (parenting groups, small ad tests)</td><td>first year</td><td class="n">RM 2,000–5,000</td></tr>
+ </tbody></table></div><p class="note">Income tax applies to the profit at your personal rate. Exchange rate assumed about RM 4.5 per US$.</p></div>
+ <div><h3>Trade-offs</h3><ul class="ticks">
+  <li><b>Subscription vs one-time.</b> Subscriptions fund updates and sync costs but put some parents off; a lifetime option answers that. A single one-time price (about RM 29.90) would need about 500 buyers every year, with no renewals to build on.</li>
+  <li><b>Free tier size.</b> Generous free logging brings reviews and word of mouth but lowers conversion. A hard paywall converts more per download (about 10% of trials) but drags ratings in this category.</li>
+  <li><b>Your time.</b> Expect 3–6 hours a week: support emails, store reviews, phone OS updates each September, and small releases. That is the real cost.</li>
+  <li><b>Accounts and data.</b> Selling the app means running your own backend: sign-in, sync, backups, account deletion inside the app (Apple requires it) and a privacy policy under the Personal Data Protection Act.</li>
+  <li><b>Health claims.</b> Growth readings and the cry helper must stay "guidance, not a diagnosis". Medical claims invite store rejection and liability.</li>
+  <li><b>Malaysia only vs worldwide.</b> 396,175 births a year is a small pool; English listings in Singapore, the Philippines, the UK and Australia multiply reach at local prices, while the KKM schedule stays a Malaysian advantage.</li>
+ </ul></div>
+</div></section>
+
+<section class="band" style="background:var(--soft)"><div class="in">
+ <h2>2. A new name and look</h2>
+ <p style="max-width:70ch">"Baby Centre" is generic and close to the large BabyCenter brand, so it would be hard to find and risky to trademark. The new name should be short, warm, easy to say in English and Malay, and free in the stores.</p>
+ <div class="names">
+  <div class="name pick"><span class="tag">Recommended</span><b>Belai</b><p><i>Membelai</i>: to cuddle, stroke and care for. Two syllables, local roots, sounds soft in any language. No baby app found with this name.</p><p class="note">Tagline: "Calm care, together."</p></div>
+  <div class="name"><span class="tag warn">Alternative</span><b>Tumbuh</b><p>"To grow." Strong for growth and milestones, but harder to say outside Malaysia and Indonesia.</p><p class="note">Tagline: "Every feed, nap and milestone."</p></div>
+  <div class="name"><span class="tag warn">Avoid</span><b>Dodoi</b><p>The Malay lullaby word is lovely, but it is very close to "Doudou: Baby Tracker for Two", an existing app for the same job.</p></div>
+ </div>
+ <p class="note" style="margin-top:12px">Before committing: search MyIPO and the stores, and check belai.app, belai.my and the social handles.</p>
+
+ <h3 style="margin-top:28px">Logo concepts</h3>
+ <div class="logos">
+  <div class="logo"><svg viewBox="0 0 120 120" role="img" aria-label="Crescent moon cradling a small cream circle"><rect width="120" height="120" rx="30" fill="#232A5C"/><path d="M78 30a34 34 0 1 0 14 50A28 28 0 1 1 78 30z" fill="#F4A261"/><circle cx="56" cy="62" r="9" fill="#FFF8F0"/></svg><b>Cradle moon</b><span class="note">A crescent holding a baby. Says night feeds and gentle care. Recommended: reads at app-icon size.</span></div>
+  <div class="logo"><svg viewBox="0 0 120 120" role="img" aria-label="A lowercase b whose bowl is a crescent"><rect width="120" height="120" rx="30" fill="#FFF8F0" stroke="#EADCCB"/><path d="M40 22v56a24 24 0 1 0 24-24c-9 0-17 4-21 11" fill="none" stroke="#232A5C" stroke-width="11" stroke-linecap="round"/><circle cx="64" cy="78" r="8" fill="#F4A261"/></svg><b>Letter b</b><span class="note">The b of Belai with an apricot heart. Works as a wordmark letter too.</span></div>
+  <div class="logo"><svg viewBox="0 0 120 120" role="img" aria-label="Two overlapping hands forming a heart around a dot"><rect width="120" height="120" rx="30" fill="#3F8A68"/><path d="M60 92C34 74 26 58 34 45c6-10 20-10 26 2 6-12 20-12 26-2 8 13 0 29-26 47z" fill="#FFF8F0"/><circle cx="60" cy="62" r="8" fill="#F4A261"/></svg><b>Held heart</b><span class="note">Care shared between two people. Friendly, but a common shape in the category.</span></div>
+ </div>
+
+ <h3 style="margin-top:28px">Colour and type</h3>
+ <div class="sw">
+  <div style="background:#232A5C;color:#F3EEE6">Night indigo<small>#232A5C · main, Now card, night mode</small></div>
+  <div style="background:#F4A261;color:#1B1F3B">Apricot<small>#F4A261 · feeds, primary buttons</small></div>
+  <div style="background:#8CC9A8;color:#1B1F3B">Sage<small>#8CC9A8 · done, healthy, growth</small></div>
+  <div style="background:#FFF8F0;color:#1B1F3B;border:1px solid #EADCCB">Cream<small>#FFF8F0 · day background</small></div>
+  <div style="background:#1B1F3B;color:#F3EEE6">Ink<small>#1B1F3B · text</small></div>
+ </div>
+ <p style="margin-top:14px"><b>Plus Jakarta Sans</b> for everything: free, rounded enough to feel warm, very legible for numbers at 3 am, and designed in the region. <b>Voice:</b> calm, short, no guilt ("Next nap in about 20 minutes", never "You missed a feed!").</p>
+</div></section>
+
+<section class="band"><div class="in">
+ <h2>3. What earns five stars</h2>
+ <p style="max-width:72ch">Top-rated trackers win on the same few things: logging in one tap at night, nothing ever lost, sharing that just works, and a fair free tier. Reviews punish paywalls on basics, lost data and ads.</p>
+ <div class="grid2">
+  <div class="tier free"><h3>Free forever <small>· what wins reviews</small></h3><ul class="ticks"><li>Feeds, sleep, nappies, burps, tummy time, with timers</li><li>Timeline, today summary, 24-hour bar</li><li>Sharing with one partner</li><li>Milestones, growth charts, KKM vaccination schedule</li><li>Two tasks with reminders</li><li>Export to Excel or PDF any time</li></ul></div>
+  <div class="tier pro"><h3>Belai Premium <small>· RM 69.90/yr · RM 12.90/mo · RM 149 lifetime</small></h3><ul class="ticks"><li>Predictions: next feed and nap "sweet spot"</li><li>Growth meaning, weight-for-length, doctor-visit PDF report</li><li>Unlimited tasks and reminders, unlimited caregivers (grandparents, nanny)</li><li>Twins and siblings</li><li>Home-screen widgets and lock-screen timers</li><li>Card photos, search and full history</li></ul><p class="note">Offer a 7-day free trial and show the paywall only after 3 days of use.</p></div>
+ </div>
+ <div class="grid3" style="margin-top:20px">
+  <div class="card"><h3>Add</h3><ul class="ticks"><li><b>Real notifications</b> for tasks, medicine and feeds (native apps can do this; the web page cannot)</li><li><b>Widgets and lock-screen timers</b> for a running feed or sleep</li><li><b>Account sign-in</b> with Apple, Google or email; invite a partner by link</li><li><b>Doctor-visit PDF</b>: growth chart, vaccines, 7-day summary</li><li><b>Bahasa Melayu</b>, then Chinese and Tamil</li><li>Medicine, temperature and pumping logs</li><li>Voice logging ("Hey Siri, log a feed")</li></ul></div>
+  <div class="card"><h3>Change</h3><ul class="ticks"><li><b>Onboarding</b>: 3 screens (baby, what to track, invite partner), with sample data you can wipe</li><li><b>One "Now" card</b> at the top of Home for whatever is running</li><li><b>Cry check becomes "Cry helper"</b>: a soothing checklist first, the sound reading as a labelled beta</li><li>Fold the burp timer into the end of a feed</li><li>Dim red night theme for 3 am</li><li>Larger text and screen-reader labels throughout</li></ul></div>
+  <div class="card"><h3>Remove or hide</h3><ul class="ticks cross"><li><b>Manual database setup</b> for sharing: replaced by accounts</li><li><b>Excel import</b>: keep export; import only for moving from another app</li><li>Backup by pasting text: replaced by automatic cloud backup</li><li>Developer wording ("build", "store", "log id")</li></ul><h3 style="margin-top:16px">Ratings habits</h3><ul class="ticks"><li>Ask for a review at happy moments (a milestone saved, day 7), using the stores' built-in prompt</li><li>Reply to every review within 2 days</li><li>Small update every month</li></ul></div>
+ </div>
+</div></section>
+
+<section class="band" style="background:var(--soft)"><div class="in">
+ <h2>4. Plan</h2>
+ <div class="road">
+  <div class="stage"><span class="rail"></span><span class="dot"></span><b>MONTH 1 · FOUNDATIONS</b><ul><li>Name, logo, store artwork</li><li>Wrap the web app as iPhone and Android apps (Capacitor)</li><li>Accounts, sync and backups on your own Firebase</li><li>Privacy policy, in-app account deletion</li></ul></div>
+  <div class="stage"><span class="dot"></span><b>MONTH 2 · NATIVE</b><ul><li>Notifications for tasks and feeds</li><li>Paywall and trial (a service like RevenueCat, free for small apps)</li><li>Onboarding and the Now card</li><li>Bahasa Melayu</li></ul></div>
+  <div class="stage"><span class="dot"></span><b>MONTH 3 · BETA</b><ul><li>TestFlight and Google closed test (new Google accounts need at least 12 testers for 14 days)</li><li>20–30 parents from your circle</li><li>Fix, polish, collect first reviews</li></ul></div>
+  <div class="stage"><span class="dot"></span><b>MONTH 4+ · LAUNCH</b><ul><li>Malaysia first, then SG, PH, UK, AU</li><li>Parenting groups, clinic word of mouth, referral month free</li><li>Widgets, PDF report, twins</li></ul></div>
+ </div>
+ <p style="margin-top:22px;max-width:75ch"><b>Bottom line.</b> RM 10,000 a year is realistic at about 200 paying families, which needs roughly 8,000 downloads a year. The pricing is the easy part; the work is the native app, accounts and steady small releases. Selling one-time only, or launching with the current setup-it-yourself sharing, would make the target much harder.</p>
+</div></section>
+
+<footer class="band"><div class="in src">
+ <p><b>Sources.</b> Competitor prices: <a href="https://apps.apple.com/us/app/huckleberry-baby-child/id1169136078">Huckleberry Premium US$119.99/yr</a>, <a href="https://apps.apple.com/us/app/baby-tracker-log-sprout/id551448817">Sprout US$59.99/yr</a>, <a href="https://www.softwareadvice.com/product/546699-Pebbi-Shared-Care-Baby-Tracker/">Pebbi £19.99/yr or £34.99 lifetime</a>, <a href="https://apps.apple.com/bs/app/id845657206">Baby Tracker Pro US$4.99 one-time</a>. Store fees: <a href="https://www.revenuecat.com/blog/engineering/app-store-fees">RevenueCat on app store fees</a>, <a href="https://developer.apple.com/app-store/small-business-program/">Apple Small Business Program</a>, <a href="https://support.google.com/googleplay/android-developer/answer/112622">Google Play service fees</a>. Conversion: <a href="https://www.revenuecat.com/state-of-subscription-apps-2026/">RevenueCat State of Subscription Apps 2026</a>. Tax: <a href="https://www.pwc.com/my/en/publications/mtb/service-tax.html">PwC Malaysian Tax Booklet, service tax 8%</a>. Births: <a href="https://www.dosm.gov.my/portal-main/release-content/vital-statistics-malaysia2026">DOSM Vital Statistics 2026 (2025 births 396,175)</a>. Name check: <a href="https://www.producthunt.com/p/doudou-baby-tracker-for-two">Doudou baby tracker</a>.</p>
+ <p>Costs marked "about" are estimates from published list prices at about RM 4.5 per US$; check current fees, the exchange rate and your tax position before launch. Prices to customers include the 8% service tax.</p>
+</div></footer>
+
+<script>
+{
+const $ = id => document.getElementById(id), BIRTHS = 396175, TAX = 1.08, KEEP = 0.85;
+const rm = x => 'RM ' + x.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), n0 = x => Math.round(x).toLocaleString('en-MY');
+function calc() {
+  const v = id => Math.max(0, parseFloat($(id).value) || 0);
+  const yr = v('i-yr') / TAX * KEEP, mo = v('i-mo') / TAX * KEEP * v('i-mom'), life = v('i-life') / TAX * KEEP;
+  let my = Math.min(100, v('i-mix-yr')), mm = Math.min(100 - my, v('i-mix-mo')), ml = 100 - my - mm;
+  $('mix-life').textContent = ml + '% choose lifetime' + (my + v('i-mix-mo') > 100 ? ' (yearly and monthly add up to more than 100%, so monthly was capped)' : '');
+  const avg = (yr * my + mo * mm + life * ml) / 100, need = avg > 0 ? Math.ceil((v('i-goal') + v('i-cost')) / avg) : 0, conv = v('i-conv') / 100, dl = conv > 0 ? need / conv : 0;
+  $('o-yr').textContent = rm(yr); $('o-mo').textContent = rm(mo); $('o-life').textContent = rm(life); $('o-avg').textContent = rm(avg);
+  $('o-pay').textContent = n0(need); $('o-dl').textContent = conv > 0 ? 'About ' + n0(Math.round(dl / 100) * 100) + ' downloads a year' : 'Set a conversion rate above 0%';
+  const share = dl / BIRTHS * 100; $('o-meter').style.width = Math.min(100, share * 10) + '%';
+  $('o-share').textContent = 'That is ' + share.toFixed(1) + '% of the babies born in Malaysia in a year' + (share > 5 ? ', which is a lot: consider selling outside Malaysia too.' : '.');
+  $('k-pay').textContent = n0(need); $('k-share').textContent = share.toFixed(1) + '%'; $('k-dl').textContent = n0(Math.round(dl / 100) * 100);
+}
+document.getElementById('ctl').addEventListener('input', calc); calc();
+}
+</script>
