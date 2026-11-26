@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.15.1 · 26 November 2026
+
+Home and Cry, from your feedback.
+
+- **Running timers have a title.** Each one shows what is happening, then when it started, then the clock: "Feeding on the left · Since 4:00 PM", "Asleep · Since 4:00 PM", "Burping · Since 4:05 PM" and "Tummy time now · Since 4:10 PM".
+- **Outlines only when something is active.** Running timers and tasks that are due keep their coloured outline. The burp suggestion and the Tasks card with nothing due no longer have one.
+- **Tasks card shows what is next** when nothing is due, for example "Next up: Bath time · Tomorrow, 9:00 AM · in 17h", with **Done early**.
+- **Cry:** tapping the microphone in the bar while a result is open goes straight back to recording.
+
 ## 1.15.0 · 26 November 2026
 
 **Search.** Tap the magnifying glass at the top of any page.

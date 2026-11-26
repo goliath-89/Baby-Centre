@@ -84,10 +84,10 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
   });
   await step('pause stops the feed clock, resume continues on the same side, paused time is not counted', async () => {
     await act('breast:L'); await page.waitForTimeout(1200); await act('feed-pause');
-    ok((await text('#feed-state')).startsWith('Paused on the left')); const frozen = await text('.live.feed .t'); eq(await page.locator('[data-action="feed-resume"]').count(), 2, 'banner and dock both offer Resume');
+    ok((await text('#feed-title')) === 'Paused on the left' && (await text('#feed-state')).startsWith('Since ')); const frozen = await text('.live.feed .t'); eq(await page.locator('[data-action="feed-resume"]').count(), 2, 'banner and dock both offer Resume');
     await page.waitForTimeout(2300); eq(await text('.live.feed .t'), frozen, 'clock stands still'); await page.reload(); eq(await text('.live.feed .t'), frozen, 'still paused after reopening'); await shot('02b-paused');
-    await act('feed-resume'); ok((await text('#feed-state')).startsWith('Feeding on the left')); await page.waitForTimeout(1200); await act('feed-pause');
-    await act('breast:R'); ok((await text('#feed-state')).startsWith('Feeding on the right'), 'switching while paused resumes on the other side'); await page.waitForTimeout(1100);
+    await act('feed-resume'); ok((await text('#feed-title')) === 'Feeding on the left'); await page.waitForTimeout(1200); await act('feed-pause');
+    await act('breast:R'); ok((await text('#feed-title')) === 'Feeding on the right', 'switching while paused resumes on the other side'); await page.waitForTimeout(1100);
     await act('feed-pause'); await page.waitForTimeout(1200); await act('feed-stop');
     const e = (await stored()).events.filter(x => x.kind === 'breast').sort((a, b) => a.start < b.start ? 1 : -1)[0];
     ok(e.end && !e.paused && !e.segStart && e.lsec >= 2 && e.lsec <= 3 && e.rsec >= 1 && e.rsec <= 2, 'only feeding time counted: ' + JSON.stringify(e));
@@ -225,13 +225,13 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     const cols = await page.$$eval('#tasks-all .dot.task', d => d.map(x => (x.className.match(/tc\d/) || [''])[0])); ok(cols.length === 2 && cols[0] && cols[0] !== cols[1], 'each task gets its own colour: ' + cols);
     ok(/^Today · \d/.test(await text('#ttab-today')), 'Today tab shows how many are open: ' + await text('#ttab-today'));
     await go('nav:home'); const card = () => text('#task-card'), item = n => page.locator('#task-card .titem', { hasText: n });
-    ok(/Tasks · 2 due/i.test(await card()), await card()); ok(/\d+m late · 1 ml/.test(await item('Vitamin drops').innerText()), await card()); ok((await item('Bath time').innerText()).includes('Missed 1 earlier'), 'the first bath was missed'); await shot('30-tasks-card');
+    ok(/Tasks · 2 due/i.test(await card()), await card()); ok((await page.getAttribute('#task-card', 'class')).includes(' on'), 'outlined while tasks are due'); ok(/\d+m late · 1 ml/.test(await item('Vitamin drops').innerText()), await card()); ok((await item('Bath time').innerText()).includes('Missed 1 earlier'), 'the first bath was missed'); await shot('30-tasks-card');
     await item('Vitamin drops').locator('[data-action^="task-done:"]').click(); await go('me-save'); ok((await text('.sheet')).includes('Enter a name'));
     await page.fill('#f-me', 'Mum'); await go('me-save'); ok((await text('#snack')).includes('done · Mum'), await text('#snack'));
     eq(await item('Vitamin drops').count(), 0, 'vitamin drops ticked'); await act('undo'); eq(await item('Vitamin drops').count(), 1, 'undo puts it back');
     await item('Vitamin drops').locator('[data-action^="task-later:"]').click(); await go('tlater:60'); ok((await text('#snack')).includes('moved to Today'));
     await item('Bath time').locator('[data-action^="task-done:"]').click(); ok((await text('#snack')).includes('Bath time done · Mum'), 'name asked only once');
-    ok((await text('#task-quiet')).includes('All done for now') && /Next: Vitamin drops · Today/.test(await card()), await card());
+    ok(/Next up[\s\S]*Vitamin drops[\s\S]*Today/.test(await text('#task-next')), await card()); ok(!(await page.getAttribute('#task-card', 'class')).includes(' on'), 'no outline when nothing is due');
     await go('tasks-open'); ok(/Vitamin drops[\s\S]*Later ·/.test(await text('#tasks-today')), await text('#tasks-today')); ok(/Bath time[\s\S]*Done · Mum/.test(await text('#tasks-today')));
     await page.locator('#tasks-today [data-action^="task-done:"]').first().click(); ok(/Vitamin drops[\s\S]*Done · Mum/.test(await text('#tasks-today')), 'ticked from the Today list');
     await go('ttab:up'); ok((await text('#view')).includes('Bath time'), 'next bath is upcoming');
@@ -314,7 +314,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     ok(await page.locator('#cry-why .chip[aria-pressed="true"]', { hasText: 'Wanted Mum' }).count() === 1, 'own reason becomes a chip'); ok(saved.fv && saved.fv.f0 > 0 && 'fed' in saved.fv, 'sound and situation saved with the check');
     await shot('07b-cry-reasons'); await act('cry-history'); ok(await page.evaluate(() => { const r = document.querySelector('#cry-hist').getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight - 100; }), 'All checks brings the history into view');
     ok((await text('#cry-hist')).includes('was wanted mum')); await page.locator('#cry-hist .row').first().click(); await act(`cry-actual:${e.id}:gas`);
-    await act('cry-again'); eq(await page.locator('#view .row').count(), 1);
+    await act('nav:cry'); eq(await page.locator('#cry-top').count(), 0, 'tapping Cry on a record goes back to recording'); eq(await page.locator('[data-action="cry-record"]').count() >= 1, true); eq(await page.locator('#view .row').count(), 1);
   });
   await step('cry check: cancel mid-recording saves nothing', async () => {
     await act('cry-record'); await page.waitForSelector('#rec-count'); await page.waitForTimeout(600); await act('cry-cancel');

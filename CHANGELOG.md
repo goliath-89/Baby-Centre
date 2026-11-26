@@ -2,6 +2,14 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.15.1] - 2026-11-26
+
+### Changed
+- Running feed, sleep, burp and tummy cards: title, then "Since <time>", then the clock (`#feed-title`, `#sleep-title`, `#tummy-title`).
+- Outline only on active states: removed from the burp suggestion; Tasks card outlined (`.taskc.on`) only while something is due.
+- Tasks card with nothing due shows the next task with Done early (`#task-next`).
+- Tapping Cry in the tab bar while a result is open returns to the record screen.
+
 ## [1.15.0] - 2026-11-26
 
 ### Added
