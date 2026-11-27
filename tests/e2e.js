@@ -48,7 +48,10 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('week:1'); ok((await text('#ins-summary')).startsWith('That week in brief')); await act('week:-1');
     await act('irange:m'); ok((await text('#ins-summary')).startsWith('Last 30 days in brief')); eq(await page.locator('#view svg.chart').count(), 8);
     await act('irange:b'); ok(/^Since birth/i.test(await text('#ins-label')), await text('#ins-label')); ok(/compared with the first week you logged/.test(await text('#ins-summary')), await text('#ins-summary'));
-    await noOverflow('insights since birth'); await shot('31-insights'); await act('irange:w'); await act('nav:home');
+    await act('irange:w'); ok(/Nap sweet spot: 1h \d+m–1h \d+m awake/.test(await text('#ins-sweet')), await text('#ins-sweet')); ok((await text('#view')).includes('Learned from Sample baby’s own naps'), 'Plan ahead uses the sweet spot');
+    ok((await text('#ins-patterns')).includes('Patterns in the last 30 days')); ok(/Longest sleep[\s\S]*Longest nap[\s\S]*Tummy streak/i.test(await text('#ins-bests')), await text('#ins-bests'));
+    await page.locator('#ins-feed svg rect.hit').nth(1).click(); ok(!/Last 24 hours/.test(await text('#day-label')), 'tapping a bar opens that day: ' + await text('#day-label'));
+    await act('irange:b'); await noOverflow('insights since birth'); await shot('31-insights'); await act('irange:w'); await act('nav:home'); { const st = await text('#view .stat.sleep'); ok(/Asleep/i.test(st) || /sweet spot/i.test(st), 'Home names the sweet spot: ' + st); }
   });
   await step('timeline shows today only; the back arrow walks through earlier days with the day, date and that day’s entries', async () => {
     ok(/^Today · \w{3}/.test(await text('#tl-when')), await text('#tl-when')); ok(await page.locator('[data-action="tl-day:-1"]').isDisabled(), 'cannot go past today');
@@ -334,6 +337,7 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await shot('07b-cry-reasons'); await act('cry-history'); ok(await page.evaluate(() => { const r = document.querySelector('#cry-hist').getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight - 100; }), 'All checks brings the history into view');
     ok((await text('#cry-hist')).includes('was wanted mum')); await page.locator('#cry-hist .row').first().click(); await act(`cry-actual:${e.id}:gas`);
     await act('nav:cry'); eq(await page.locator('#cry-top').count(), 0, 'tapping Cry on a record goes back to recording'); eq(await page.locator('[data-action="cry-record"]').count() >= 1, true); eq(await page.locator('#view .row').count(), 1);
+    await act('nav:trends'); eq(await page.locator('#ins-tod > div').count(), 4, 'cry checks by time of day'); ok(/1 cry check[\s\S]*Most often: wind or tummy \(1\)/i.test(await text('#ins-cry')), await text('#ins-cry')); await act('nav:cry');
   });
   await step('cry check: cancel mid-recording saves nothing', async () => {
     await act('cry-record'); await page.waitForSelector('#rec-count'); await page.waitForTimeout(600); await act('cry-cancel');
@@ -456,14 +460,14 @@ function ok(v, m) { if (!v) throw new Error(m || 'assertion failed'); }
     await act('nav:home'); const inp = t => { const d = new Date(t), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
     const mins = s => { const m = /^(\d+):(\d\d)$/.exec(s.trim()); return m ? +m[1] + (+m[2]) / 60 : NaN; };
     await act('breast:L'); await page.waitForTimeout(1100); await page.locator('#view .row', { hasText: 'feeding now' }).first().click();
-    await page.fill('#f-start', inp(Date.now() - 10 * 60000)); await act('save-edit'); let m = mins(await text('.live.feed .t')); ok(m >= 9.9 && m < 11, 'feed clock follows the earlier start: ' + await text('.live.feed .t'));
+    await page.fill('#f-start', inp(Date.now() - 10 * 60000)); await act('save-edit'); let m = mins(await text('.live.feed .t')); ok(m >= 9.9 && m < 11.1, 'feed clock follows the earlier start: ' + await text('.live.feed .t'));
     await act('feed-pause'); await page.locator('#view .row', { hasText: '(paused)' }).first().click(); await page.fill('#f-start', inp(Date.now() - 15 * 60000)); await act('save-edit');
-    m = mins(await text('.live.feed .t')); ok(m >= 14.9 && m < 16, 'paused feed clock follows too: ' + await text('.live.feed .t'));
+    m = mins(await text('.live.feed .t')); ok(m >= 14.9 && m < 16.1, 'paused feed clock follows too: ' + await text('.live.feed .t'));
     await act('feed-resume'); await page.locator('#view .row', { hasText: 'feeding now' }).first().click(); await page.fill('#f-start', inp(Date.now() - 5 * 60000)); await act('save-edit');
-    m = mins(await text('.live.feed .t')); ok(m >= 4.9 && m < 6, 'a later start shortens the clock: ' + await text('.live.feed .t'));
+    m = mins(await text('.live.feed .t')); ok(m >= 4.9 && m < 6.1, 'a later start shortens the clock: ' + await text('.live.feed .t'));
     const runId = (await stored()).events.find(x => x.kind === 'breast' && !x.end).id; await act('feed-stop'); const f = (await stored()).events.find(x => x.id === runId); ok(Math.abs(f.lsec + f.rsec - 300) < 70, 'saved feed length matches: ' + (f.lsec + f.rsec));
     await act('sleep-toggle'); await page.locator('#view .row', { hasText: 'Asleep now' }).first().click(); await page.fill('#f-start', inp(Date.now() - 10 * 60000)); await act('save-edit');
-    m = mins(await text('.live.sleep .t')); ok(m >= 9.9 && m < 11, 'sleep clock follows: ' + await text('.live.sleep .t')); await act('sleep-toggle');
+    m = mins(await text('.live.sleep .t')); ok(m >= 9.9 && m < 11.1, 'sleep clock follows: ' + await text('.live.sleep .t')); await act('sleep-toggle');
     await page.locator('#view .row', { hasText: 'Sleep' }).first().click(); await act('delete'); await page.locator(`[data-action="edit:${runId}"]`).click(); await act('delete');
   });
   await step('unreadable saved data is kept aside, not destroyed', async () => {

@@ -2,10 +2,23 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.17.0] - 2026-11-27
+
+### Added
+- `Core.napPairs`, `Core.sweetSpot` (30-min wake-window range with the longest median nap over 14 days; needs 8+ naps, 6+ and 15% in range, +15 min and +20% over typical, near the age guide). `predictSleep` uses it (`basis: 'yours'`, `sweet`).
+- `Core.patterns` (30 days): naps after tummy time, longest night stretch after more or less day sleep, first stretch after earlier or later bedtimes; each needs 6+ per group and a medium-to-large effect (0.6 SD) as well as a minimum difference.
+- `Core.bests`: longest sleep, longest daytime nap, most tummy time in a day, tummy streak (15+ min a day).
+- Insights: sweet-spot card, Patterns and bests section, crying by time of day, tap-a-bar opens the day timeline. Home sleep tile names the sweet spot.
+
+### Changed
+- Bedtime is the first sleep of 2+ hours from 6 PM (was 90 min), so a long evening nap is not counted.
+- Wet-nappy note below 5.5 a day on average.
+- Sample naps last longer after 75–100 min awake, and daytime wake windows vary more.
+
 ## [1.16.0] - 2026-11-27
 
 ### Added
-- `Core.periodStats(events, days, now)`: night (7 PM–7 AM) and day sleep, naps, longest night stretch, bedtime (first sleep of 90+ min starting 6 PM–1 AM; median and median deviation, from 3 nights), wake windows (median), feeds and night feeds (11 PM–6 AM), cluster-feeding days (3 feeds within 3 hours) and usual start, breast length and left/right share, bottle per day, wet/dirty per day, longest gap between dirty nappies. Only days with 3+ care entries count; only finished days and nights are averaged. `Core.dayList`.
+- `Core.periodStats(events, days, now)`: night (7 PM–7 AM) and day sleep, naps, longest night stretch, bedtime (first sleep of 2+ hours starting 6 PM–1 AM; median and median deviation, from 3 nights), wake windows (median), feeds and night feeds (11 PM–6 AM), cluster-feeding days (3 feeds within 3 hours) and usual start, breast length and left/right share, bottle per day, wet/dirty per day, longest gap between dirty nappies. Only days with 3+ care entries count; only finished days and nights are averaged. `Core.dayList`.
 - Insights: Week / Month / Since birth range, "in brief" summary (`insightLines`), ▲▼ changes against the earlier period (needs 3+ logged days and nights in both), section chips, Sleep / Feeding / Nappies / Growth and activity / Crying sections, weekly buckets for Since birth.
 - Bottle timer: running bottle (`kind: 'bottle', end: null`) with Home card, dock Done, finish sheet with the amount drunk, discard; exported as "Feeding now" and left untouched by Excel import; edits keep it running.
 

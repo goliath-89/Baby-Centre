@@ -87,6 +87,8 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Nappies: wet and dirty a day, longest gap between dirty nappies, a note under 6 wet a day after day 6.
 - Growth and activity (growth headline, tummy time), Crying (checks and the most common confirmed reasons).
 
+**v1.17.** Nap sweet spot learned from the baby's own naps (see `Core.sweetSpot`), used by Home and Plan ahead; Patterns and bests (30-day patterns with strict guardrails, personal records, tummy streak); crying by time of day; tapping a chart bar opens that day.
+
 ### 5.2d Bottle timer (v1.16)
 - The bottle sheet offers Start timer as well as Save. A running bottle shows on Home as "Bottle feeding · amount", "Since <time>" and a clock, with Discard and Done; the dock's Bottle button becomes Done. Done asks how much was drunk (prefilled) and saves the length.
 

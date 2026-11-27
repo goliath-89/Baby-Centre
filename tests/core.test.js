@@ -276,3 +276,17 @@ test('insights: night and day sleep, bedtime, naps, night feeds, cluster feeding
   assert.ok(r.leftShare > 0.55 && r.leftShare < 0.65, 'more on the left: ' + r.leftShare); assert.equal(r.wet, 5); assert.equal(r.dirty, 1); assert.equal(Math.round(r.dirtyGapMax / 36e5), 24);
   const thin = C.periodStats([{ id: 'm', type: 'moment', start: iso(at(15, 12)), title: 'x' }], C.dayList(at(14, 0), 6), now); assert.equal(thin.fullDays, 0, 'a milestone alone is not a logged day');
 });
+
+test('insights v1.17: sweet spot found only for a real effect, patterns need a clear difference, personal bests and streak', () => {
+  const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime(), mk = () => { let n = 0; const ev = []; return { ev, add: o => ev.push(Object.assign({ id: 'e' + n++ }, o)) }; };
+  // Naps after 80–100 min awake last 90 min; after shorter or longer windows, 45 min.
+  const A = mk(); for (let d = 10; d <= 20; d++) { let t = at(d, 7); A.add({ type: 'sleep', start: iso(at(d, 5)), end: iso(t) }); [50, 90, 130, 85].forEach(w => { const s = t + w * 6e4, len = w >= 80 && w < 100 ? 90 : 45; A.add({ type: 'sleep', start: iso(s), end: iso(s + len * 6e4) }); t = s + len * 6e4; }); }
+  const sw = C.sweetSpot(A.ev, at(21, 6), [60, 90]); assert.ok(sw, 'found'); assert.ok(sw.from >= 60 && sw.to <= 105 && sw.nap >= 85, JSON.stringify(sw));
+  assert.equal(C.sweetSpot(A.ev, at(21, 6), [180, 240]), null, 'ignored when far from the guide for the age');
+  const B = mk(); for (let d = 10; d <= 20; d++) { let t = at(d, 7); B.add({ type: 'sleep', start: iso(at(d, 5)), end: iso(t) }); [50, 90, 130, 85].forEach((w, i) => { const s = t + w * 6e4, len = 50 + ((d * 7 + i * 13) % 20); B.add({ type: 'sleep', start: iso(s), end: iso(s + len * 6e4) }); t = s + len * 6e4; }); }
+  assert.equal(C.sweetSpot(B.ev, at(21, 6), [60, 90]), null, 'no sweet spot when nap length does not depend on time awake');
+  assert.equal(C.patterns(B.ev, at(21, 6)).length, 0, 'no patterns in data without one');
+  const P = mk(); for (let d = 1; d <= 20; d++) { P.add({ type: 'sleep', start: iso(at(d, 6)), end: iso(at(d, 7)) }); [9, 12, 15].forEach((h, i) => { const tu = (d + i) % 2 === 0; if (tu) P.add({ type: 'tummy', start: iso(at(d, h - 1, 10)), end: iso(at(d, h - 1, 25)) }); const len = (tu ? 80 : 45) + ((d * 7 + i * 3) % 11); P.add({ type: 'sleep', start: iso(at(d, h)), end: iso(at(d, h) + len * 6e4) }); }); }
+  const pt = C.patterns(P.ev, at(21, 12)); assert.equal(pt.length, 1); assert.match(pt[0].t, /after tummy time lasted <b>3\d min longer/);
+  const b = C.bests(P.ev, at(20, 20)); assert.equal(Math.round(b.sleep.v / 6e4), 90); assert.equal(Math.round(b.tummy.v / 6e4), 30); assert.equal(b.streak, 20, 'every day had 15+ min of tummy time');
+});

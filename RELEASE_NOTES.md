@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.17.0 · 27 November 2026
+
+**Insights learn from your baby.**
+
+- **Nap sweet spot.** After about two weeks of naps, the app finds how long your baby is usually awake before the naps that last longest, for example "Nap sweet spot: 1h 15m–1h 45m awake. Naps after this much time awake lasted about 91 min, against 73 min typically."
+  - Home and Plan ahead then use it: "Sweet spot in 25m · 3:05–3:35 PM".
+  - It only appears when the difference is clear; otherwise the guide for your baby's age is used, and the page says why.
+- **Patterns** from the last 30 days, such as "Naps within an hour after tummy time lasted 35 min longer". Each must be seen at least 6 times each way, with a large difference, and is labelled "a pattern, not proof". If nothing is clear, the app says so rather than guess.
+- **Personal bests:** longest sleep, longest nap, most tummy time in a day (marked New when just set) and the tummy-time streak.
+- **Crying by time of day:** night, morning, afternoon and evening, with the fussiest time named once there are enough checks.
+- **Tap any bar** in an Insights chart to open that day's timeline.
+- The note about wet nappies now appears below an average of 5.5 a day, since about 6 is the usual guide.
+
 ## 1.16.0 · 27 November 2026
 
 **A new Insights page**, and a **bottle timer**.
