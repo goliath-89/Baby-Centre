@@ -2,6 +2,12 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.17.1] - 2026-11-27
+
+### Changed
+- Task ticks store the viewer's account id (`uid`, from the hosted page's `user` capability) instead of asking for a name; names resolve at render through `user.profiles()` (first name; "You" for the viewer). The page now declares `user` with the `profile` scope. The per-phone name is optional and only offered where there is no account.
+- Home Tasks card: one compact row per due task (time, lateness, missed count) with ✓ and ⋯ (Later or Skip sheet with the note and missed details); a single "Next up" line when nothing is due.
+
 ## [1.17.0] - 2026-11-27
 
 ### Added

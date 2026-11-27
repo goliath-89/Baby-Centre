@@ -107,8 +107,8 @@ const hasPy = (() => { try { cp.execSync('python3 -c "import openpyxl"', { stdio
     await A.page.click('[data-action="nav:more"]'); await A.page.click('[data-action="sub:tasks"]'); await A.page.click('[data-action="task-new"]'); await A.page.click('[data-action="tpick:1"]');
     await A.page.fill('#f-tday', ymd(Date.now())); await A.page.fill('#f-tt0', hhmm(Date.now() - 10 * 6e4)); await A.page.click('[data-action="task-save"]');
     await B.go('home'); await B.until(() => /Vitamin drops/.test((document.querySelector('#task-card') || {}).textContent || ''), null, 4000);
-    await B.page.locator('#task-card [data-action^="task-done:"]').first().click(); await B.page.fill('#f-me', 'Dad'); await B.page.click('[data-action="me-save"]');
-    await A.page.click('[data-action="ttab:today"]'); await A.until(() => /Done · Dad/.test(document.querySelector('#tasks-today').textContent), null, 4000);
+    await B.page.locator('#task-card [data-action^="task-done:"]').first().click();
+    await A.page.click('[data-action="ttab:today"]'); await A.until(() => /Done · \d/.test(document.querySelector('#tasks-today').textContent), null, 4000);
     await A.page.click('[data-action="ttab:all"]'); await A.page.locator('#tasks-all .row').first().click(); await A.page.click('[data-action="task-delete"]'); await A.page.click('#confirm-yes');
     await B.until(() => !document.querySelector('#task-card'), null, 4000);
     await A.go('more'); await B.go('home');
@@ -238,6 +238,18 @@ wb.save(sys.argv[2])`, xlsx, edited]);
     const pd = Object.keys(mock.docs).filter(k => /^p_vcard_/.test(k)); eq(pd.length, 3, Object.keys(mock.docs).join()); ok(pd.every(k => JSON.stringify(mock.docs[k]).length < 262144));
     await CB.page.click('#vax-cards .vcard'); await CB.page.click('[data-action="card-delete"]'); await CB.page.click('#confirm-yes'); await CA.until(() => document.querySelectorAll('#vax-cards img').length === 2, null, 4000);
     eq(await CA.page.evaluate(() => JSON.parse(localStorage.getItem('babycentre.v1')).data.events.filter(e => e.type === 'vcard').length), 2);
+    await CA.go('home'); await CB.go('home');
+  });
+  await step('hosted page: a tick records the Claude account; the other phone shows their first name, your own phone shows You; nobody is asked for a name', async () => {
+    const hhmm = x => { const d = new Date(x); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, ymd = x => { const d = new Date(x); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    await CA.page.click('[data-action="nav:more"]'); await CA.page.click('[data-action="sub:tasks"]'); await CA.page.click('[data-action="task-new"]'); await CA.page.click('[data-action="tpick:1"]');
+    await CA.page.fill('#f-tday', ymd(Date.now())); await CA.page.fill('#f-tt0', hhmm(Date.now() - 10 * 6e4)); await CA.page.click('[data-action="task-save"]');
+    await CB.go('home'); await CB.until(() => /Vitamin drops/.test((document.querySelector('#task-card') || {}).textContent || ''), null, 4000);
+    await CB.page.locator('#task-card [data-action^="task-done:"]').first().click(); eq(await CB.page.locator('.sheet').count(), 0, 'no name question');
+    const log = (await CB.stored()).events.find(e => e.type === 'tlog' && e.a === 'done'); eq(log.uid, 'u_b', 'the account id is stored'); ok(!log.by, 'no name is stored');
+    await CA.page.click('[data-action="ttab:today"]'); await CA.until(() => /Done · Daniel · /.test(document.querySelector('#tasks-today').textContent), null, 4000);
+    await CB.page.click('[data-action="tasks-open"]'); await CB.until(() => /Done · You · /.test(document.querySelector('#tasks-today').textContent), null, 4000);
+    await CA.page.click('[data-action="ttab:all"]'); await CA.page.locator('#tasks-all .row').first().click(); await CA.page.click('[data-action="task-delete"]'); await CA.page.click('#confirm-yes');
     await CA.go('home'); await CB.go('home');
   });
   await step('hosted page: a view-only visitor sees the log but is told they cannot save', async () => {

@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.17.1 · 27 November 2026
+
+- **No more "who are you?" question for tasks.** On the shared Claude page, a tick records the Claude account that made it. Your partner sees your first name ("Done · Daniel · 3:24 PM") and you see "You". Names come from Claude profiles each time and are never stored. In the installed app, which has no Claude account, ticks show no name unless you set one under Settings → Your name (optional).
+- **A more compact Tasks card on Home.** One line per due task with its time and how late it is, a **✓** to tick it off, and **⋯** for Later or Skip (with the details). With nothing due, it shows a single "Next up" line. Notes and history stay on the Tasks page.
+
 ## 1.17.0 · 27 November 2026
 
 **Insights learn from your baby.**

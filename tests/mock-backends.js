@@ -50,7 +50,8 @@ function fakeClaude(arg) {
   const post = m => fetch('/cdb', { method: 'POST', body: JSON.stringify(Object.assign({ level, uid }, m)) }).then(r => r.json()).then(r => { if (r.error) throw { code: r.error, message: r.error }; return r; });
   const snapDoc = (id, data) => ({ id, exists: !!data, data: () => data, metadata: { fromCache: false, hasPendingWrites: false } });
   const pdoc = path => ({ path, set: fields => post({ ns: 'prefs', op: 'set', path, fields }).then(() => { }), get: () => post({ ns: 'prefs', op: 'get', path }).then(r => snapDoc(path.split('/').pop(), r.exists ? r.data : null)) });
-  const user = { isOwner: () => Promise.resolve(!!o.owner), id: () => Promise.resolve(uid), canEdit: () => Promise.resolve(!!o.owner) };
+  const NAMES = { u_a: 'Aisyah Rahman', u_b: 'Daniel Lee' }; // what a viewer with the profile scope sees
+  const user = { isOwner: () => Promise.resolve(!!o.owner), id: () => Promise.resolve(uid), canEdit: () => Promise.resolve(!!o.owner), me: () => Promise.resolve({ id: uid, name: NAMES[uid] || '' }), profiles: ids => Promise.resolve(Object.fromEntries([].concat(ids).map(id => [id, { id, name: NAMES[id] || '', isMe: id === uid }]))) };
   const db = {
     doc: pdoc,
     collection: () => ({
