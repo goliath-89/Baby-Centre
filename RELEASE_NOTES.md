@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.16.0 · 27 November 2026
+
+**A new Insights page**, and a **bottle timer**.
+
+- **Week, Month or Since birth.** Switch the range at the top; the arrows step back through earlier weeks or months.
+- **"This week in brief"** sums up what changed in a few lines, for example "Night sleep up 40m, to 10h 11m a night" or "Bedtime usually around 8:30 PM, within about 30 minutes: a steady routine."
+- **Compared with the period before.** Each figure shows ▲ or ▼ against the previous week or 30 days. Since birth compares your latest week with the first week you logged. Comparisons only appear once at least 3 days are logged in both periods.
+- **Jump to a section:** Sleep, Feeding, Nappies, Growth or Crying.
+- **New sleep insights:** night sleep (7 PM to 7 AM) and day sleep, naps a day, longest night stretch, usual bedtime and how steady it is, and time awake between naps compared with the guide for your baby's age.
+- **New feeding insights:** night feeds (11 PM to 6 AM), cluster feeding (3 feeds within 3 hours) and when it usually starts, average breastfeed length, left and right balance, and bottle amount a day. A note appears if feeds jump around a common growth-spurt age.
+- **Nappies:** wet and dirty a day, the longest gap between dirty nappies, and a gentle note if there are fewer than 6 wet nappies a day after the first week.
+- **Growth and crying** at a glance, with links to the growth charts and cry checks.
+- **Bottle timer.** In the bottle sheet, tap **Start timer**. Home shows "Bottle feeding · 120 ml", the start time and a running clock. Tap **Done** to enter how much was actually drunk, or **Discard**.
+- The sample data now covers three weeks, so the comparisons have something to show.
+
 ## 1.15.1 · 26 November 2026
 
 Home and Cry, from your feedback.

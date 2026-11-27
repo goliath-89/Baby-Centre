@@ -2,6 +2,17 @@
 
 All notable changes to Baby Centre. Format follows Keep a Changelog; versions follow SemVer.
 
+## [1.16.0] - 2026-11-27
+
+### Added
+- `Core.periodStats(events, days, now)`: night (7 PM–7 AM) and day sleep, naps, longest night stretch, bedtime (first sleep of 90+ min starting 6 PM–1 AM; median and median deviation, from 3 nights), wake windows (median), feeds and night feeds (11 PM–6 AM), cluster-feeding days (3 feeds within 3 hours) and usual start, breast length and left/right share, bottle per day, wet/dirty per day, longest gap between dirty nappies. Only days with 3+ care entries count; only finished days and nights are averaged. `Core.dayList`.
+- Insights: Week / Month / Since birth range, "in brief" summary (`insightLines`), ▲▼ changes against the earlier period (needs 3+ logged days and nights in both), section chips, Sleep / Feeding / Nappies / Growth and activity / Crying sections, weekly buckets for Since birth.
+- Bottle timer: running bottle (`kind: 'bottle', end: null`) with Home card, dock Done, finish sheet with the amount drunk, discard; exported as "Feeding now" and left untouched by Excel import; edits keep it running.
+
+### Changed
+- Sample data covers three weeks with night stretches lengthening, and a nappy after every feed.
+- Bar charts thin out their labels for long ranges; the sleep pattern shows dates when it covers more than a week.
+
 ## [1.15.1] - 2026-11-26
 
 ### Changed

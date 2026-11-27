@@ -258,3 +258,21 @@ test('growth: WHO weight-for-length matches published medians, and the plain-lan
   assert.match(low.headline, /very small for age and thin for their length/);
   assert.deepEqual(C.growthReport(ev, { dob }, day(125)), { needSex: true }); assert.equal(C.growthReport([], { dob, sex: 'm' }, day(125)), null);
 });
+
+test('insights: night and day sleep, bedtime, naps, night feeds, cluster feeding, side balance and nappies over a period', () => {
+  const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime(), ev = [], now = at(20, 12), H6 = 60000;
+  const sl = (a, b) => ev.push({ id: 's' + a, type: 'sleep', start: iso(a), end: iso(b) }), bf = (t, l, r) => ev.push({ id: 'b' + t, type: 'feed', kind: 'breast', side: 'L', start: iso(t), end: iso(t + (l + r) * 1000), lsec: l, rsec: r }), dp = (t, k) => ev.push({ id: 'd' + t, type: 'diaper', kind: k, start: iso(t) });
+  for (let d = 14; d <= 19; d++) {
+    sl(at(d, 20, 30), at(d + 1, 2)); sl(at(d + 1, 2, 40), at(d + 1, 6, 30)); // bedtime 8:30 PM, one night feed at 2:10
+    sl(at(d, 9), at(d, 10)); sl(at(d, 12), at(d, 13, 30)); // two naps, 1h 30m awake between
+    bf(at(d + 1, 2, 10), 600, 600); [7, 11, 14].forEach(h => bf(at(d, h), 900, 300)); [17, 18, 19].forEach(h => bf(at(d, h, 30), 600, 600)); // evening cluster from 5:30 PM
+    [8, 10, 12, 14, 16, 18].forEach(h => dp(at(d, h), h === 12 ? 'dirty' : 'wet'));
+  }
+  const r = C.periodStats(ev, C.dayList(at(14, 0), 6), now);
+  assert.equal(r.fullDays, 6); assert.equal(r.nights, 6, 'every night ended before noon on the 20th'); assert.equal(C.periodStats(ev, C.dayList(at(14, 0), 6), at(20, 6)).nights, 5, 'a night still going is left out');
+  assert.equal(Math.round(r.nightSleep / 6e4), 330 + 230, 'night sleep 7 PM–7 AM'); assert.equal(Math.round(r.daySleep / 6e4), 150); assert.equal(r.naps, 2);
+  assert.equal(Math.round(r.bedtime), 20 * 60 + 30); assert.equal(Math.round(r.bedSpread), 0); assert.equal(r.nightFeeds, 1); assert.equal(Math.round(r.wake), 120);
+  assert.equal(Math.round(r.feeds * 6), 41, 'the first day has no feed from the night before'); assert.equal(r.clusterDays, 6); assert.equal(Math.round(r.clusterAt), 17 * 60 + 30);
+  assert.ok(r.leftShare > 0.55 && r.leftShare < 0.65, 'more on the left: ' + r.leftShare); assert.equal(r.wet, 5); assert.equal(r.dirty, 1); assert.equal(Math.round(r.dirtyGapMax / 36e5), 24);
+  const thin = C.periodStats([{ id: 'm', type: 'moment', start: iso(at(15, 12)), title: 'x' }], C.dayList(at(14, 0), 6), now); assert.equal(thin.fullDays, 0, 'a milestone alone is not a logged day');
+});

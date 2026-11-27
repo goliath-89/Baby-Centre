@@ -81,6 +81,15 @@ Multiple babies, more than one shared log per install, accounts and sign-in, end
 - Week view with previous/next: average sleep per day, longest stretch, feeds per day, nappies per day.
 - Charts: sleep pattern grid (days across, 24 hours down, with feed marks), sleep hours per day against the guide range, breast minutes left/right, bottle amount, feeds per day.
 
+**v1.16 redesign.** Range: Week (7 days), Month (30 days) or Since birth (weekly bars), with arrows to step back. An "in brief" card lists up to four of the most important changes against the previous period (Since birth: latest full week against the first full week logged), only when both periods have at least 3 days with 3+ care entries. Section chips jump to Sleep, Feeding, Nappies, Growth and activity, and Crying.
+- Sleep: sleep a day, night (7 PM–7 AM) and day sleep, naps a day, longest night stretch, usual bedtime (needs 3 nights) and spread, time awake between naps against the age guide; sleep pattern grid (7 or the last 14 days); night and day sleep bars.
+- Feeding: feeds a day, night feeds (11 PM–6 AM), average breastfeed, left/right share, bottle a day, cluster-feeding days and usual start; growth-spurt note when feeds rise by 1+ a day near 2, 3 and 6 weeks, 3 and 6 months.
+- Nappies: wet and dirty a day, longest gap between dirty nappies, a note under 6 wet a day after day 6.
+- Growth and activity (growth headline, tummy time), Crying (checks and the most common confirmed reasons).
+
+### 5.2d Bottle timer (v1.16)
+- The bottle sheet offers Start timer as well as Save. A running bottle shows on Home as "Bottle feeding · amount", "Since <time>" and a clock, with Discard and Done; the dock's Bottle button becomes Done. Done asks how much was drunk (prefilled) and saves the length.
+
 ### 5.5 Cry check
 - Record 5 seconds with the microphone, or upload a clip.
 - The clip is analysed on the phone. Audio is never stored or sent anywhere.
